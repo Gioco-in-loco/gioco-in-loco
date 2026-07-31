@@ -1,0 +1,16 @@
+import { NextResponse } from 'next/server'
+import { requireResponsabileApi } from '../../../../../src/lib/admin-guard'
+import { uploadOneShotImage } from '../../../../../src/lib/oneshot-image-upload'
+
+export async function POST(request) {
+  const { error, status } = await requireResponsabileApi()
+  if (error) return NextResponse.json({ error }, { status })
+
+  try {
+    const formData = await request.formData()
+    const url = await uploadOneShotImage(formData.get('file'))
+    return NextResponse.json({ url })
+  } catch (caughtError) {
+    return NextResponse.json({ error: caughtError.message || 'Caricamento immagine non riuscito.' }, { status: caughtError.status || 500 })
+  }
+}

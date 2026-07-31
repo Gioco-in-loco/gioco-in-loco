@@ -1,0 +1,495 @@
+import { prisma } from './prisma'
+import { cancelUserMainEventReservation } from './main-event-booking'
+
+const DAY_ORDER = ['Lunedi', 'Martedi', 'Mercoledi', 'Giovedi', 'Venerdi', 'Sabato', 'Domenica', 'Giovedì', 'Venerdì']
+const ACCOUNT_BOOKING_VISIBLE_STATUSES = ['PENDING', 'CONFIRMED', 'ATTENDED', 'CANCELLED']
+const ACCOUNT_BOOKING_ACTIVE_STATUSES = ['PENDING', 'CONFIRMED', 'ATTENDED']
+
+function getUpcomingEventWhere(now) {
+  return {
+    OR: [
+      { endDate: { gte: now } },
+      {
+        AND: [
+          { endDate: null },
+          { startDate: { gte: now } },
+        ],
+      },
+    ],
+  }
+}
+
+function normalizeDate(value) {
+  return value ? value.toISOString() : null
+}
+
+function getStatusSortOrder(status) {
+  switch (status) {
+    case 'CONFIRMED':
+      return 0
+    case 'PENDING':
+      return 1
+    case 'ATTENDED':
+      return 2
+    case 'CANCELLED':
+      return 3
+    default:
+      return 9
+  }
+}
+
+function sortSchedules(left, right) {
+  const dayIndexLeft = DAY_ORDER.indexOf(left.day)
+  const dayIndexRight = DAY_ORDER.indexOf(right.day)
+
+  if (dayIndexLeft !== dayIndexRight) {
+    return (dayIndexLeft === -1 ? 999 : dayIndexLeft) - (dayIndexRight === -1 ? 999 : dayIndexRight)
+  }
+
+  if (left.slot !== right.slot) {
+    return left.slot.localeCompare(right.slot)
+  }
+
+  return String(left.table || '').localeCompare(String(right.table || ''), undefined, { numeric: true })
+}
+
+function sortBookings(left, right) {
+  const statusOrder = getStatusSortOrder(left.status) - getStatusSortOrder(right.status)
+  if (statusOrder !== 0) return statusOrder
+
+  const scheduleOrder = sortSchedules(left.schedule, right.schedule)
+  if (scheduleOrder !== 0) return scheduleOrder
+
+  return new Date(right.updatedAt || right.createdAt || 0).getTime() - new Date(left.updatedAt || left.createdAt || 0).getTime()
+}
+
+function createBookingError(message, status) {
+  const error = new Error(message)
+  error.status = status
+  return error
+}
+
+function getCanCancelStatus(status) {
+  return status === 'PENDING' || status === 'CONFIRMED'
+}
+
+function assertBookingCanBeCancelled(status) {
+  if (status === 'CANCELLED') {
+    throw createBookingError('La prenotazione è già stata cancellata.', 400)
+  }
+
+  if (status === 'ATTENDED') {
+    throw createBookingError('Non puoi cancellare una prenotazione già registrata come partecipata.', 400)
+  }
+
+  if (status === 'HOLD' || status === 'EXPIRED') {
+    throw createBookingError('Questa prenotazione non è gestibile dall\'area utente.', 400)
+  }
+}
+
+function getEventSummary(event) {
+  if (!event) {
+    return null
+  }
+
+  return {
+    id: event.id,
+    name: event.name,
+    externalId: event.externalId,
+    location: event.location || null,
+    startDate: normalizeDate(event.startDate),
+    endDate: normalizeDate(event.endDate),
+  }
+}
+
+function getUpcomingLinkedEvent(eventLinks) {
+  const now = new Date()
+
+  return eventLinks
+    .map((link) => link.event)
+    .find((event) => {
+      if (!event) return false
+
+      if (event.endDate) {
+        return event.endDate >= now
+      }
+
+      if (event.startDate) {
+        return event.startDate >= now
+      }
+
+      return false
+    }) || null
+}
+
+function serializeOneShotBooking(reservation) {
+  const event = getUpcomingLinkedEvent(reservation.slot.oneshot.eventLinks)
+
+  return {
+    id: reservation.id,
+    bookingType: 'oneshot',
+    bookingTypeLabel: 'One shot',
+    status: reservation.status,
+    canCancel: getCanCancelStatus(reservation.status),
+    createdAt: normalizeDate(reservation.createdAt),
+    updatedAt: normalizeDate(reservation.updatedAt),
+    event: getEventSummary(event),
+    activity: {
+      title: reservation.slot.oneshot.title,
+      game: reservation.slot.oneshot.game,
+      price: reservation.slot.oneshot.price ?? null,
+      hostLabel: reservation.slot.oneshot.master ? `Master: ${reservation.slot.oneshot.master}` : null,
+      associationName: reservation.slot.oneshot.association?.name || null,
+    },
+    schedule: {
+      day: reservation.slot.day,
+      slot: reservation.slot.slot,
+      table: reservation.slot.table,
+    },
+  }
+}
+
+function serializeMainEventBooking(reservation) {
+  return {
+    id: reservation.id,
+    bookingType: 'main-event',
+    bookingTypeLabel: 'Main event',
+    status: reservation.status,
+    canCancel: getCanCancelStatus(reservation.status),
+    createdAt: normalizeDate(reservation.createdAt),
+    updatedAt: normalizeDate(reservation.updatedAt),
+    event: getEventSummary(reservation.event),
+    activity: {
+      title: reservation.mainEvent.title,
+      game: reservation.mainEvent.game || null,
+      price: reservation.mainEvent.price ?? null,
+      hostLabel: null,
+      associationName: null,
+    },
+    schedule: {
+      day: reservation.day,
+      slot: reservation.slot,
+      table: null,
+    },
+  }
+}
+
+function serializeEventAdmissionBooking(admission, { hasOtherActiveBookings }) {
+  const eventSummary = getEventSummary(admission.event)
+  const canCancel = getCanCancelStatus(admission.status) && !hasOtherActiveBookings
+
+  return {
+    id: admission.id,
+    bookingType: 'event-admission',
+    bookingTypeLabel: 'Pass giornaliero',
+    status: admission.status,
+    canCancel,
+    cancellationBlockedReason: !canCancel && getCanCancelStatus(admission.status) && hasOtherActiveBookings
+      ? 'Non puoi cancellare il pass finché hai altre prenotazioni attive per questo evento.'
+      : null,
+    createdAt: normalizeDate(admission.createdAt),
+    updatedAt: normalizeDate(admission.updatedAt),
+    event: eventSummary,
+    activity: {
+      title: 'Pass giornaliero',
+      game: null,
+      hostLabel: admission.pricePaid == null || admission.pricePaid <= 0 ? 'Ingresso gratuito' : `Importo: ${new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR' }).format(admission.pricePaid)}`,
+      associationName: null,
+    },
+    schedule: {
+      day: admission.day || null,
+      slot: null,
+      table: null,
+    },
+  }
+}
+
+export async function getUserAccountBookings({ userId, db = prisma }) {
+  const now = new Date()
+
+  const [oneShotReservations, mainEventReservations, eventAdmissions] = await Promise.all([
+    db.reservation.findMany({
+      where: {
+        userId,
+        status: { in: ACCOUNT_BOOKING_VISIBLE_STATUSES },
+        slot: {
+          oneshot: {
+            eventLinks: {
+              some: {
+                event: getUpcomingEventWhere(now),
+              },
+            },
+          },
+        },
+      },
+      select: {
+        id: true,
+        status: true,
+        createdAt: true,
+        updatedAt: true,
+        slot: {
+          select: {
+            day: true,
+            slot: true,
+            table: true,
+            oneshot: {
+              select: {
+                title: true,
+                game: true,
+                price: true,
+                master: true,
+                association: {
+                  select: {
+                    name: true,
+                  },
+                },
+                eventLinks: {
+                  select: {
+                    event: {
+                      select: {
+                        id: true,
+                        name: true,
+                        externalId: true,
+                        location: true,
+                        startDate: true,
+                        endDate: true,
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    }),
+    db.mainEventReservation.findMany({
+      where: {
+        userId,
+        status: { in: ACCOUNT_BOOKING_VISIBLE_STATUSES },
+        event: getUpcomingEventWhere(now),
+      },
+      select: {
+        id: true,
+        status: true,
+        createdAt: true,
+        updatedAt: true,
+        day: true,
+        slot: true,
+        mainEvent: {
+          select: {
+            title: true,
+            game: true,
+            price: true,
+          },
+        },
+        event: {
+          select: {
+            id: true,
+            name: true,
+            externalId: true,
+            location: true,
+            startDate: true,
+            endDate: true,
+          },
+        },
+      },
+    }),
+    db.eventAdmission.findMany({
+      where: {
+        userId,
+        status: { in: ACCOUNT_BOOKING_VISIBLE_STATUSES },
+        event: getUpcomingEventWhere(now),
+      },
+      select: {
+        id: true,
+        day: true,
+        status: true,
+        createdAt: true,
+        updatedAt: true,
+        pricePaid: true,
+        event: {
+          select: {
+            id: true,
+            name: true,
+            externalId: true,
+            location: true,
+            startDate: true,
+            endDate: true,
+          },
+        },
+      },
+    }),
+  ])
+
+  const activeBookingsByEventId = new Map()
+  const activeBookingsByEventDay = new Map()
+
+  for (const reservation of oneShotReservations) {
+    const event = getUpcomingLinkedEvent(reservation.slot.oneshot.eventLinks)
+    if (!event || !ACCOUNT_BOOKING_ACTIVE_STATUSES.includes(reservation.status)) continue
+    activeBookingsByEventId.set(event.id, (activeBookingsByEventId.get(event.id) || 0) + 1)
+    const dayKey = `${event.id}__${reservation.slot.day}`
+    activeBookingsByEventDay.set(dayKey, (activeBookingsByEventDay.get(dayKey) || 0) + 1)
+  }
+
+  for (const reservation of mainEventReservations) {
+    const eventId = reservation.event?.id
+    if (!eventId || !ACCOUNT_BOOKING_ACTIVE_STATUSES.includes(reservation.status)) continue
+    activeBookingsByEventId.set(eventId, (activeBookingsByEventId.get(eventId) || 0) + 1)
+    const dayKey = `${eventId}__${reservation.day}`
+    activeBookingsByEventDay.set(dayKey, (activeBookingsByEventDay.get(dayKey) || 0) + 1)
+  }
+
+  return [
+    ...oneShotReservations.map(serializeOneShotBooking),
+    ...mainEventReservations.map(serializeMainEventBooking),
+    ...eventAdmissions.map((admission) => serializeEventAdmissionBooking(admission, {
+      hasOtherActiveBookings: admission.day
+        ? (activeBookingsByEventDay.get(`${admission.event.id}__${admission.day}`) || 0) > 0
+        : (activeBookingsByEventId.get(admission.event.id) || 0) > 0,
+    })),
+  ].sort(sortBookings)
+}
+
+export async function cancelUserAccountBooking({ bookingType, bookingId, userId, db = prisma }) {
+  if (bookingType === 'oneshot') {
+    const reservation = await db.reservation.findUnique({
+      where: { id: bookingId },
+      select: {
+        id: true,
+        userId: true,
+        status: true,
+        slot: {
+          select: {
+            oneshot: {
+              select: {
+                title: true,
+              },
+            },
+          },
+        },
+      },
+    })
+
+    if (!reservation || reservation.userId !== userId) {
+      throw createBookingError('Prenotazione non trovata.', 404)
+    }
+
+    assertBookingCanBeCancelled(reservation.status)
+
+    await db.reservation.update({
+      where: { id: reservation.id },
+      data: {
+        status: 'CANCELLED',
+        holdExpiresAt: null,
+      },
+    })
+
+    return {
+      id: reservation.id,
+      bookingType,
+      title: reservation.slot.oneshot.title,
+    }
+  }
+
+  if (bookingType === 'main-event') {
+    const reservation = await cancelUserMainEventReservation({ reservationId: bookingId, userId, db })
+
+    return {
+      id: reservation.id,
+      bookingType,
+      title: reservation.title,
+    }
+  }
+
+  if (bookingType === 'event-admission') {
+    const admission = await db.eventAdmission.findUnique({
+      where: { id: bookingId },
+      select: {
+        id: true,
+        userId: true,
+        status: true,
+        eventId: true,
+        day: true,
+        event: {
+          select: {
+            name: true,
+          },
+        },
+      },
+    })
+
+    if (!admission || admission.userId !== userId) {
+      throw createBookingError('Prenotazione non trovata.', 404)
+    }
+
+    assertBookingCanBeCancelled(admission.status)
+
+    // A day-scoped admission ("" = legacy whole-event pass) only blocks
+    // cancellation on reservations for that SAME day — a user can drop their
+    // Sabato pass while keeping a Domenica GDR booking.
+    const [activeReservations, activeMainEventReservations] = await Promise.all([
+      db.reservation.count({
+        where: {
+          userId,
+          status: { in: ACCOUNT_BOOKING_ACTIVE_STATUSES },
+          slot: {
+            ...(admission.day ? { day: admission.day } : {}),
+            oneshot: {
+              eventLinks: {
+                some: { eventId: admission.eventId },
+              },
+            },
+          },
+        },
+      }),
+      db.mainEventReservation.count({
+        where: {
+          userId,
+          status: { in: ACCOUNT_BOOKING_ACTIVE_STATUSES },
+          eventId: admission.eventId,
+          ...(admission.day ? { day: admission.day } : {}),
+        },
+      }),
+    ])
+
+    if (activeReservations > 0 || activeMainEventReservations > 0) {
+      throw createBookingError(
+        admission.day
+          ? 'Non puoi cancellare questo ingresso finché hai prenotazioni attive per questo giorno.'
+          : 'Non puoi cancellare il pass finché hai altre prenotazioni attive per questo evento.',
+        400,
+      )
+    }
+
+    // The pass ("") carries the actual price — block cancelling it while
+    // other day-tickets still exist for this event, so they never end up
+    // referencing a pass that no longer exists.
+    if (!admission.day) {
+      const otherDayAdmissions = await db.eventAdmission.count({
+        where: { userId, eventId: admission.eventId, day: { not: '' } },
+      })
+
+      if (otherDayAdmissions > 0) {
+        throw createBookingError('Non puoi cancellare il pass finché hai altri giorni prenotati per questo evento.', 400)
+      }
+    }
+
+    await db.eventAdmission.update({
+      where: { id: admission.id },
+      data: {
+        status: 'CANCELLED',
+        holdExpiresAt: null,
+      },
+    })
+
+    return {
+      id: admission.id,
+      bookingType,
+      title: admission.event?.name || 'Pass giornaliero',
+    }
+  }
+
+  throw createBookingError('Tipo prenotazione non supportato.', 400)
+}

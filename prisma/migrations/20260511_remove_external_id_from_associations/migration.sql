@@ -1,0 +1,1 @@
+ALTER TABLE "associations" DROP COLUMN "externalId";

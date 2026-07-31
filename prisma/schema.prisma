@@ -1,0 +1,454 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// For migrations, use:
+// DATABASE_URL="postgresql://postgres.hlqedevubyadjkigwcep:PASSWORD@aws-0-eu-west-1.pooler.supabase.com:5432/postgres"
+// npx prisma migrate dev --create-only
+
+// ============================================================
+// USER & AUTHENTICATION
+// ============================================================
+
+model User {
+  id             String    @id @default(cuid())
+  supabaseUserId String    @unique
+  role           UserRole  @default(USER)
+  isAdmin        Boolean   @default(false)
+  associationId  String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  // GDPR fields
+  consentGiven   Boolean   @default(false)
+  consentDate    DateTime?
+
+  // Marketing preferences
+  newsletterOptIn Boolean  @default(false)
+
+  // Relations
+  managedAssociation    Association?           @relation("AssociationManagers", fields: [associationId], references: [id])
+  reservations          Reservation[]
+  mainEventReservations MainEventReservation[]
+  eventAdmissions       EventAdmission[]
+  feedbackReceived      UserFeedback[]         @relation("UserFeedbackTarget")
+  feedbackAuthored      UserFeedback[]         @relation("UserFeedbackAuthor")
+  waitlistEntries       EventWaitlist[]
+
+  @@map("users")
+}
+
+enum UserRole {
+  USER
+  RESPONSABILE
+  ADMIN
+}
+
+// ============================================================
+// ASSOCIATIONS (migrated from associazioni.json)
+// ============================================================
+
+model Association {
+  id           String   @id @default(cuid())
+  name         String
+  logo         String?
+  bio          String?
+  address      String?
+  city         String?
+  openingHours String?
+  instagram    String?
+  facebook     String?
+  website      String?
+  whatsapp     String?
+  email        String?
+  tiktok       String?
+  linktree     String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  managers        User[]           @relation("AssociationManagers")
+  games           BoardGame[]
+  oneshots        OneShot[]
+  eventBoardGames EventBoardGame[]
+
+  @@map("associations")
+}
+
+// ============================================================
+// BOARD GAMES (from giochi.json + hardcore.json)
+// ============================================================
+
+model BoardGame {
+  id          String   @id @default(cuid())
+  externalId  String   @unique  // maps to JSON id (e.g., "mlem")
+  title       String
+  description String?
+  image       String?
+  players     String?
+  time        String?
+  category    String?
+  complexity  String?   // only for hardcore games: media, alta, molto alta
+  ownerId     String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+    owner       Association?    @relation(fields: [ownerId], references: [id])
+  eventLinks  EventBoardGame[]
+
+  @@map("board_games")
+}
+
+// ============================================================
+// EVENTS (fiere, manifestazioni)
+// ============================================================
+
+model Event {
+  id          String   @id @default(cuid())
+  externalId  String   @unique  // e.g., "comicon-2026", "napoli-gioco-2026"
+  name        String
+  description String?
+  location    String?
+  mapsUrl     String?
+  price       Float?
+  dailyPrice  Float?   // usato solo quando price non è impostato: prezzo per singolo ingresso giornaliero
+  days        String[] @default([]) // giorni dell'evento (es. "Venerdi", "Sabato"), usati per limitare i giorni selezionabili negli slot
+  timeSlots   String[] @default([]) // fasce orarie dell'evento (formato "HH:mm-HH:mm"), usate per limitare le fasce selezionabili negli slot
+  startDate   DateTime?
+  endDate     DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  boardGameLinks EventBoardGame[]
+  oneShotLinks   EventOneShot[]
+  mainEventReservations MainEventReservation[]
+  admissions     EventAdmission[]
+  slots          EventSlot[]
+  waitlists      EventWaitlist[]
+
+  @@map("events")
+}
+
+model EventAdmission {
+  id           String            @id @default(cuid())
+  userId       String
+  eventId      String
+  day          String            @default("") // "" = intero evento / nessun giorno GDR; altrimenti stringa giorno (es. "Sabato") come EventSlot.day
+  status       ReservationStatus @default(PENDING)
+  holdExpiresAt DateTime?
+  pricePaid    Float?
+  consentGiven Boolean           @default(false)
+  consentDate  DateTime?
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+
+  user         User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  event        Event             @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, eventId, day])
+  @@index([eventId])
+  @@index([status, holdExpiresAt])
+  @@map("event_admissions")
+}
+
+model EventWaitlist {
+  id         String    @id @default(cuid())
+  userId     String
+  eventId    String
+  day        String
+  createdAt  DateTime  @default(now())
+  notifiedAt DateTime?
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, eventId, day])
+  @@index([eventId, day, notifiedAt])
+  @@map("event_waitlists")
+}
+
+model EventBoardGame {
+  id          String    @id @default(cuid())
+  eventId     String
+  boardGameId String
+  associationId String?
+  copies      Int       @default(1)
+  createdAt   DateTime  @default(now())
+
+  event       Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  boardGame   BoardGame    @relation(fields: [boardGameId], references: [id], onDelete: Cascade)
+  association Association? @relation(fields: [associationId], references: [id])
+
+  @@unique([eventId, boardGameId, associationId])
+  @@index([eventId])
+  @@index([boardGameId])
+  @@index([associationId])
+  @@map("event_board_games")
+}
+
+model EventOneShot {
+  eventId     String
+  oneShotId   String
+  createdAt   DateTime @default(now())
+
+  event       Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  oneShot     OneShot  @relation(fields: [oneShotId], references: [id], onDelete: Cascade)
+
+  @@id([eventId, oneShotId])
+  @@index([oneShotId])
+  @@map("event_one_shots")
+}
+
+// ============================================================
+// MAIN EVENTS (giochi principali con prenotazioni)
+// ============================================================
+
+model MainEvent {
+  id            String   @id @default(cuid())
+  title         String
+  description   String?
+  game          String?   // rulebook/game name
+  image         String?
+  price         Float?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  slots         EventSlot[]
+  reservations  MainEventReservation[]
+
+  @@map("main_events")
+}
+
+model MainEventReservation {
+  id            String           @id @default(cuid())
+  userId        String
+  mainEventId   String
+  eventId       String
+  day           String
+  slot          String
+  status        ReservationStatus @default(PENDING)
+  holdExpiresAt DateTime?
+  playerName    String?
+  playerEmail   String?
+  notes         String?
+  consentGiven  Boolean   @default(false)
+  consentDate   DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  user          User         @relation(fields: [userId], references: [id])
+  mainEvent     MainEvent    @relation(fields: [mainEventId], references: [id], onDelete: Cascade)
+  event         Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, mainEventId, eventId, day, slot])
+  @@index([mainEventId, eventId, day, slot, status, holdExpiresAt])
+  @@index([userId, status, holdExpiresAt])
+  @@map("main_event_reservations")
+}
+
+// ============================================================
+// ONE-SHOT EVENTS (from oneshot.json)
+// ============================================================
+
+model OneShot {
+  id            String   @id @default(cuid())
+  title         String
+  game          String    // rulebook name (D&D 5e, Pathfinder, etc.)
+  master        String    // Game master's name
+  description   String?
+  image         String?   // public URL in Supabase Storage, not the file itself
+  price         Float?
+  minPlayers    Int       @default(1)
+  maxPlayers    Int       @default(6)
+  associationId String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  association   Association?   @relation(fields: [associationId], references: [id])
+  eventLinks    EventOneShot[]
+  slots         EventSlot[]
+
+  @@map("one_shots")
+}
+
+// Pool di tavoli/slot condiviso per evento: un tavolo può essere assegnato a
+// una one-shot O a un main event (mai entrambi) — invece di due pool
+// paralleli e strutturalmente identici, gli slot si creano una volta sola per
+// evento e si assegnano all'uno o all'altro.
+model EventSlot {
+  id          String   @id @default(cuid())
+  day         String    // "Giovedì", "Venerdì", "Sabato", "Domenica"
+  slot        String    // "13-15", "17-19", etc.
+  table       String    // "Tavolo 7"
+  maxPlayers  Int       @default(5)
+  adminOnly   Boolean   @default(false)
+  eventId     String
+  oneshotId   String?
+  mainEventId String?
+
+  // Relations
+  event        Event         @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  oneshot      OneShot?      @relation(fields: [oneshotId], references: [id], onDelete: SetNull)
+  mainEvent    MainEvent?    @relation(fields: [mainEventId], references: [id], onDelete: SetNull)
+  reservations Reservation[]
+
+  @@index([eventId])
+  @@map("event_slots")
+}
+
+// ============================================================
+// RESERVATIONS (prenotazioni)
+// ============================================================
+
+model Reservation {
+  id            String           @id @default(cuid())
+  userId        String
+  slotId        String
+  status        ReservationStatus @default(PENDING)
+  holdExpiresAt DateTime?
+  playerName    String?           // Name of the player for this booking
+  playerEmail   String?
+  notes         String?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  // GDPR consent for this specific booking
+  consentGiven  Boolean   @default(false)
+  consentDate   DateTime?
+
+  // Relations
+  user          User         @relation(fields: [userId], references: [id])
+  slot          EventSlot    @relation(fields: [slotId], references: [id])
+  feedbackEntries UserFeedback[]
+
+  @@unique([userId, slotId])
+  @@index([slotId, status, holdExpiresAt])
+  @@index([userId, status, holdExpiresAt])
+  @@map("reservations")
+}
+
+model UserFeedback {
+  id           String           @id @default(cuid())
+  userId       String
+  reservationId String?
+  authorUserId String?
+  type         UserFeedbackType
+  message      String
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  user         User             @relation("UserFeedbackTarget", fields: [userId], references: [id])
+  reservation  Reservation?     @relation(fields: [reservationId], references: [id], onDelete: SetNull)
+  authorUser   User?            @relation("UserFeedbackAuthor", fields: [authorUserId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt])
+  @@index([reservationId])
+  @@index([authorUserId])
+  @@map("user_feedback")
+}
+
+enum ReservationStatus {
+  HOLD         // Temporarily blocked in cart, expires automatically
+  PENDING      // Awaiting confirmation
+  CONFIRMED    // Confirmed by admin/user
+  CANCELLED    // Cancelled by user
+  EXPIRED      // Hold expired before confirmation
+  ATTENDED     // User attended the event
+}
+
+enum UserFeedbackType {
+  ADMIN_RESERVATION_CANCELLATION
+}
+
+// ============================================================
+// GDPR AUDIT LOG
+// ============================================================
+
+model GdprAuditLog {
+  id          String     @id @default(cuid())
+  userId      String
+  action      GdprAction
+  details     String?
+  ipAddress   String?
+  userAgent   String?
+  createdAt   DateTime   @default(now())
+
+  @@map("gdpr_audit_log")
+}
+
+enum GdprAction {
+  CONSENT_GIVEN
+  CONSENT_WITHDRAWN
+  DATA_EXPORTED
+  DATA_DELETION_REQUESTED
+  DATA_DELETED
+}
+
+// ============================================================
+// PLATFORM ANALYTICS
+// ============================================================
+
+model AnalyticsSession {
+  id              String              @id @default(cuid())
+  sessionKey      String              @unique
+  visitorKey      String
+  landingPath     String?
+  lastPath        String?
+  referrer        String?
+  deviceType      AnalyticsDeviceType @default(UNKNOWN)
+  browser         String?
+  os              String?
+  startedAt       DateTime            @default(now())
+  lastSeenAt      DateTime            @default(now())
+
+  events          AnalyticsEvent[]
+
+  @@index([visitorKey])
+  @@index([startedAt])
+  @@index([lastSeenAt])
+  @@map("analytics_sessions")
+}
+
+model AnalyticsEvent {
+  id         String             @id @default(cuid())
+  sessionId  String
+  type       AnalyticsEventType @default(PAGE_VIEW)
+  name       String
+  path       String
+  referrer   String?
+  pageTitle  String?
+  eventData  Json?
+  occurredAt DateTime           @default(now())
+
+  session    AnalyticsSession   @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId])
+  @@index([path])
+  @@index([type, occurredAt])
+  @@index([name, occurredAt])
+  @@map("analytics_events")
+}
+
+enum AnalyticsEventType {
+  PAGE_VIEW
+  CUSTOM
+}
+
+enum AnalyticsDeviceType {
+  DESKTOP
+  MOBILE
+  TABLET
+  BOT
+  UNKNOWN
+}

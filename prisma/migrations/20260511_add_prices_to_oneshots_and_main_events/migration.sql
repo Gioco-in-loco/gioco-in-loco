@@ -1,0 +1,5 @@
+ALTER TABLE "main_events"
+ADD COLUMN "price" DOUBLE PRECISION;
+
+ALTER TABLE "one_shots"
+ADD COLUMN "price" DOUBLE PRECISION;

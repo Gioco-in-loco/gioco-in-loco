@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "Bash(curl -L -o public/fonts/fraunces-700.ttf \"https://fonts.gstatic.com/s/fraunces/v36/nuFvD-vYSZviVYUb_rj3ij__anPXJzD52bm8010.woff2\")",
+      "Bash(curl -L -o public/fonts/source-serif-400.ttf \"https://fonts.gstatic.com/s/sourceserif4/v18/vEFl2-OuCIB5_i2p2Sj5h0TwnEIMNp1A.woff2\")",
+      "Bash(curl -L -o public/fonts/source-serif-600.ttf \"https://fonts.gstatic.com/s/sourceserif4/v18/vEFl2-OuCIB5_i2p2Sj5h0TwnEIMNp1A.woff2\")",
+      "Bash(npm run *)",
+      "Bash(curl -L -o fraunces-400.ttf \"https://github.com/google/fonts/raw/main/ofl/fraunces/Fraunces%5Bopsz%2Cwght%5D.ttf\")",
+      "Bash(curl -L -o fraunces-600.ttf \"https://github.com/google/fonts/raw/main/ofl/fraunces/Fraunces%5Bopsz%2Cwght%5D.ttf\")",
+      "Bash(curl -L -o fraunces-700.ttf \"https://github.com/google/fonts/raw/main/ofl/fraunces/Fraunces%5Bopsz%2Cwght%5D.ttf\")",
+      "Bash(curl -L -o source-serif-400.ttf \"https://github.com/google/fonts/raw/main/ofl/sourceserif4/SourceSerif4%5Bopsz%2Cwght%5D.ttf\")",
+      "Bash(curl -L -o source-serif-600.ttf \"https://github.com/google/fonts/raw/main/ofl/sourceserif4/SourceSerif4%5Bopsz%2Cwght%5D.ttf\")"
+    ]
+  }
+}

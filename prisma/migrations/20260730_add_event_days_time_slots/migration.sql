@@ -1,0 +1,2 @@
+ALTER TABLE "events" ADD COLUMN "days" TEXT[] NOT NULL DEFAULT '{}';
+ALTER TABLE "events" ADD COLUMN "timeSlots" TEXT[] NOT NULL DEFAULT '{}';

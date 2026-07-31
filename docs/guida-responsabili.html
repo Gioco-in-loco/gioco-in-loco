@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8" />
+<title>Guida per le Associazioni — Gioco In Loco</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@600;700;900&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: #FAF5F0;
+    --card: #FFFFFF;
+    --terra: #C45D3A;
+    --forest: #5B7B6A;
+    --gold: #C9A227;
+    --border: #E5DDD4;
+    --text: #2D2A26;
+    --text-secondary: #6B6560;
+    --text-muted: #8A847D;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    font-family: 'Nunito', sans-serif;
+    color: var(--text);
+    background: var(--bg);
+    font-size: 12.5px;
+    line-height: 1.6;
+  }
+
+  h1, h2, h3 {
+    font-family: 'Fraunces', serif;
+    font-weight: 700;
+    margin: 0 0 6px 0;
+  }
+
+  .page {
+    padding: 26px 34px;
+    page-break-after: always;
+  }
+  .page:last-child { page-break-after: auto; }
+
+  .eyebrow {
+    font-family: 'Nunito', sans-serif;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--terra);
+    margin-bottom: 6px;
+  }
+
+  /* ---------- COVER ---------- */
+  .cover {
+    height: 100%;
+    min-height: 740px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-start;
+    background: linear-gradient(160deg, #FAF5F0 0%, #F3E9DE 100%);
+    border: 2px solid var(--border);
+    border-radius: 18px;
+    padding: 60px;
+  }
+  .cover .badge {
+    display: inline-block;
+    padding: 6px 14px;
+    border-radius: 999px;
+    background: var(--terra);
+    color: #fff;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 22px;
+  }
+  .cover h1 {
+    font-size: 42px;
+    line-height: 1.12;
+    max-width: 560px;
+    color: var(--text);
+  }
+  .cover .subtitle {
+    margin-top: 14px;
+    font-size: 15px;
+    color: var(--text-secondary);
+    max-width: 460px;
+  }
+  .cover .toc {
+    margin-top: 48px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .cover .toc-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 13px;
+    font-weight: 700;
+  }
+  .cover .toc-num {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: #fff;
+    border: 2px solid var(--terra);
+    color: var(--terra);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    flex-shrink: 0;
+  }
+  .cover .footer-note {
+    margin-top: auto;
+    padding-top: 40px;
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+
+  /* ---------- SECTION HEADER ---------- */
+  .section-header {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    border-bottom: 2px solid var(--text);
+    padding-bottom: 10px;
+    margin-bottom: 20px;
+    break-after: avoid;
+    page-break-after: avoid;
+  }
+  .section-header .num {
+    font-family: 'Fraunces', serif;
+    font-weight: 900;
+    font-size: 30px;
+    color: var(--terra);
+  }
+  .section-header h1 { font-size: 26px; }
+  .section-intro {
+    color: var(--text-secondary);
+    font-size: 12.5px;
+    margin-bottom: 22px;
+    max-width: 620px;
+  }
+
+  /* ---------- STEP ---------- */
+  .step {
+    display: grid;
+    grid-template-columns: 34px 1fr;
+    gap: 14px;
+    margin-bottom: 18px;
+    align-items: start;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+  .step-num {
+    width: 30px;
+    height: 30px;
+    border-radius: 9px;
+    background: var(--text);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Fraunces', serif;
+    font-weight: 700;
+    font-size: 14px;
+  }
+  .step-title {
+    font-weight: 800;
+    font-size: 13.5px;
+    margin-bottom: 3px;
+  }
+  .step-desc {
+    color: var(--text-secondary);
+    font-size: 12px;
+  }
+  .step-desc code {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 1px 5px;
+    font-size: 11px;
+    color: var(--terra);
+    font-weight: 700;
+  }
+
+  /* ---------- MOCKUP ---------- */
+  .mockup {
+    margin: 10px 0 22px 48px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--card);
+    padding: 16px;
+    box-shadow: 0 2px 8px rgba(45,42,38,0.06);
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+  .mockup .mockup-label {
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 10px;
+  }
+  .field {
+    margin-bottom: 8px;
+  }
+  .field-label {
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-muted);
+    margin-bottom: 3px;
+  }
+  .field-box {
+    height: 20px;
+    border: 1.5px solid var(--border);
+    border-radius: 6px;
+    background: #fff;
+  }
+  .field-box.filled {
+    background: repeating-linear-gradient(90deg, var(--border) 0 60%, transparent 60% 100%);
+    background-size: 70% 8px;
+    background-repeat: no-repeat;
+    background-position: 8px center;
+  }
+  .field-box.highlight {
+    border-color: var(--terra);
+    background: #FBEDE7;
+  }
+  .fields-row { display: flex; gap: 10px; }
+  .fields-row .field { flex: 1; }
+
+  .btn-mock {
+    display: inline-block;
+    background: var(--terra);
+    color: #fff;
+    font-size: 10.5px;
+    font-weight: 800;
+    padding: 6px 14px;
+    border-radius: 6px;
+    margin-top: 4px;
+  }
+
+  .grid-mock {
+    display: inline-grid;
+    grid-template-columns: repeat(4, 34px);
+    gap: 4px;
+  }
+  .cell-mock {
+    width: 34px;
+    height: 24px;
+    border-radius: 5px;
+    border: 1.5px dashed var(--border);
+    background: var(--bg);
+  }
+  .cell-mock.assigned { border-style: solid; border-color: var(--forest); background: #EAF0EC; }
+  .cell-mock.target { border-style: solid; border-color: var(--terra); background: #FBEDE7; position: relative; }
+  .cell-mock.target::after {
+    content: '';
+    position: absolute; top: -4px; right: -4px;
+    width: 9px; height: 9px; border-radius: 50%;
+    background: var(--terra); border: 2px solid #fff;
+  }
+
+  .callout {
+    margin: 4px 0 22px 48px;
+    border-left: 4px solid var(--gold);
+    background: #FBF6E9;
+    border-radius: 0 10px 10px 0;
+    padding: 12px 16px;
+    font-size: 11.5px;
+    color: var(--text);
+    max-width: 560px;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+  .callout strong { color: var(--terra); }
+
+  .card-mock {
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 10px;
+    background: #fff;
+    font-size: 10.5px;
+    font-weight: 700;
+    color: var(--text-secondary);
+    text-align: center;
+  }
+  .card-mock.active { border-color: var(--terra); background: #FBEDE7; color: var(--terra); }
+  .cards-row { display: flex; gap: 8px; max-width: 420px; }
+  .cards-row .card-mock { flex: 1; }
+
+  .tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 10px;
+    font-weight: 800;
+    padding: 3px 10px;
+    border-radius: 999px;
+    background: var(--forest);
+    color: #fff;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  .faq-item { margin-bottom: 14px; max-width: 620px; break-inside: avoid; page-break-inside: avoid; }
+  .faq-q { font-weight: 800; font-size: 12.5px; margin-bottom: 3px; }
+  .faq-a { color: var(--text-secondary); font-size: 12px; }
+
+  .footer-brand {
+    position: fixed;
+    bottom: 14px;
+    left: 34px;
+    font-size: 9px;
+    color: var(--text-muted);
+  }
+</style>
+</head>
+<body>
+
+  <!-- COVER -->
+  <section class="page">
+    <div class="cover">
+      <span class="badge">Guida per le associazioni</span>
+      <h1>Iscriviti sul sito e pubblica<br />le tue one shot</h1>
+      <p class="subtitle">
+        Questa guida ti accompagna in due passaggi: come creare il tuo account personale
+        e — una volta che verrai abilitato come <strong>Responsabile</strong> della tua
+        associazione — come creare una one shot e assegnarla a un tavolo di un evento.
+      </p>
+
+      <div class="toc">
+        <div class="toc-item"><span class="toc-num">1</span> Crea il tuo account</div>
+        <div class="toc-item"><span class="toc-num">2</span> Diventa Responsabile della tua associazione</div>
+        <div class="toc-item"><span class="toc-num">3</span> Crea la tua prima one shot</div>
+        <div class="toc-item"><span class="toc-num">4</span> Assegnala a un tavolo dell'evento</div>
+      </div>
+
+      <div class="footer-note">Gioco In Loco — Guida per associazioni e responsabili</div>
+    </div>
+  </section>
+
+  <!-- PARTE 1: REGISTRAZIONE -->
+  <section class="page">
+    <div class="section-header">
+      <span class="num">1</span>
+      <h1>Crea il tuo account</h1>
+    </div>
+    <p class="section-intro">
+      Prima di poter caricare qualsiasi contenuto devi avere un account personale sul sito.
+      La registrazione richiede pochi minuti e serve un indirizzo email valido a cui hai accesso.
+    </p>
+
+    <div class="step">
+      <div class="step-num">1</div>
+      <div>
+        <div class="step-title">Vai alla pagina di registrazione</div>
+        <div class="step-desc">Apri il sito e vai su <code>/auth/register</code> (dalla home trovi il link "Registrati" nel menu Area utente).</div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">2</div>
+      <div>
+        <div class="step-title">Compila i tuoi dati</div>
+        <div class="step-desc">Inserisci nome e cognome, un'email valida, un numero di telefono e una password di almeno 8 caratteri (da confermare due volte).</div>
+      </div>
+    </div>
+    <div class="mockup">
+      <div class="mockup-label">Modulo di registrazione</div>
+      <div class="field"><div class="field-label">Nome e cognome</div><div class="field-box filled"></div></div>
+      <div class="fields-row">
+        <div class="field"><div class="field-label">Email</div><div class="field-box filled"></div></div>
+        <div class="field"><div class="field-label">Telefono</div><div class="field-box filled"></div></div>
+      </div>
+      <div class="fields-row">
+        <div class="field"><div class="field-label">Password</div><div class="field-box filled"></div></div>
+        <div class="field"><div class="field-label">Conferma password</div><div class="field-box filled"></div></div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">3</div>
+      <div>
+        <div class="step-title">Accetta l'informativa privacy</div>
+        <div class="step-desc">Spunta la casella di consenso al trattamento dei dati: è obbligatoria per creare l'account. L'iscrizione alla newsletter è invece facoltativa.</div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">4</div>
+      <div>
+        <div class="step-title">Premi "Registrati"</div>
+        <div class="step-desc">Il pulsante si attiva solo quando tutti i campi obbligatori sono corretti.</div>
+      </div>
+    </div>
+    <div class="mockup">
+      <div class="mockup-label">Invio modulo</div>
+      <span class="btn-mock">Registrati</span>
+    </div>
+
+    <div class="step">
+      <div class="step-num">5</div>
+      <div>
+        <div class="step-title">Conferma l'email</div>
+        <div class="step-desc">Riceverai un'email con un link di attivazione: cliccalo per confermare la registrazione. Se non la vedi, controlla le cartelle Spam o Promozioni.</div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">6</div>
+      <div>
+        <div class="step-title">Accedi al tuo account</div>
+        <div class="step-desc">Dopo la conferma vai su <code>/auth/login</code> ed entra con email e password: sei nella tua Area utente.</div>
+      </div>
+    </div>
+
+    <div class="callout">
+      <strong>Nota:</strong> a questo punto il tuo account esiste ma ha ancora il ruolo "Utente".
+      Serve un amministratore del sito per trasformarti in Responsabile: vai alla sezione successiva.
+    </div>
+  </section>
+
+  <!-- PARTE 2: DIVENTA RESPONSABILE -->
+  <section class="page">
+    <div class="section-header">
+      <span class="num">2</span>
+      <h1>Diventa Responsabile della tua associazione</h1>
+    </div>
+    <p class="section-intro">
+      Il ruolo di Responsabile sblocca l'area dedicata alla tua associazione: da lì potrai
+      gestire l'anagrafica pubblica, creare le one shot e assegnarle ai tavoli degli eventi.
+      Questo passaggio non lo fai tu: è l'amministratore del sito ad attivarlo dal pannello di gestione.
+    </p>
+
+    <div class="step">
+      <div class="step-num">1</div>
+      <div>
+        <div class="step-title">Comunica il tuo account all'organizzazione</div>
+        <div class="step-desc">Segnala l'email con cui ti sei registrato a chi gestisce il sito per la tua associazione, così potrà collegarti correttamente.</div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">2</div>
+      <div>
+        <div class="step-title">L'amministratore ti assegna il ruolo</div>
+        <div class="step-desc">Dal pannello admin, l'amministratore imposta il tuo ruolo su "Responsabile" e ti collega alla tua associazione.</div>
+      </div>
+    </div>
+    <div class="mockup">
+      <div class="mockup-label">Pannello amministratore (non visibile a te)</div>
+      <div class="fields-row">
+        <div class="field"><div class="field-label">Ruolo</div><div class="field-box highlight"></div></div>
+        <div class="field"><div class="field-label">Associazione</div><div class="field-box highlight"></div></div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">3</div>
+      <div>
+        <div class="step-title">Accedi alla nuova Area responsabile</div>
+        <div class="step-desc">Rientra (o ricarica la pagina se eri già connesso): nel menu della tua Area utente comparirà il pulsante "Area responsabile", che ti porta su <code>/responsabile</code>.</div>
+      </div>
+    </div>
+    <div class="mockup">
+      <div class="mockup-label">Area utente — menu</div>
+      <div class="cards-row">
+        <div class="card-mock">Area utente</div>
+        <div class="card-mock active">Area responsabile</div>
+      </div>
+    </div>
+
+    <div class="callout">
+      <strong>Suggerimento:</strong> da qui in poi tutte le operazioni si fanno dentro
+      <code>/responsabile</code>. Ogni pagina di quest'area ha in alto, accanto al titolo,
+      un pulsante <strong>"?"</strong> con una mini guida interattiva della sezione.
+    </div>
+  </section>
+
+  <!-- PARTE 3: CREA ONE SHOT -->
+  <section class="page">
+    <div class="section-header">
+      <span class="num">3</span>
+      <h1>Crea la tua prima one shot</h1>
+    </div>
+    <p class="section-intro">
+      Una one shot è la sessione di gioco di ruolo che la tua associazione organizza. La crei una
+      volta sola: potrai poi assegnarla a uno o più tavoli liberi negli eventi a cui partecipi.
+    </p>
+
+    <div class="step">
+      <div class="step-num">1</div>
+      <div>
+        <div class="step-title">Apri la sezione "One shot"</div>
+        <div class="step-desc">Dalla dashboard dell'Area responsabile clicca sulla card "One shot", oppure usa il menu in alto.</div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">2</div>
+      <div>
+        <div class="step-title">Premi "+ Aggiungi"</div>
+        <div class="step-desc">In alto a destra trovi il pulsante per creare una nuova one shot.</div>
+      </div>
+    </div>
+    <div class="mockup">
+      <div class="mockup-label">Elenco one shot</div>
+      <span class="btn-mock">+ Aggiungi</span>
+    </div>
+
+    <div class="step">
+      <div class="step-num">3</div>
+      <div>
+        <div class="step-title">Compila i dati della sessione</div>
+        <div class="step-desc">Titolo, gioco (es. "D&amp;D 5e"), nome del master, descrizione e i posti minimi/massimi al tavolo. Puoi anche caricare un'immagine di copertina.</div>
+      </div>
+    </div>
+    <div class="mockup">
+      <div class="mockup-label">Nuova one shot</div>
+      <div class="fields-row">
+        <div class="field"><div class="field-label">Titolo</div><div class="field-box filled"></div></div>
+        <div class="field"><div class="field-label">Gioco</div><div class="field-box filled"></div></div>
+      </div>
+      <div class="fields-row">
+        <div class="field"><div class="field-label">Master</div><div class="field-box filled"></div></div>
+        <div class="field"><div class="field-label">Posti min / max</div><div class="field-box highlight"></div></div>
+      </div>
+      <div class="field"><div class="field-label">Descrizione</div><div class="field-box filled" style="height:32px"></div></div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">4</div>
+      <div>
+        <div class="step-title">Premi "Crea one shot"</div>
+        <div class="step-desc">La one shot viene salvata nel tuo elenco. A questo punto non è ancora legata a nessun evento: serve assegnarla a un tavolo, come spiegato di seguito.</div>
+      </div>
+    </div>
+    <div class="mockup">
+      <div class="mockup-label">Salvataggio</div>
+      <span class="btn-mock">Crea one shot</span>
+    </div>
+
+    <div class="callout">
+      <strong>Nota sui posti:</strong> i posti minimi e massimi indicano quante persone può
+      ospitare la sessione: ti serviranno per capire su quali tavoli può essere assegnata.
+    </div>
+  </section>
+
+  <!-- PARTE 4: ASSEGNA AL TAVOLO -->
+  <section class="page">
+    <div class="section-header">
+      <span class="num">4</span>
+      <h1>Assegna la one shot a un tavolo</h1>
+    </div>
+    <p class="section-intro">
+      Ogni evento ha una mappa di tavoli liberi, organizzati per giorno e fascia oraria.
+      Per far comparire la tua one shot nel programma dell'evento devi collegarla a un tavolo libero.
+    </p>
+
+    <div class="step">
+      <div class="step-num">1</div>
+      <div>
+        <div class="step-title">Apri la sezione "Eventi"</div>
+        <div class="step-desc">Dal menu dell'Area responsabile, apri "Eventi" e clicca sull'evento a cui vuoi partecipare.</div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">2</div>
+      <div>
+        <div class="step-title">Guarda la mappa dei tavoli</div>
+        <div class="step-desc">I riquadri colorati sono tavoli già assegnati (anche di altre associazioni), quelli tratteggiati sono liberi.</div>
+      </div>
+    </div>
+    <div class="mockup">
+      <div class="mockup-label">Mappa tavoli — esempio</div>
+      <div class="grid-mock">
+        <div class="cell-mock assigned"></div><div class="cell-mock"></div><div class="cell-mock target"></div><div class="cell-mock"></div>
+        <div class="cell-mock"></div><div class="cell-mock assigned"></div><div class="cell-mock"></div><div class="cell-mock"></div>
+        <div class="cell-mock"></div><div class="cell-mock"></div><div class="cell-mock"></div><div class="cell-mock assigned"></div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">3</div>
+      <div>
+        <div class="step-title">Clicca su un tavolo libero</div>
+        <div class="step-desc">Scegli un tavolo nel giorno e nella fascia oraria che ti interessano. Si apre una finestra con due schede: "Assegna one shot" e "Assegna main event" (quest'ultima non ti riguarda).</div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">4</div>
+      <div>
+        <div class="step-title">Cerca e assegna la tua one shot</div>
+        <div class="step-desc">Nella scheda "Assegna one shot" cerca il titolo, selezionala dall'elenco e premi "Assegna".</div>
+      </div>
+    </div>
+    <div class="mockup">
+      <div class="mockup-label">Assegna one shot</div>
+      <div class="field"><div class="field-label">Cerca one shot</div><div class="field-box filled"></div></div>
+      <div class="field"><div class="field-label">Assegna one shot esistente</div><div class="field-box highlight"></div></div>
+      <span class="btn-mock">Assegna</span>
+    </div>
+
+    <div class="step">
+      <div class="step-num">5</div>
+      <div>
+        <div class="step-title">Fatto: il tavolo è assegnato</div>
+        <div class="step-desc">Il tavolo ora mostra il titolo della tua one shot ed è visibile nel programma pubblico dell'evento. Cliccandolo di nuovo puoi rivedere i dettagli, rimuovere l'assegnazione o — dalla scheda "Prenotati" — vedere chi si è iscritto e segnare le presenze il giorno dell'evento.</div>
+      </div>
+    </div>
+    <div class="mockup">
+      <div class="mockup-label">Mappa tavoli — dopo l'assegnazione</div>
+      <div class="grid-mock">
+        <div class="cell-mock assigned"></div><div class="cell-mock"></div><div class="cell-mock assigned"></div><div class="cell-mock"></div>
+      </div>
+    </div>
+
+    <div class="callout">
+      <strong>Un tavolo alla volta:</strong> la stessa one shot non può occupare due tavoli nello
+      stesso giorno e nella stessa fascia oraria. Se ti serve più capienza, valuta con l'organizzazione
+      dell'evento un tavolo con più posti.
+    </div>
+
+    <div style="margin-top:30px; border-top:1px dashed var(--border); padding-top:16px;">
+      <div class="faq-item">
+        <div class="faq-q">Non vedo il pulsante "Area responsabile", cosa faccio?</div>
+        <div class="faq-a">Significa che il tuo account non è ancora stato collegato come Responsabile: contatta l'amministratore del sito (Parte 2 di questa guida).</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">Posso modificare una one shot dopo averla assegnata?</div>
+        <div class="faq-a">Sì, apri "One shot" dal menu, clicca sulla sessione e premi "Modifica" per aggiornare titolo, descrizione o posti.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">Come tolgo una one shot da un tavolo?</div>
+        <div class="faq-a">Apri il tavolo assegnato dalla mappa e premi "Rimuovi assegnazione" nella scheda "Assegna one shot": il tavolo torna libero.</div>
+      </div>
+    </div>
+  </section>
+
+</body>
+</html>
