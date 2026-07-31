@@ -17,12 +17,30 @@ function countTables(mainEvents, oneshots) {
   return oneshotTables + mainEventSessions
 }
 
+function countDistinctDays(mainEvents, oneshots) {
+  const days = new Set()
+  for (const oneshot of oneshots || []) {
+    for (const slot of oneshot.slots || []) {
+      if (slot.day) days.add(slot.day)
+    }
+  }
+  for (const mainEvent of mainEvents || []) {
+    for (const session of mainEvent.sessions || []) {
+      if (session.day) days.add(session.day)
+    }
+  }
+  return days.size
+}
+
 export default function DiceFestPage({ event }) {
   const oneshotCount = event.oneshots?.length || 0
   const mainEventCount = event.mainEvents?.length || 0
   const mastersCount = countMasters(event.oneshots)
   const tablesCount = countTables(event.mainEvents, event.oneshots)
   const hasProgram = oneshotCount + mainEventCount > 0
+  const hasMainEvent = mainEventCount > 0
+  const dayCount = countDistinctDays(event.mainEvents, event.oneshots)
+  const isMultiDay = dayCount > 1
 
   return (
     <div className="parchment-bg">
@@ -36,19 +54,21 @@ export default function DiceFestPage({ event }) {
               </div>
             </div>
 
-            <p className="fantasy-eyebrow parchment-reveal">Una sola giornata · Un solo rito</p>
+            <p className="fantasy-eyebrow parchment-reveal">
+              {isMultiDay ? `${dayCount} giornate · Un solo rito` : 'Una giornata · Un solo rito'}
+            </p>
 
             <h1 className="parchment-reveal mt-5 font-elegant text-5xl font-bold leading-[1.05] text-editorial-text sm:text-6xl md:text-7xl" style={{ animationDelay: '0.1s' }}>
               DICE FEST
             </h1>
 
             <p className="fade-stagger mt-6 max-w-2xl font-elegant text-xl italic text-editorial-text-secondary sm:text-2xl" style={{ animationDelay: '0.25s' }}>
-              Una giornata in cui dadi e leggende si incontrano.
+              {isMultiDay ? 'I giorni in cui dadi e leggende si incontrano.' : 'Il giorno in cui dadi e leggende si incontrano.'}
             </p>
 
             <p className="fade-stagger mt-4 max-w-2xl font-body text-[15px] leading-relaxed text-editorial-text-secondary" style={{ animationDelay: '0.35s' }}>
-              Master, tavoli, sessioni e un evento principale che raduna tutti i giocatori attorno allo stesso gioco.
-              Tutto si svolge in un&apos;unica sala, in un solo giorno. Vieni, scegli il tuo posto al tavolo e lascia che la storia inizi.
+              Master, tavoli, sessioni{hasMainEvent ? ' e un evento principale che raduna tutti i giocatori attorno allo stesso gioco' : ''}.
+              {' '}Tutto si svolge in un&apos;unica sala{isMultiDay ? ', lungo più giornate' : ', in un solo giorno'}. Vieni, scegli il tuo posto al tavolo e lascia che la storia inizi.
             </p>
 
             <div className="fade-stagger mt-10" style={{ animationDelay: '0.5s' }}>
@@ -64,7 +84,7 @@ export default function DiceFestPage({ event }) {
               <div className="max-w-sm">
                 <p className="font-elegant text-sm font-bold text-editorial-text">Non sai ancora a quale tavolo sederti?</p>
                 <p className="mt-1 font-body text-[13px] leading-relaxed text-editorial-text-secondary">
-                  Segnaci la tua presenza: aggiungiamo il pass giornaliero alle Prenotazioni per 10 minuti. Le sessioni le scegli quando vuoi.
+                  Segnaci la tua presenza: confermiamo subito il tuo pass per la giornata. Le sessioni le scegli quando vuoi.
                 </p>
               </div>
               <RsvpButton oneshots={event.oneshots} />
@@ -80,18 +100,20 @@ export default function DiceFestPage({ event }) {
             <div className="px-7 py-9 sm:px-10 sm:py-12">
               <p className="fantasy-eyebrow">Il rito</p>
               <h2 className="mt-3 font-elegant text-3xl font-bold text-editorial-text sm:text-4xl">
-                Una sala, molti tavoli, una sola sera che non dimenticherai
+                {isMultiDay ? 'Una sala, molti tavoli, giornate che non dimenticherai' : 'Una sala, molti tavoli, una sera che non dimenticherai'}
               </h2>
               <p className="drop-cap mt-6 font-body text-[15px] leading-[1.85] text-editorial-text-secondary">
                 Apriamo le porte all&apos;alba degli avventurieri. Da quel momento, la sala diventa un piccolo regno: ai tavoli più
                 intimi, le <span className="font-semibold text-editorial-text">one-shot</span> dei nostri master raccontano storie autoconclusive — un&apos;avventura intera in un solo
                 pomeriggio, perfetta per chi vuole assaggiare un sistema nuovo o tornare a tirare i dadi senza impegno.
               </p>
-              <p className="mt-4 font-body text-[15px] leading-[1.85] text-editorial-text-secondary">
-                Al centro della giornata si compie il <span className="font-semibold text-editorial-text">rito principale</span>: il nostro evento princiaple, lo stesso gioco condiviso
-                in più tavoli paralleli, in cui ogni gruppo scrive il proprio capitolo di una narrazione corale. È il momento in cui
-                la sala respira insieme.
-              </p>
+              {hasMainEvent ? (
+                <p className="mt-4 font-body text-[15px] leading-[1.85] text-editorial-text-secondary">
+                  Al centro {isMultiDay ? 'di ogni giornata' : 'della giornata'} si compie il <span className="font-semibold text-editorial-text">rito principale</span>: il nostro evento principale, lo stesso gioco condiviso
+                  in più tavoli paralleli, in cui ogni gruppo scrive il proprio capitolo di una narrazione corale. È il momento in cui
+                  la sala respira insieme.
+                </p>
+              ) : null}
               {event.description ? (
                 <p className="mt-4 font-body text-[15px] leading-[1.85] text-editorial-text-secondary">{event.description}</p>
               ) : null}
@@ -105,7 +127,7 @@ export default function DiceFestPage({ event }) {
               <ol className="mt-6 space-y-5">
                 {[
                   { n: 'I', t: 'Leggi il programma', d: 'Scorri le One-shot e l\'evento principale. Ogni tavolo ha un titolo, un master e un sistema.' },
-                  { n: 'II', t: 'Segnaci che ci sarai', d: 'Il pass giornaliero entra nelle Prenotazioni per 10 minuti. Da lì puoi confermarlo subito o aggiungere i tavoli.' },
+                  { n: 'II', t: 'Segnaci che ci sarai', d: 'Il pass giornaliero viene confermato subito. Poi scegli i tavoli quando vuoi.' },
                   { n: 'III', t: 'Sigilla il tuo ordine', d: 'Confermi in un click.' },
                   { n: 'IV', t: 'Presentati in orario', d: 'Vieni al check-in puntuale: al resto pensiamo noi.' },
                 ].map((step, idx) => (
@@ -144,10 +166,12 @@ export default function DiceFestPage({ event }) {
           </div>
 
           {hasProgram ? (
-            <div className="mt-10 grid gap-5 sm:grid-cols-3">
-              <CountStat number={mainEventCount} label="Main Event" sublabel="Evento Principale" />
+            <div className={`mt-10 grid gap-5 ${hasMainEvent ? 'sm:grid-cols-3' : 'sm:grid-cols-2'}`}>
+              {hasMainEvent ? (
+                <CountStat number={mainEventCount} label="Main Event" sublabel="Evento Principale" />
+              ) : null}
               <CountStat number={oneshotCount} label="One-Shot" sublabel="Avventure autoconclusive" tone="gold" />
-              <CountStat number={tablesCount} label="Tavoli totali" sublabel={mastersCount > 0 ? `${mastersCount} master in sala` : 'Tutti gli slot del giorno'} tone="forest" />
+              <CountStat number={tablesCount} label="Sessioni totali" sublabel={mastersCount > 0 ? `${mastersCount} master in sala` : 'Tutte le sessioni in programma'} tone="forest" />
             </div>
           ) : null}
         </section>
@@ -167,9 +191,11 @@ export default function DiceFestPage({ event }) {
               <Link href="/dice-fest/prenotazioni" className="btn-wax">
                 Entra nella sala
               </Link>
-              <Link href="/dice-fest/prenotazioni?tab=main-event" className="btn-ghost-fantasy">
-                Vedi il Main Event
-              </Link>
+              {hasMainEvent ? (
+                <Link href="/dice-fest/prenotazioni" className="btn-ghost-fantasy">
+                  Vedi il Main Event
+                </Link>
+              ) : null}
             </div>
           </div>
         </ParchmentCard>

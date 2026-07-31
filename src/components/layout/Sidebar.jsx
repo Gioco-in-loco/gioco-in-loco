@@ -141,8 +141,6 @@ export default function Sidebar({ onNavigate, upcomingEvent }) {
   const comic = {
     wrapper: 'bg-comic-paper border-r-4 border-comic-navy',
     header: 'bg-comic-cream border-b-4 border-comic-navy pt-safe',
-    logoText: 'font-bangers text-3xl',
-    logoAccent: 'text-comic-magenta -mt-1',
     navButton: 'bg-comic-cream border-3 border-comic-navy rounded-xl hover:translate-x-2 hover:shadow-[4px_4px_0px_0px_#1A1A2E] transition-all duration-200',
     navButtonText: 'font-bangers text-xl text-comic-navy',
     eventWrapper: 'bg-comic-yellow border-3 border-comic-navy rounded-xl p-3 shadow-[3px_3px_0px_0px_#1A1A2E] hover:shadow-[4px_4px_0px_0px_#1A1A2E] transition-shadow',
@@ -155,8 +153,6 @@ export default function Sidebar({ onNavigate, upcomingEvent }) {
   const editorial = {
     wrapper: 'bg-editorial-bg border-r-2 border-editorial-border',
     header: 'bg-white border-b-2 border-editorial-border pt-safe',
-    logoText: 'font-elegant text-2xl tracking-wide font-bold',
-    logoAccent: 'text-editorial-terra -mt-1',
     navButton: 'bg-white border-2 border-editorial-border rounded-lg hover:translate-x-2 hover:shadow-soft-md hover:border-editorial-terra transition-all duration-300',
     navButtonText: 'font-body text-base text-editorial-text font-semibold',
     eventWrapper: 'bg-white border-2 border-editorial-border rounded-xl p-4 shadow-soft hover:shadow-soft-md hover:border-editorial-terra transition-all duration-300',
@@ -174,18 +170,18 @@ export default function Sidebar({ onNavigate, upcomingEvent }) {
       {/* Top Navbar - Mobile only */}
       <div className="md:hidden fixed top-0 left-0 right-0 z-[100]" style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
         <nav
-          className={`flex items-center justify-between px-4 ${isComicRoute ? 'bg-comic-cream border-b-4 border-comic-navy' : 'bg-white border-b-2 border-editorial-border'}`}
+          className={`grid grid-cols-[3rem_1fr_3rem] items-center px-4 ${isComicRoute ? 'bg-comic-cream border-b-4 border-comic-navy' : 'bg-white border-b-2 border-editorial-border'}`}
           style={{ minHeight: '3.5rem' }}
         >
-          <button onClick={() => handleNavigation('/')} className="flex items-center gap-2">
-            <span className={`${isComicRoute ? 'font-bangers text-2xl text-comic-navy' : 'font-elegant text-xl text-editorial-text font-bold'}`}>
-              GIOCO IN LOCO
-            </span>
+          <span />
+
+          <button onClick={() => handleNavigation('/')} className="flex items-center justify-center">
+            <img src="/loghi-ass/gioco-in-loco-512.png" alt="Gioco In Loco" className="h-9 w-auto" />
           </button>
 
           <button
             onClick={() => setIsOpen(!isOpen)}
-            className={`w-12 h-12 flex items-center justify-center ${isComicRoute ? 'bg-comic-yellow border-4 border-comic-navy rounded-xl shadow-[2px_2px_0px_0px_#1A1A2E]' : 'bg-editorial-terra/10 border-2 border-editorial-border rounded-lg shadow-soft'}`}
+            className={`w-12 h-12 flex items-center justify-center justify-self-end ${isComicRoute ? 'bg-comic-yellow border-4 border-comic-navy rounded-xl shadow-[2px_2px_0px_0px_#1A1A2E]' : 'bg-editorial-terra/10 border-2 border-editorial-border rounded-lg shadow-soft'}`}
             aria-label="Toggle navigation"
           >
             <svg
@@ -207,15 +203,14 @@ export default function Sidebar({ onNavigate, upcomingEvent }) {
       {/* Mobile Menu Overlay */}
       {isOpen && (
         <div className={`fixed inset-0 z-[60] md:hidden flex flex-col ${isComicRoute ? 'bg-comic-paper' : 'bg-editorial-bg'}`}>
-          <div className={`flex items-center justify-between p-4 ${isComicRoute ? 'bg-comic-cream border-b-4 border-comic-navy' : 'bg-white border-b-2 border-editorial-border'}`}>
-            <button onClick={() => handleNavigation('/')} className="flex items-center gap-2">
-              <span className={`${isComicRoute ? 'font-bangers text-2xl text-comic-navy' : 'font-elegant text-xl text-editorial-text font-bold'}`}>
-                GIOCO IN LOCO
-              </span>
+          <div className={`grid grid-cols-[3rem_1fr_3rem] items-center p-4 ${isComicRoute ? 'bg-comic-cream border-b-4 border-comic-navy' : 'bg-white border-b-2 border-editorial-border'}`}>
+            <span />
+            <button onClick={() => handleNavigation('/')} className="flex items-center justify-center">
+              <img src="/loghi-ass/gioco-in-loco-512.png" alt="Gioco In Loco" className="h-9 w-auto" />
             </button>
             <button
               onClick={() => setIsOpen(false)}
-              className={`w-12 h-12 flex items-center justify-center ${isComicRoute ? 'bg-comic-yellow border-4 border-comic-navy rounded-xl' : 'bg-editorial-terra/10 border-2 border-editorial-border rounded-lg'}`}
+              className={`w-12 h-12 flex items-center justify-center justify-self-end ${isComicRoute ? 'bg-comic-yellow border-4 border-comic-navy rounded-xl' : 'bg-editorial-terra/10 border-2 border-editorial-border rounded-lg'}`}
             >
               <svg className={`w-6 h-6 ${isComicRoute ? 'text-comic-navy' : 'text-editorial-text'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -304,10 +299,9 @@ export default function Sidebar({ onNavigate, upcomingEvent }) {
 
       {/* Desktop Sidebar */}
       <aside className={`fixed top-0 left-0 h-full w-72 hidden sm:flex flex-col ${theme.wrapper}`}>
-        <div className={`p-6 pb-4 ${theme.header}`}>
-          <button onClick={() => handleNavigation('/')} className="w-full hover:opacity-80 transition-opacity text-left">
-            <h1 className={`${theme.logoText} text-editorial-text leading-tight`}>GIOCO</h1>
-            <h1 className={`${theme.logoText} ${theme.logoAccent} leading-tight`}>IN LOCO</h1>
+        <div className={`p-6 pb-4 flex justify-center ${theme.header}`}>
+          <button onClick={() => handleNavigation('/')} className="hover:opacity-80 transition-opacity">
+            <img src="/loghi-ass/gioco-in-loco-512.png" alt="Gioco In Loco" className="h-16 w-auto" />
           </button>
         </div>
 

@@ -120,6 +120,56 @@ async function ensureEventAdmissionHold({ event, tx, user, holdExpiresAt, day = 
   await ensureSingleAdmission({ tx, userId: user.id, event, day, holdExpiresAt, pricePaid })
 }
 
+// Attendance ("ci sarai il <day>") isn't a real cart item you need to review
+// before confirming — it's a yes/no RSVP, so it's accepted as CONFIRMED right
+// away instead of going through the HOLD -> cart -> confirm round trip that
+// slot/table reservations use.
+async function ensureSingleAdmissionConfirmed({ tx, userId, event, day, pricePaid }) {
+  const existing = await tx.eventAdmission.findUnique({
+    where: { userId_eventId_day: { userId, eventId: event.id, day } },
+    select: { id: true, status: true },
+  })
+
+  if (!existing) {
+    await tx.eventAdmission.create({
+      data: {
+        userId,
+        eventId: event.id,
+        day,
+        status: 'CONFIRMED',
+        holdExpiresAt: null,
+        pricePaid,
+        consentGiven: true,
+        consentDate: new Date(),
+      },
+    })
+    return
+  }
+
+  if (existing.status !== 'CONFIRMED') {
+    await tx.eventAdmission.update({
+      where: { id: existing.id },
+      data: {
+        status: 'CONFIRMED',
+        holdExpiresAt: null,
+        consentGiven: true,
+        consentDate: new Date(),
+      },
+    })
+  }
+}
+
+async function ensureEventAdmissionConfirmed({ event, tx, user, day = '' }) {
+  if (day && event.price != null) {
+    await ensureSingleAdmissionConfirmed({ tx, userId: user.id, event, day: '', pricePaid: event.price })
+    await ensureSingleAdmissionConfirmed({ tx, userId: user.id, event, day, pricePaid: 0 })
+    return
+  }
+
+  const pricePaid = day ? (event.dailyPrice ?? 0) : (event.price ?? null)
+  await ensureSingleAdmissionConfirmed({ tx, userId: user.id, event, day, pricePaid })
+}
+
 async function clearEventAdmissionHoldIfEmpty({ eventId, tx, userId, day = '' }) {
   const now = new Date()
 
@@ -684,15 +734,23 @@ export async function handleCreateEventAdmission(request, eventId, { displayName
     }
 
     await prisma.$transaction(async (tx) => {
-      const holdExpiresAt = getNextHoldExpiration()
-      await ensureEventAdmissionHold({ event, tx, user, holdExpiresAt, day })
-      await refreshAllEventCartHolds({ eventId, tx, userId: user.id, holdExpiresAt })
+      await ensureEventAdmissionConfirmed({ event, tx, user, day })
     }, CART_TX_OPTIONS)
 
-    const cartState = await getUserEventCartState({ eventId, userId: user.id })
+    const [cartState, bookingSummary] = await Promise.all([
+      getUserEventCartState({ eventId, userId: user.id }),
+      getConfirmedEventBookingSummary({ eventId, userId: user.id, includeAdmission: true }),
+    ])
+
+    try {
+      await sendEventBookingConfirmationEmails({ summary: bookingSummary, user })
+    } catch (notificationError) {
+      console.error('Failed to send admission confirmation email:', notificationError)
+    }
+
     return NextResponse.json(cartState)
   } catch (admissionError) {
-    return NextResponse.json({ error: admissionError.message || 'Impossibile aggiungere il pass giornaliero alle Prenotazioni.' }, { status: 400 })
+    return NextResponse.json({ error: admissionError.message || 'Impossibile confermare la tua presenza.' }, { status: 400 })
   }
 }
 

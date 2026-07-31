@@ -109,12 +109,11 @@ export default function RsvpButton({ oneshots }) {
         body: JSON.stringify({ day }),
       })
       const payload = await response.json().catch(() => ({}))
-      if (!response.ok) throw new Error(payload.error || 'Impossibile aggiungere il pass alle Prenotazioni.')
+      if (!response.ok) throw new Error(payload.error || 'Impossibile confermare la tua presenza.')
       setState(mapCartPayload(payload))
-      toast.success('Pass aggiunto alle Prenotazioni. Hai 10 minuti per confermare.')
-      window.location.href = '/dice-fest/carrello'
+      toast.success(day ? `Presenza confermata per ${day}.` : 'Presenza confermata.')
     } catch (err) {
-      toast.error(err.message || 'Impossibile aggiungere il pass alle Prenotazioni.')
+      toast.error(err.message || 'Impossibile confermare la tua presenza.')
     } finally {
       setPendingDay(null)
     }

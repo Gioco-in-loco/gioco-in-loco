@@ -451,11 +451,6 @@ export async function getConfirmedEventBookingSummary({
             title: true,
             game: true,
             price: true,
-            association: {
-              select: {
-                name: true,
-              },
-            },
           },
         },
       },
@@ -499,7 +494,7 @@ export async function getConfirmedEventBookingSummary({
       title: reservation.mainEvent.title,
       game: reservation.mainEvent.game || 'Main Event',
       master: null,
-      associationName: reservation.mainEvent.association?.name || null,
+      associationName: null,
       day: reservation.day,
       slot: reservation.slot,
       table: null,

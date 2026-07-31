@@ -2,7 +2,6 @@
 
 import Link from 'next/link'
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { useAuth } from '../../context/AuthContext'
 import { useToast } from '../../context/ToastContext'
 import { useCartHoldTimer } from '../../hooks/useCartHoldTimer'
@@ -15,39 +14,31 @@ import {
 import { getSlotKey } from '../../lib/event-booking'
 import { DICE_FEST_BOOKING_CONFIG } from '../../lib/bookable-events'
 import { ParchmentCard } from '../dice-fest/decorations'
+import TableMap from '../dice-fest/TableMap'
 
-const EMPTY_ONESHOT_FILTERS = {
+const EMPTY_FILTERS = {
   association: '',
   game: '',
   master: '',
-  slot: '',
   onlyAvailable: false,
 }
 
-const EMPTY_MAIN_EVENT_FILTERS = {
-  game: '',
-  slot: '',
-}
-
 export default function DiceFestBookingPage({ event }) {
-  const router = useRouter()
-  const pathname = usePathname()
-  const searchParams = useSearchParams()
-
   const { user } = useAuth()
   const toast = useToast()
 
   const [cartState, setCartState] = useState(() => createEmptyGdrEventCartState())
   const [pendingSlotId, setPendingSlotId] = useState(null)
   const [requestError, setRequestError] = useState('')
-  const [oneShotFilters, setOneShotFilters] = useState(EMPTY_ONESHOT_FILTERS)
-  const [mainEventFilters, setMainEventFilters] = useState(EMPTY_MAIN_EVENT_FILTERS)
+  const [filters, setFilters] = useState(EMPTY_FILTERS)
+  const [activeDay, setActiveDay] = useState('')
+  const [openedEntry, setOpenedEntry] = useState(null)
 
   const [mainEventItems, setMainEventItems] = useState(event.mainEvents || [])
   const [pendingMainSessionKey, setPendingMainSessionKey] = useState(null)
+  const [pendingWaitlistDay, setPendingWaitlistDay] = useState(null)
 
   const hasMainEvents = mainEventItems.length > 0
-  const activeTab = searchParams.get('tab') === 'main-event' && hasMainEvents ? 'main-event' : 'one-shots'
 
   // Synchronous lock against double-clicks: state updates are async, but rapid
   // clicks within the same tick can fire multiple handlers before React commits.
@@ -87,14 +78,6 @@ export default function DiceFestBookingPage({ event }) {
     setCartState((current) => clearExpiredGdrCartState(current))
   })
 
-  const setActiveTab = useCallback((tab) => {
-    const params = new URLSearchParams(searchParams.toString())
-    if (tab === 'main-event') params.set('tab', 'main-event')
-    else params.delete('tab')
-    const query = params.toString()
-    router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false })
-  }, [pathname, router, searchParams])
-
   // ============ MAIN EVENT HANDLERS ============
   // Un main event non ha più un tavolo/slot fisico prenotabile: la sessione è
   // il gruppo giorno+fascia, identificato da mainEventId+day+slot.
@@ -103,14 +86,17 @@ export default function DiceFestBookingPage({ event }) {
   const updateMainEventSessionCount = useCallback(({ mainEventId, day, slot }, delta) => {
     setMainEventItems((current) => current.map((me) => {
       if (me.id !== mainEventId) return me
-      return {
-        ...me,
-        sessions: (me.sessions || []).map((s) => {
-          if (s.day !== day || s.slot !== slot) return s
-          const next = Math.max(0, (s.currentReservations || 0) + delta)
-          return { ...s, currentReservations: next, available: next < s.maxPlayers }
-        }),
-      }
+      const nextSessions = (me.sessions || []).map((s) => {
+        if (s.day !== day || s.slot !== slot) return s
+        const next = Math.max(0, (s.currentReservations || 0) + delta)
+        return { ...s, currentReservations: next, available: next < s.maxPlayers }
+      })
+      const nextTables = (me.tables || []).map((t) => {
+        if (t.day !== day || t.slot !== slot) return t
+        const next = Math.max(0, (t.currentReservations || 0) + delta)
+        return { ...t, currentReservations: next, available: next < t.maxPlayers }
+      })
+      return { ...me, sessions: nextSessions, tables: nextTables }
     }))
   }, [])
 
@@ -169,8 +155,6 @@ export default function DiceFestBookingPage({ event }) {
     }
   }, [toast, user])
 
-  const [pendingWaitlistDay, setPendingWaitlistDay] = useState(null)
-
   const handleJoinWaitlist = useCallback(async (day) => {
     if (!user) {
       window.location.href = '/auth/login?next=/dice-fest/prenotazioni'
@@ -217,7 +201,7 @@ export default function DiceFestBookingPage({ event }) {
 
   const handleAddMainToCart = useCallback(async (session) => {
     if (!user) {
-      window.location.href = '/auth/login?next=/dice-fest/prenotazioni?tab=main-event'
+      window.location.href = '/auth/login?next=/dice-fest/prenotazioni'
       return
     }
     if (inFlightRef.current) return
@@ -329,52 +313,54 @@ export default function DiceFestBookingPage({ event }) {
     () => new Set(cartState.cartSlotKeys.concat(cartState.confirmedSlotKeys)),
     [cartState.cartSlotKeys, cartState.confirmedSlotKeys]
   )
-  const oneShotFilterOptions = useMemo(() => ({
+
+  const filterOptions = useMemo(() => ({
     associations: buildTextFilterOptions((event.oneshots || []).map((item) => item.association?.name)),
-    games: buildTextFilterOptions((event.oneshots || []).map((item) => item.game)),
+    games: buildTextFilterOptions([
+      ...(event.oneshots || []).map((item) => item.game),
+      ...mainEventItems.map((item) => item.game),
+    ]),
     masters: buildTextFilterOptions((event.oneshots || []).map((item) => item.master)),
-    slots: buildSlotFilterOptions(event.oneshots || []),
-  }), [event.oneshots])
-  const mainEventFilterOptions = useMemo(() => ({
-    games: buildTextFilterOptions(mainEventItems.map((item) => item.game)),
-    slots: buildSlotFilterOptions(mainEventItems, 'sessions'),
-  }), [mainEventItems])
-  const filteredOneShots = useMemo(() => {
-    return (event.oneshots || [])
-      .filter((item) => {
-        return (!oneShotFilters.association || normalizeFilterValue(item.association?.name) === oneShotFilters.association)
-          && (!oneShotFilters.game || normalizeFilterValue(item.game) === oneShotFilters.game)
-          && (!oneShotFilters.master || normalizeFilterValue(item.master) === oneShotFilters.master)
-      })
-      .map((item) => ({
-        ...item,
-        slots: (item.slots || []).filter((slot) => {
-          if (oneShotFilters.slot && getTimeSlotFilterValue(slot) !== oneShotFilters.slot) return false
-          if (oneShotFilters.onlyAvailable && !slot.available
-            && !cartState.confirmedSlotIds.includes(slot.id)
-            && !cartState.cartSlotIds.includes(slot.id)) return false
-          return true
-        }),
-      }))
-      .filter((item) => (item.slots || []).length > 0)
-  }, [event.oneshots, oneShotFilters, cartState.confirmedSlotIds, cartState.cartSlotIds])
-  const filteredMainEventItems = useMemo(() => {
-    return mainEventItems
-      .filter((item) => {
-        return !mainEventFilters.game || normalizeFilterValue(item.game) === mainEventFilters.game
-      })
-      .map((item) => ({
-        ...item,
-        sessions: (item.sessions || []).filter((session) => !mainEventFilters.slot || getTimeSlotFilterValue(session) === mainEventFilters.slot),
-      }))
-      .filter((item) => (item.sessions || []).length > 0)
-  }, [mainEventFilters, mainEventItems])
-  const oneShotGroups = useMemo(() => groupByTimeSlot(filteredOneShots, 'oneshot'), [filteredOneShots])
-  const mainEventGroups = useMemo(() => groupByTimeSlot(filteredMainEventItems, 'mainEvent', 'sessions'), [filteredMainEventItems])
-  const visibleOneShotCount = useMemo(() => countGroupedSessions(oneShotGroups), [oneShotGroups])
-  const visibleMainEventCount = useMemo(() => countGroupedSessions(mainEventGroups), [mainEventGroups])
-  const hasActiveOneShotFilters = useMemo(() => Object.values(oneShotFilters).some(Boolean), [oneShotFilters])
-  const hasActiveMainEventFilters = useMemo(() => Object.values(mainEventFilters).some(Boolean), [mainEventFilters])
+  }), [event.oneshots, mainEventItems])
+
+  // Tutti i tavoli della sala, uniti in un'unica lista: la mappa mostra sempre
+  // la struttura completa, i filtri attenuano invece di nascondere le celle
+  // (altrimenti la griglia righe/colonne si romperebbe).
+  const allEntries = useMemo(() => {
+    const oneshotEntries = (event.oneshots || []).flatMap((oneshot) =>
+      (oneshot.slots || []).map((slot) => ({ type: 'oneshot', oneshot, slot }))
+    )
+    const mainEventEntries = mainEventItems.flatMap((mainEvent) =>
+      (mainEvent.tables || []).map((slot) => ({ type: 'mainEvent', mainEvent, slot }))
+    )
+    return [...oneshotEntries, ...mainEventEntries]
+  }, [event.oneshots, mainEventItems])
+
+  const isDimmed = useCallback((entry) => {
+    const game = entry.type === 'oneshot' ? entry.oneshot.game : entry.mainEvent.game
+    const association = entry.type === 'oneshot' ? entry.oneshot.association?.name : null
+    const master = entry.type === 'oneshot' ? entry.oneshot.master : null
+
+    if (filters.association && normalizeFilterValue(association) !== filters.association) return true
+    if (filters.game && normalizeFilterValue(game) !== filters.game) return true
+    if (filters.master && normalizeFilterValue(master) !== filters.master) return true
+
+    if (filters.onlyAvailable && !entry.slot.available) {
+      const isOwnedByUser = entry.type === 'oneshot'
+        ? cartState.confirmedSlotIds.includes(entry.slot.id) || cartState.cartSlotIds.includes(entry.slot.id)
+        : (() => {
+            const key = mainSessionKey(entry.mainEvent.id, entry.slot.day, entry.slot.slot)
+            return mainCartSessionKeys.has(key) || mainReservationsBySessionKey.has(key)
+          })()
+      if (!isOwnedByUser) return true
+    }
+
+    return false
+  }, [filters, cartState.confirmedSlotIds, cartState.cartSlotIds, mainCartSessionKeys, mainReservationsBySessionKey, mainSessionKey])
+
+  const matchingCount = useMemo(() => allEntries.filter((entry) => !isDimmed(entry)).length, [allEntries, isDimmed])
+
+  const fullyBookedDays = useMemo(() => computeFullyBookedDays(event.oneshots), [event.oneshots])
 
   const cartItemsCount = cartState.cartSlots.length
   const mainCartItemsCount = filteredMainCartSlots.length
@@ -388,53 +374,19 @@ export default function DiceFestBookingPage({ event }) {
         <header className="parchment-reveal">
           <p className="fantasy-eyebrow">Il registro delle missioni</p>
           <h1 className="mt-3 font-elegant text-4xl font-bold text-editorial-text sm:text-5xl">
-            Scegli la tua missione
+            La mappa dei tavoli
           </h1>
           <p className="mt-3 max-w-2xl font-body text-[15px] leading-relaxed text-editorial-text-secondary">
             {hasMainEvents ? (
               <>
-                Due strade: un <strong className="text-editorial-text">evento principale</strong>, oppure <strong className="text-editorial-text">one-shot</strong> dei nostri master.
-                <br/> Scegli la missione che preferisci e sigilla la tua scelta quando sei pronto.
+                Ecco la sala: <strong className="text-editorial-text">one-shot</strong> dei nostri master e <strong className="text-editorial-text">Main Event</strong>, tavolo per tavolo.
+                <br /> Tocca un tavolo per i dettagli e sigilla la scelta quando sei pronto.
               </>
             ) : (
-              <>Scegli tra le <strong className="text-editorial-text">one-shot</strong> dei nostri master e sigilla la tua scelta quando sei pronto.</>
+              <>Ecco la sala: scegli il tuo tavolo tra le <strong className="text-editorial-text">one-shot</strong> dei nostri master e sigilla la scelta quando sei pronto.</>
             )}
           </p>
         </header>
-
-        {/* TABS */}
-        {hasMainEvents ? (
-        <div className="mt-8 flex w-full max-w-lg" role="tablist" aria-label="Scegli cosa prenotare">
-          <button
-            type="button"
-            role="tab"
-            aria-selected={activeTab === 'one-shots'}
-            className="tab-fantasy"
-            onClick={() => setActiveTab('one-shots')}
-          >
-            <SwordsIcon />
-            One-Shot
-            {cartItemsCount > 0 ? (
-              <span className="fantasy-badge fantasy-badge--gold ml-1">{cartItemsCount}</span>
-            ) : null}
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={activeTab === 'main-event'}
-            className="tab-fantasy"
-            onClick={() => setActiveTab('main-event')}
-          >
-            <CrownIcon />
-            Main Event
-            {mainCartItemsCount > 0 ? (
-              <span className="fantasy-badge fantasy-badge--gold ml-1">{mainCartItemsCount}</span>
-            ) : mainReservations.length > 0 ? (
-              <span className="fantasy-badge fantasy-badge--forest ml-1">{mainReservations.length}</span>
-            ) : null}
-          </button>
-        </div>
-        ) : null}
 
         {requestError ? (
           <p className="mt-5 rounded-xl border border-red-200 bg-red-50/80 px-4 py-3 font-body text-sm text-red-700">{requestError}</p>
@@ -447,78 +399,90 @@ export default function DiceFestBookingPage({ event }) {
           </p>
         ) : null}
 
-        {activeTab === 'one-shots' ? (
-          <BookingFiltersPanel
-            title="Filtri one-shot"
-            description="Restringi per associazione, tipo di gioco, master o slot per trovare il tavolo giusto piu in fretta."
-            fields={[
-              { key: 'association', label: 'Associazione', placeholder: 'Tutte', options: oneShotFilterOptions.associations },
-              { key: 'game', label: 'Tipo di gioco', placeholder: 'Tutti', options: oneShotFilterOptions.games },
-              { key: 'master', label: 'Master', placeholder: 'Tutti', options: oneShotFilterOptions.masters },
-              { key: 'slot', label: 'Slot', placeholder: 'Tutti', options: oneShotFilterOptions.slots },
-            ]}
-            filters={oneShotFilters}
-            visibleCount={visibleOneShotCount}
-            onChange={(field, value) => setOneShotFilters((current) => ({ ...current, [field]: value }))}
-            onReset={() => setOneShotFilters(EMPTY_ONESHOT_FILTERS)}
-            toggle={{
-              label: 'Solo posti disponibili',
-              checked: oneShotFilters.onlyAvailable,
-              onChange: (checked) => setOneShotFilters((current) => ({ ...current, onlyAvailable: checked })),
-            }}
-          />
-        ) : (
-          <BookingFiltersPanel
-            title="Filtri main event"
-            description="Restringi per tipo di gioco o slot per confrontare piu rapidamente i tavoli disponibili."
-            fields={[
-              { key: 'game', label: 'Tipo di gioco', placeholder: 'Tutti', options: mainEventFilterOptions.games },
-              { key: 'slot', label: 'Slot', placeholder: 'Tutti', options: mainEventFilterOptions.slots },
-            ]}
-            filters={mainEventFilters}
-            visibleCount={visibleMainEventCount}
-            onChange={(field, value) => setMainEventFilters((current) => ({ ...current, [field]: value }))}
-            onReset={() => setMainEventFilters(EMPTY_MAIN_EVENT_FILTERS)}
-          />
-        )}
+        <BookingFiltersPanel
+          title="Filtri"
+          description="Restringi per associazione, tipo di gioco o master: i tavoli che non corrispondono si attenuano, restano comunque visibili e prenotabili."
+          fields={[
+            { key: 'association', label: 'Associazione', placeholder: 'Tutte', options: filterOptions.associations },
+            { key: 'game', label: 'Tipo di gioco', placeholder: 'Tutti', options: filterOptions.games },
+            { key: 'master', label: 'Master', placeholder: 'Tutti', options: filterOptions.masters },
+          ]}
+          filters={filters}
+          visibleCount={matchingCount}
+          onChange={(field, value) => setFilters((current) => ({ ...current, [field]: value }))}
+          onReset={() => setFilters(EMPTY_FILTERS)}
+          toggle={{
+            label: 'Solo posti disponibili',
+            checked: filters.onlyAvailable,
+            onChange: (checked) => setFilters((current) => ({ ...current, onlyAvailable: checked })),
+          }}
+        />
 
         {/* PANELS */}
         <div className="mt-8 grid gap-8 lg:grid-cols-[1fr_320px]">
-          <main role="tabpanel" className="min-w-0">
-            {activeTab === 'one-shots' ? (
-              <OneShotsPanel
-                groups={oneShotGroups}
-                hasActiveFilters={hasActiveOneShotFilters}
-                cartState={cartState}
-                pendingSlotId={pendingSlotId}
-                busy={busy}
-                onAdd={handleAddOneshot}
-                onRemove={handleRemoveOneshot}
-                isLoggedIn={Boolean(user)}
-                oneshots={event.oneshots}
+          <main className="min-w-0">
+            <div className="space-y-4">
+              <WaitlistBanner
+                fullyBookedDays={fullyBookedDays}
                 waitlistDays={cartState.waitlistDays || []}
                 pendingWaitlistDay={pendingWaitlistDay}
                 onJoinWaitlist={handleJoinWaitlist}
                 onLeaveWaitlist={handleLeaveWaitlist}
               />
-            ) : (
-              <MainEventPanel
-                groups={mainEventGroups}
-                hasActiveFilters={hasActiveMainEventFilters}
-                reservationsBySessionKey={mainReservationsBySessionKey}
-                reservedSlotKeys={mainReservedSlotKeys}
-                cartSessionKeys={mainCartSessionKeys}
-                cartSlotKeys={mainCartSlotKeys}
-                busy={busy}
-                pendingSessionKey={pendingMainSessionKey}
-                mainSessionKey={mainSessionKey}
-                onAdd={handleAddMainToCart}
-                onRemove={handleRemoveMainFromCart}
-                onCancel={handleCancelMain}
-                isLoggedIn={Boolean(user)}
-                oneshotConflictKeys={oneshotConflictKeys}
-              />
-            )}
+
+              {allEntries.length === 0 ? (
+                <ParchmentCard>
+                  <div className="px-7 py-10 text-center">
+                    <h2 className="font-elegant text-xl font-bold text-editorial-text">Il programma è ancora un mistero</h2>
+                    <p className="mx-auto mt-2 max-w-md font-body text-sm leading-relaxed text-editorial-text-secondary">
+                      I master stanno ancora forgiando le loro avventure. Tornate presto, viandanti.
+                    </p>
+                  </div>
+                </ParchmentCard>
+              ) : (
+                <TableMap
+                  entries={allEntries}
+                  activeDay={activeDay}
+                  onChangeDay={setActiveDay}
+                  isDimmed={isDimmed}
+                  renderCell={(entry) => {
+                    if (entry.type === 'oneshot') {
+                      return (
+                        <OneShotMapCell
+                          session={entry}
+                          cartState={cartState}
+                          pendingSlotId={pendingSlotId}
+                          busy={busy}
+                          onAdd={handleAddOneshot}
+                          onRemove={handleRemoveOneshot}
+                          onOpenDetails={() => setOpenedEntry(entry)}
+                          isLoggedIn={Boolean(user)}
+                        />
+                      )
+                    }
+                    const key = mainSessionKey(entry.mainEvent.id, entry.slot.day, entry.slot.slot)
+                    return (
+                      <MainEventMapCell
+                        session={entry}
+                        sessionKey={key}
+                        reservation={mainReservationsBySessionKey.get(key)}
+                        hasReservedKey={mainReservedSlotKeys.has(getSlotKey(entry.slot))}
+                        inCart={mainCartSessionKeys.has(key)}
+                        hasCartKey={mainCartSlotKeys.has(getSlotKey(entry.slot))}
+                        hasOneshotConflict={oneshotConflictKeys.has(getSlotKey(entry.slot))}
+                        pendingSessionKey={pendingMainSessionKey}
+                        busy={busy}
+                        onAdd={handleAddMainToCart}
+                        onRemove={handleRemoveMainFromCart}
+                        onCancel={handleCancelMain}
+                        onOpenDetails={() => setOpenedEntry(entry)}
+                        isLoggedIn={Boolean(user)}
+                      />
+                    )
+                  }}
+                />
+              )}
+            </div>
           </main>
 
           <aside className="hidden lg:block">
@@ -545,20 +509,49 @@ export default function DiceFestBookingPage({ event }) {
           </Link>
         </div>
       ) : null}
+
+      {openedEntry ? (
+        openedEntry.type === 'oneshot' ? (
+          <OneShotDetailsModal
+            session={openedEntry}
+            cartState={cartState}
+            pendingSlotId={pendingSlotId}
+            busy={busy}
+            onAdd={handleAddOneshot}
+            onRemove={handleRemoveOneshot}
+            onClose={() => setOpenedEntry(null)}
+            isLoggedIn={Boolean(user)}
+          />
+        ) : (() => {
+          const key = mainSessionKey(openedEntry.mainEvent.id, openedEntry.slot.day, openedEntry.slot.slot)
+          return (
+            <MainEventDetailsModal
+              session={openedEntry}
+              sessionKey={key}
+              reservation={mainReservationsBySessionKey.get(key)}
+              hasReservedKey={mainReservedSlotKeys.has(getSlotKey(openedEntry.slot))}
+              inCart={mainCartSessionKeys.has(key)}
+              hasCartKey={mainCartSlotKeys.has(getSlotKey(openedEntry.slot))}
+              hasOneshotConflict={oneshotConflictKeys.has(getSlotKey(openedEntry.slot))}
+              pendingSessionKey={pendingMainSessionKey}
+              busy={busy}
+              onAdd={handleAddMainToCart}
+              onRemove={handleRemoveMainFromCart}
+              onCancel={handleCancelMain}
+              onClose={() => setOpenedEntry(null)}
+              isLoggedIn={Boolean(user)}
+            />
+          )
+        })()
+      ) : null}
     </div>
   )
 }
 
-/* ============ GROUPING HELPERS ============ */
-
-const DAY_ORDER = ['Lunedi', 'Lunedì', 'Martedi', 'Martedì', 'Mercoledi', 'Mercoledì', 'Giovedi', 'Giovedì', 'Venerdi', 'Venerdì', 'Sabato', 'Domenica']
+/* ============ FILTER HELPERS ============ */
 
 function normalizeFilterValue(value) {
   return String(value || '').trim().toLocaleLowerCase('it-IT')
-}
-
-function getTimeSlotFilterValue(slot) {
-  return `${normalizeFilterValue(slot?.day)}__${normalizeFilterValue(slot?.slot)}`
 }
 
 function buildTextFilterOptions(values) {
@@ -575,59 +568,6 @@ function buildTextFilterOptions(values) {
   }
 
   return Array.from(unique.values()).sort((left, right) => left.label.localeCompare(right.label, 'it'))
-}
-
-function buildSlotFilterOptions(items, listKey = 'slots') {
-  const unique = new Map()
-
-  for (const item of items) {
-    for (const slot of item[listKey] || []) {
-      const value = getTimeSlotFilterValue(slot)
-      if (!slot?.day || !slot?.slot || unique.has(value)) continue
-
-      unique.set(value, {
-        value,
-        label: `${slot.day} · ${slot.slot}`,
-        day: slot.day,
-        slot: slot.slot,
-      })
-    }
-  }
-
-  return Array.from(unique.values())
-    .sort((left, right) => {
-      const dayDiff = dayIndex(left.day) - dayIndex(right.day)
-      if (dayDiff !== 0) return dayDiff
-      return left.slot.localeCompare(right.slot, undefined, { numeric: true })
-    })
-    .map(({ value, label }) => ({ value, label }))
-}
-
-function dayIndex(day) {
-  const idx = DAY_ORDER.indexOf(day)
-  return idx === -1 ? 999 : idx
-}
-
-function groupByTimeSlot(items, itemKey, listKey = 'slots') {
-  const groups = new Map()
-  for (const item of items) {
-    for (const slot of item[listKey] || []) {
-      const key = `${slot.day}__${slot.slot}`
-      if (!groups.has(key)) {
-        groups.set(key, { day: slot.day, slot: slot.slot, sessions: [] })
-      }
-      groups.get(key).sessions.push({ [itemKey]: item, slot })
-    }
-  }
-  return Array.from(groups.values()).sort((a, b) => {
-    const dd = dayIndex(a.day) - dayIndex(b.day)
-    if (dd !== 0) return dd
-    return a.slot.localeCompare(b.slot, undefined, { numeric: true })
-  })
-}
-
-function countGroupedSessions(groups) {
-  return groups.reduce((total, group) => total + group.sessions.length, 0)
 }
 
 function pluralize(n, singular, plural) {
@@ -658,7 +598,7 @@ function BookingFiltersPanel({ title, description, fields, filters, visibleCount
               </label>
             ) : null}
             <p className="font-body text-[11px] font-semibold uppercase tracking-[0.18em] text-editorial-text-muted">
-              {visibleCount} {pluralize(visibleCount, 'tavolo visibile', 'tavoli visibili')}
+              {visibleCount} {pluralize(visibleCount, 'tavolo in evidenza', 'tavoli in evidenza')}
             </p>
             <button
               type="button"
@@ -671,7 +611,7 @@ function BookingFiltersPanel({ title, description, fields, filters, visibleCount
           </div>
         </div>
 
-        <div className={`mt-4 grid gap-3 ${fields.length >= 4 ? 'md:grid-cols-2 xl:grid-cols-4' : 'md:grid-cols-3'}`}>
+        <div className="mt-4 grid gap-3 md:grid-cols-3">
           {fields.map((field) => (
             <label key={field.key} className="block">
               <span className="mb-1 block font-body text-[11px] font-semibold uppercase tracking-[0.16em] text-editorial-text-muted">
@@ -695,7 +635,14 @@ function BookingFiltersPanel({ title, description, fields, filters, visibleCount
   )
 }
 
-/* ============ ONE-SHOTS PANEL ============ */
+/* ============ WAITLIST ============ */
+
+const DAY_ORDER = ['Lunedi', 'Lunedì', 'Martedi', 'Martedì', 'Mercoledi', 'Mercoledì', 'Giovedi', 'Giovedì', 'Venerdi', 'Venerdì', 'Sabato', 'Domenica']
+
+function dayIndex(day) {
+  const idx = DAY_ORDER.indexOf(day)
+  return idx === -1 ? 999 : idx
+}
 
 function computeFullyBookedDays(oneshots) {
   const slotsByDay = new Map()
@@ -755,95 +702,7 @@ function WaitlistBanner({ fullyBookedDays, waitlistDays, pendingWaitlistDay, onJ
   )
 }
 
-const OneShotsPanel = memo(function OneShotsPanel({ groups, hasActiveFilters, cartState, pendingSlotId, busy, onAdd, onRemove, isLoggedIn, oneshots, waitlistDays, pendingWaitlistDay, onJoinWaitlist, onLeaveWaitlist }) {
-  const [openedSession, setOpenedSession] = useState(null)
-  const fullyBookedDays = useMemo(() => computeFullyBookedDays(oneshots), [oneshots])
-
-  return (
-    <div className="space-y-4">
-      <WaitlistBanner
-        fullyBookedDays={fullyBookedDays}
-        waitlistDays={waitlistDays}
-        pendingWaitlistDay={pendingWaitlistDay}
-        onJoinWaitlist={onJoinWaitlist}
-        onLeaveWaitlist={onLeaveWaitlist}
-      />
-
-      {groups.length === 0 ? (
-        <ParchmentCard>
-          <div className="px-7 py-10 text-center">
-            <h2 className="font-elegant text-xl font-bold text-editorial-text">{hasActiveFilters ? 'Nessun tavolo trovato' : 'Il programma è ancora un mistero'}</h2>
-            <p className="mx-auto mt-2 max-w-md font-body text-sm leading-relaxed text-editorial-text-secondary">
-              {hasActiveFilters
-                ? 'Nessuna one-shot corrisponde ai filtri selezionati. Prova a cambiarli o azzerarli.'
-                : 'I master stanno ancora forgiando le loro avventure. Tornate presto, viandanti.'}
-            </p>
-          </div>
-        </ParchmentCard>
-      ) : (
-        <div className="space-y-4">
-          {groups.map((group, idx) => (
-            <TimeslotGroup
-              key={`${group.day}__${group.slot}`}
-              group={group}
-              idx={idx}
-              renderSession={(session) => (
-                <OneShotSessionRow
-                  key={session.slot.id}
-                  session={session}
-                  cartState={cartState}
-                  pendingSlotId={pendingSlotId}
-                  busy={busy}
-                  onAdd={onAdd}
-                  onRemove={onRemove}
-                  onOpenDetails={() => setOpenedSession(session)}
-                  isLoggedIn={isLoggedIn}
-                />
-              )}
-            />
-          ))}
-        </div>
-      )}
-
-      {openedSession ? (
-        <OneShotDetailsModal
-          session={openedSession}
-          cartState={cartState}
-          pendingSlotId={pendingSlotId}
-          busy={busy}
-          onAdd={onAdd}
-          onRemove={onRemove}
-          onClose={() => setOpenedSession(null)}
-          isLoggedIn={isLoggedIn}
-        />
-      ) : null}
-    </div>
-  )
-})
-
-function TimeslotGroup({ group, idx, renderSession }) {
-  return (
-    <article
-      className="parchment-scroll fade-stagger"
-      style={{ animationDelay: `${idx * 0.05}s` }}
-    >
-      <div className="px-5 py-4 sm:px-6 sm:py-5">
-        <header className="flex items-end justify-between gap-3 border-b border-dashed border-editorial-border pb-3">
-          <div className="timeslot-marker">
-            <span className="timeslot-marker__day">{group.day}</span>
-            <span className="timeslot-marker__hour">{group.slot}</span>
-          </div>
-          <span className="font-body text-[11px] uppercase tracking-[0.18em] text-editorial-text-muted">
-            {group.sessions.length} {pluralize(group.sessions.length, 'tavolo', 'tavoli')}
-          </span>
-        </header>
-        <ul className="mt-2 divide-y divide-dashed divide-editorial-border/60">
-          {group.sessions.map(renderSession)}
-        </ul>
-      </div>
-    </article>
-  )
-}
+/* ============ ONE-SHOT CELL ============ */
 
 function computeOneShotState({ slot, cartState, isLoggedIn, isPending, busy = false }) {
   const confirmed = cartState.confirmedSlotIds.includes(slot.id)
@@ -903,7 +762,7 @@ function computeOneShotState({ slot, cartState, isLoggedIn, isPending, busy = fa
   return { confirmed, inCart, full, fewLeft, remaining, label, verboseLabel, actionKind, disabled, variant }
 }
 
-function OneShotSessionRow({ session, cartState, pendingSlotId, busy, onAdd, onRemove, onOpenDetails, isLoggedIn }) {
+function OneShotMapCell({ session, cartState, pendingSlotId, busy, onAdd, onRemove, onOpenDetails, isLoggedIn }) {
   const { oneshot, slot } = session
   const isPending = pendingSlotId === slot.id
   const state = computeOneShotState({ slot, cartState, isLoggedIn, isPending, busy })
@@ -919,142 +778,39 @@ function OneShotSessionRow({ session, cartState, pendingSlotId, busy, onAdd, onR
     }
   }
 
-  const rowVariant = state.variant === 'in-cart'
-    ? 'session-row--in-cart'
-    : state.variant === 'confirmed'
-      ? 'session-row--confirmed'
-      : state.variant === 'full'
-        ? 'session-row--full'
-        : ''
+  const cardVariant = state.variant === 'in-cart' ? 'slot-card--in-cart'
+    : state.variant === 'confirmed' ? 'slot-card--confirmed'
+      : state.variant === 'full' ? 'slot-card--full' : ''
 
   return (
-    <li className={`session-row ${rowVariant}`}>
+    <div className={`slot-card ${cardVariant} flex h-full flex-col gap-2`}>
       <button
         type="button"
-        className="session-row__main flex items-center gap-3"
         onClick={onOpenDetails}
+        className="flex flex-1 flex-col items-start gap-1 text-left"
         aria-label={`Dettagli: ${oneshot.title}`}
       >
-        {oneshot.image ? (
-          <img
-            src={oneshot.image}
-            alt=""
-            className="h-12 w-12 shrink-0 rounded-lg border border-editorial-border object-cover"
-          />
-        ) : null}
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-            <h4 className="font-elegant text-[15px] font-bold leading-tight text-editorial-text">{oneshot.title}</h4>
-            <span className="fantasy-badge fantasy-badge--terra">{oneshot.game || 'GDR'}</span>
-          </div>
-          <p className="mt-0.5 font-body text-xs text-editorial-text-secondary">
-            <span className="text-editorial-text-muted">Master · </span>
-            <span className="font-semibold text-editorial-text">{oneshot.master}</span>
-            <span className="text-editorial-text-muted"> · {slot.table}</span>
-            {typeof oneshot.price === 'number' && oneshot.price > 0 ? (
-              <>
-                <span className="text-editorial-text-muted"> · </span>
-                <span className="font-semibold text-editorial-terra">{formatCartPrice(oneshot.price, { hideWhenMissing: true })}</span>
-              </>
-            ) : null}
-          </p>
-          <div className="mt-1 flex items-center gap-1.5 text-[10.5px] uppercase tracking-[0.12em] text-editorial-text-muted">
-            <span><strong className="text-editorial-text">{state.remaining}</strong>/{slot.maxPlayers} posti</span>
-            {state.fewLeft && !state.confirmed && !state.inCart ? <span className="fantasy-badge fantasy-badge--terra">Ultimi</span> : null}
-            {state.confirmed ? <span className="fantasy-badge fantasy-badge--forest">Prenotato</span> : null}
-            {state.inCart ? <span className="fantasy-badge fantasy-badge--gold">Da confermare</span> : null}
-          </div>
-        </div>
+        <span className="fantasy-badge fantasy-badge--terra"><SwordsIcon />{oneshot.game || 'GDR'}</span>
+        <p className="font-elegant text-[13px] font-bold leading-tight text-editorial-text line-clamp-2">{oneshot.title}</p>
+        <p className="font-body text-[11px] text-editorial-text-muted line-clamp-1">{oneshot.master}</p>
+        {state.fewLeft && !state.confirmed && !state.inCart ? <span className="fantasy-badge fantasy-badge--terra">Ultimi</span> : null}
       </button>
-      <button
-        type="button"
-        onClick={handleAction}
-        disabled={state.disabled}
-        className={state.actionKind === 'add' ? 'btn-slot-wax' : 'btn-slot-ghost'}
-      >
-        {state.label}
-      </button>
-    </li>
+      <div className="flex items-center justify-between gap-2">
+        <span className="font-body text-[10px] uppercase tracking-wide text-editorial-text-muted">{state.remaining}/{slot.maxPlayers}</span>
+        <button
+          type="button"
+          onClick={handleAction}
+          disabled={state.disabled}
+          className={state.actionKind === 'add' ? 'btn-slot-wax' : 'btn-slot-ghost'}
+        >
+          {state.label}
+        </button>
+      </div>
+    </div>
   )
 }
 
-/* ============ MAIN EVENT PANEL ============ */
-
-const MainEventPanel = memo(function MainEventPanel({ groups, hasActiveFilters, reservationsBySessionKey, reservedSlotKeys, cartSessionKeys, cartSlotKeys, pendingSessionKey, mainSessionKey, busy, onAdd, onRemove, onCancel, isLoggedIn, oneshotConflictKeys }) {
-  const [openedSession, setOpenedSession] = useState(null)
-
-  return (
-    <div className="space-y-4">
-
-      {groups.length === 0 ? (
-        <ParchmentCard>
-          <div className="px-7 py-10 text-center">
-            <h2 className="font-elegant text-xl font-bold text-editorial-text">{hasActiveFilters ? 'Nessun tavolo trovato' : 'Nessun evento principale annunciato'}</h2>
-            <p className="mx-auto mt-2 max-w-md font-body text-sm leading-relaxed text-editorial-text-secondary">
-              {hasActiveFilters
-                ? 'Nessun main event corrisponde ai filtri selezionati. Prova a cambiarli o azzerarli.'
-                : 'Per questa edizione l&apos;evento principale non è ancora stato svelato. Tornate presto.'}
-            </p>
-          </div>
-        </ParchmentCard>
-      ) : (
-        <div className="space-y-4">
-          {groups.map((group, idx) => (
-            <TimeslotGroup
-              key={`${group.day}__${group.slot}`}
-              group={group}
-              idx={idx}
-              renderSession={(session) => {
-                const key = mainSessionKey(session.mainEvent.id, session.slot.day, session.slot.slot)
-                return (
-                  <MainEventSessionRow
-                    key={key}
-                    session={session}
-                    sessionKey={key}
-                    reservation={reservationsBySessionKey.get(key)}
-                    hasReservedKey={reservedSlotKeys.has(getSlotKey(session.slot))}
-                    inCart={cartSessionKeys.has(key)}
-                    hasCartKey={cartSlotKeys.has(getSlotKey(session.slot))}
-                    hasOneshotConflict={oneshotConflictKeys.has(getSlotKey(session.slot))}
-                    pendingSessionKey={pendingSessionKey}
-                    busy={busy}
-                    onAdd={onAdd}
-                    onRemove={onRemove}
-                    onCancel={onCancel}
-                    onOpenDetails={() => setOpenedSession(session)}
-                    isLoggedIn={isLoggedIn}
-                  />
-                )
-              }}
-            />
-          ))}
-        </div>
-      )}
-
-      {openedSession ? (() => {
-        const key = mainSessionKey(openedSession.mainEvent.id, openedSession.slot.day, openedSession.slot.slot)
-        return (
-          <MainEventDetailsModal
-            session={openedSession}
-            sessionKey={key}
-            reservation={reservationsBySessionKey.get(key)}
-            hasReservedKey={reservedSlotKeys.has(getSlotKey(openedSession.slot))}
-            inCart={cartSessionKeys.has(key)}
-            hasCartKey={cartSlotKeys.has(getSlotKey(openedSession.slot))}
-            hasOneshotConflict={oneshotConflictKeys.has(getSlotKey(openedSession.slot))}
-            pendingSessionKey={pendingSessionKey}
-            busy={busy}
-            onAdd={onAdd}
-            onRemove={onRemove}
-            onCancel={onCancel}
-            onClose={() => setOpenedSession(null)}
-            isLoggedIn={isLoggedIn}
-          />
-        )
-      })() : null}
-    </div>
-  )
-})
+/* ============ MAIN EVENT CELL ============ */
 
 function computeMainEventState({ slot, reservation, inCart, hasReservedKey, hasCartKey, isLoggedIn, isPending, busy = false }) {
   const remaining = Math.max(0, slot.maxPlayers - (slot.currentReservations || 0))
@@ -1111,7 +867,7 @@ function computeMainEventState({ slot, reservation, inCart, hasReservedKey, hasC
   return { remaining, fewLeft, full, hasConflict, hasCartConflict, label, verboseLabel, actionKind, disabled, variant }
 }
 
-function MainEventSessionRow({ session, sessionKey, reservation, inCart, hasReservedKey, hasCartKey, hasOneshotConflict, pendingSessionKey, busy, onAdd, onRemove, onCancel, onOpenDetails, isLoggedIn }) {
+function MainEventMapCell({ session, sessionKey, reservation, inCart, hasReservedKey, hasCartKey, hasOneshotConflict, pendingSessionKey, busy, onAdd, onRemove, onCancel, onOpenDetails, isLoggedIn }) {
   const { mainEvent, slot } = session
   const isPending = pendingSessionKey === sessionKey
   const state = computeMainEventState({ slot, reservation, inCart, hasReservedKey, hasCartKey, isLoggedIn, isPending, busy })
@@ -1119,7 +875,7 @@ function MainEventSessionRow({ session, sessionKey, reservation, inCart, hasRese
   const handleAction = (e) => {
     e.stopPropagation()
     if (state.actionKind === 'login') {
-      window.location.href = '/auth/login?next=/dice-fest/prenotazioni%3Ftab%3Dmain-event'
+      window.location.href = '/auth/login?next=/dice-fest/prenotazioni'
     } else if (state.actionKind === 'add') {
       onAdd({ mainEventId: mainEvent.id, day: slot.day, slot: slot.slot })
     } else if (state.actionKind === 'remove') {
@@ -1129,63 +885,38 @@ function MainEventSessionRow({ session, sessionKey, reservation, inCart, hasRese
     }
   }
 
-  const rowVariant = state.variant === 'confirmed'
-    ? 'session-row--confirmed'
-    : state.variant === 'in-cart'
-      ? 'session-row--in-cart'
-    : state.variant === 'full'
-      ? 'session-row--full'
-      : ''
+  const cardVariant = state.variant === 'confirmed' ? 'slot-card--confirmed'
+    : state.variant === 'in-cart' ? 'slot-card--in-cart'
+      : state.variant === 'full' ? 'slot-card--full' : ''
 
   return (
-    <li className={`session-row ${rowVariant}`}>
+    <div className={`slot-card ${cardVariant} flex h-full flex-col gap-2`}>
       <button
         type="button"
-        className="session-row__main flex items-center gap-3"
         onClick={onOpenDetails}
+        className="flex flex-1 flex-col items-start gap-1 text-left"
         aria-label={`Dettagli: ${mainEvent.title}`}
       >
-        {mainEvent.image ? (
-          <img
-            src={mainEvent.image}
-            alt=""
-            className="h-12 w-12 shrink-0 rounded-lg border border-editorial-border object-cover"
-          />
+        <span className="fantasy-badge fantasy-badge--forest"><CrownIcon />Main Event</span>
+        <p className="font-elegant text-[13px] font-bold leading-tight text-editorial-text line-clamp-2">{mainEvent.title}</p>
+        {mainEvent.game ? <p className="font-body text-[11px] text-editorial-text-muted line-clamp-1">{mainEvent.game}</p> : null}
+        {state.fewLeft && !reservation && !inCart ? <span className="fantasy-badge fantasy-badge--terra">Ultimi</span> : null}
+        {!reservation && hasOneshotConflict ? (
+          <span className="fantasy-badge fantasy-badge--gold" title="Hai una one-shot in questa fascia">Conflitto</span>
         ) : null}
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-            <h4 className="font-elegant text-[15px] font-bold leading-tight text-editorial-text">{mainEvent.title}</h4>
-            <span className="fantasy-badge fantasy-badge--forest">Main Event</span>
-          </div>
-          <p className="mt-0.5 font-body text-xs text-editorial-text-secondary">
-            {mainEvent.game ? <span className="text-editorial-text-muted">{mainEvent.game}</span> : null}
-            {typeof mainEvent.price === 'number' && mainEvent.price > 0 ? (
-              <>
-                <span className="text-editorial-text-muted"> · </span>
-                <span className="font-semibold text-editorial-forest">{formatCartPrice(mainEvent.price, { hideWhenMissing: true })}</span>
-              </>
-            ) : null}
-          </p>
-          <div className="mt-1 flex items-center gap-1.5 text-[10.5px] uppercase tracking-[0.12em] text-editorial-text-muted">
-            <span><strong className="text-editorial-text">{state.remaining}</strong>/{slot.maxPlayers} posti</span>
-            {state.fewLeft && !reservation && !inCart ? <span className="fantasy-badge fantasy-badge--terra">Ultimi</span> : null}
-            {reservation ? <span className="fantasy-badge fantasy-badge--forest">Prenotato</span> : null}
-            {inCart ? <span className="fantasy-badge fantasy-badge--gold">Da confermare</span> : null}
-            {!reservation && hasOneshotConflict ? (
-              <span className="fantasy-badge fantasy-badge--gold" title="Hai una one-shot in questa fascia">Conflitto</span>
-            ) : null}
-          </div>
-        </div>
       </button>
-      <button
-        type="button"
-        onClick={handleAction}
-        disabled={state.disabled}
-        className={state.actionKind === 'add' ? 'btn-slot-wax' : 'btn-slot-ghost'}
-      >
-        {state.label}
-      </button>
-    </li>
+      <div className="flex items-center justify-between gap-2">
+        <span className="font-body text-[10px] uppercase tracking-wide text-editorial-text-muted">{state.remaining}/{slot.maxPlayers}</span>
+        <button
+          type="button"
+          onClick={handleAction}
+          disabled={state.disabled}
+          className={state.actionKind === 'add' ? 'btn-slot-wax' : 'btn-slot-ghost'}
+        >
+          {state.label}
+        </button>
+      </div>
+    </div>
   )
 }
 
@@ -1303,7 +1034,7 @@ function MainEventDetailsModal({ session, sessionKey, reservation, inCart, hasRe
 
   const handleAction = () => {
     if (state.actionKind === 'login') {
-      window.location.href = '/auth/login?next=/dice-fest/prenotazioni%3Ftab%3Dmain-event'
+      window.location.href = '/auth/login?next=/dice-fest/prenotazioni'
     } else if (state.actionKind === 'add') {
       onAdd({ mainEventId: mainEvent.id, day: slot.day, slot: slot.slot })
     } else if (state.actionKind === 'remove') {
@@ -1483,7 +1214,7 @@ const BookingOrderSummary = memo(function BookingOrderSummary({ cartState, mainC
 
 function SwordsIcon() {
   return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="M14 14L21 21M3 3l7 7M14 10l7-7v4M10 14l-7 7v-4M16 16l4 4M4 4l4 4" />
     </svg>
   )
@@ -1491,7 +1222,7 @@ function SwordsIcon() {
 
 function CrownIcon() {
   return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="M3 8l4 5 5-8 5 8 4-5v11H3z" />
       <path d="M3 19h18" />
     </svg>

@@ -112,6 +112,23 @@ function serializeMainEventForEvent(mainEvent, event, countsByKey) {
     }
   })
 
+  // Per-table breakdown of the same sessions, needed to place a main event on
+  // a table×slot grid. A reservation isn't tied to one specific table, so
+  // every physical table sharing a day+slot repeats that session's pooled
+  // capacity/count — that's intentional, not a bug.
+  const sessionByKey = new Map(sessions.map((session) => [`${session.day}__${session.slot}`, session]))
+  const tables = mainEvent.slots.map((slot) => {
+    const session = sessionByKey.get(`${slot.day}__${slot.slot}`)
+    return {
+      day: slot.day,
+      slot: slot.slot,
+      table: slot.table,
+      maxPlayers: session?.maxPlayers ?? slot.maxPlayers,
+      currentReservations: session?.currentReservations ?? 0,
+      available: session?.available ?? true,
+    }
+  })
+
   return {
     id: mainEvent.id,
     title: mainEvent.title,
@@ -126,6 +143,7 @@ function serializeMainEventForEvent(mainEvent, event, countsByKey) {
     eventStartDate: normalizeDate(event.startDate),
     eventEndDate: normalizeDate(event.endDate),
     sessions,
+    tables,
   }
 }
 
@@ -166,7 +184,7 @@ export async function getPublicMainEvents({ eventId, db = prisma } = {}) {
     include: {
       slots: {
         where: eventId ? { eventId } : {},
-        select: { day: true, slot: true, maxPlayers: true, eventId: true },
+        select: { day: true, slot: true, table: true, maxPlayers: true, eventId: true },
       },
     },
     orderBy: [{ title: 'asc' }],

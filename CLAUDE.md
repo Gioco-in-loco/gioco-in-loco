@@ -151,7 +151,8 @@ type OneShot = {
 ### File PWA
 - `public/manifest.json` - manifest con nome, icone, theme color
 - `public/sw.js` - service worker per caching offline
-- `public/icon-192.svg`, `public/icon-512.svg` - icone installazione
+- `public/icon-192.png`, `public/icon-512.png` - icone installazione (logo Gioco In Loco)
+- `app/icon.png`, `app/apple-icon.png` - favicon/tab icon e icona iOS (convenzione file Next.js App Router)
 
 ### Banner Install
 - Barra fissa in alto (`z-[999]`)
