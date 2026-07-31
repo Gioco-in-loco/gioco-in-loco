@@ -43,3 +43,23 @@ coverage/
 
 # Misc
 .cache/
+
+# AI tool configs / skills (not part of the project)
+.agents/
+.augment/
+.claude/skills/
+.codebuddy/
+.codewhale/
+.continue/
+.cursor/
+.factory/
+.gemini/
+.github/
+.kilocode/
+.kiro/
+.opencode/
+.qoder/
+.roo/
+.trae/
+.warp/
+.windsurf/
