@@ -18,10 +18,8 @@ const EyeOffIcon = () => (
 export default function PasswordInput({ value, onChange, placeholder = 'Almeno 8 caratteri', autoComplete = 'current-password', required = false, minLength, className = '', hint = '', error = '' }) {
   const [show, setShow] = useState(false)
 
-  const base = 'w-full rounded-lg border-2 px-4 py-3 pr-12 font-body text-editorial-text outline-none transition-all auth-input'
-  const borderClass = error
-    ? 'border-red-400 focus:border-red-500 focus:ring-4 focus:ring-red-500/10'
-    : 'border-editorial-border focus:border-editorial-terra focus:ring-4 focus:ring-editorial-terra/10'
+  const base = 'input-field input-field--with-icon'
+  const borderClass = error ? 'input-field--error' : ''
 
   return (
     <div>

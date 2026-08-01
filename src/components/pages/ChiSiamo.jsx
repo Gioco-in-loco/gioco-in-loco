@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import Card from '../ui/Card'
+import { PeopleIcon, MapPinIcon, ArrowRightIcon } from '../ui/Icons'
 
 export default function ChiSiamoPage({ associations = [] }) {
   const [isVisible, setIsVisible] = useState(false)
@@ -32,46 +33,59 @@ export default function ChiSiamoPage({ associations = [] }) {
   )].sort((left, right) => left.localeCompare(right, 'it-IT'))
 
   return (
-    <section id="chi-siamo" ref={sectionRef} className="relative py-20 px-6 energized-bg">
-      {/* Dice pattern background */}
-      <div className="absolute inset-0 dice-pattern-energized opacity-50 pointer-events-none pattern-drift" />
-
-      {/* Decorative elements */}
-      <div className="absolute top-20 left-10 w-20 h-20 rounded-full bg-editorial-terra/10" />
-      <div className="absolute bottom-40 right-10 w-32 h-32 rounded-full bg-editorial-forest/10" />
+    <section id="chi-siamo" ref={sectionRef} className="relative py-20 px-6">
+      <div className="absolute inset-0 dice-pattern opacity-20 pointer-events-none" />
 
       <div className="relative max-w-5xl mx-auto">
 
-        {/* Header — Gioco In Loco, the collective behind every association below */}
-        <div className="text-center mb-12">
-          <p
-            className={`font-body text-xs uppercase tracking-widest text-editorial-terra mb-6 transition-all duration-700 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}
+        {/* Header — asymmetric two-column, same language as the Home hero */}
+        <div className="grid items-center gap-10 lg:grid-cols-[0.85fr_1.15fr] lg:gap-16 mb-20">
+          <div
+            className={`text-center lg:text-left transition-all duration-700 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'}`}
           >
-            Chi siamo
-          </p>
-          <img
-            src="/loghi-ass/gioco-in-loco-512.png"
-            alt="Gioco In Loco"
-            className={`mx-auto h-40 w-auto transition-all duration-700 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}
-            style={{ transitionDelay: '0.1s' }}
-          />
-          <svg
-            className={`mx-auto mt-6 h-8 w-8 text-editorial-terra transition-all duration-700 ${isVisible ? 'opacity-100 translate-y-0 animate-bounce' : 'opacity-0 translate-y-10'}`}
-            style={{ transitionDelay: '0.25s' }}
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-            aria-hidden="true"
+            <p className="font-body text-xs uppercase tracking-widest text-editorial-terra mb-5">
+              Chi siamo
+            </p>
+            <img
+              src="/loghi-ass/gioco-in-loco-512.png"
+              alt="Gioco In Loco"
+              className="mx-auto lg:mx-0 h-28 w-auto mb-5"
+            />
+            <p className="mx-auto lg:mx-0 max-w-sm font-body text-[15px] leading-relaxed text-editorial-text-secondary">
+              Una rete di enti e gruppi di gioco in Campania che promuove il gioco da tavolo, di ruolo e libero come atto culturale, sociale e di aggregazione.
+            </p>
+          </div>
+
+          {/* Mission — tilted card, same treatment as the Home stat panel */}
+          <div
+            className={`relative transition-all duration-700 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'}`}
+            style={{ transitionDelay: '0.15s' }}
           >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
-          </svg>
+            <div
+              className="absolute -inset-6 rounded-[2rem] bg-gradient-to-br from-editorial-terra/10 via-editorial-gold/10 to-editorial-forest/15 blur-2xl"
+              aria-hidden="true"
+            />
+            <Card variant="editorial" className="relative rotate-1 hover:rotate-0 transition-transform duration-500">
+              <div className="flex items-start gap-5">
+                <div className="hidden sm:flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-editorial-terra/10 text-editorial-terra">
+                  <PeopleIcon className="h-5 w-5" />
+                </div>
+                <div>
+                  <h2 className="font-elegant text-xl text-editorial-text mb-3 font-bold">La nostra missione</h2>
+                  <p className="font-body text-editorial-text-secondary leading-relaxed">
+                    Nasciamo per giocare e far giocare: diffondiamo tra giovani e meno giovani i benefici del gioco da tavolo, di ruolo e del gamedesign. Crediamo che il gioco sia un linguaggio universale, capace di superare barriere di età ed estrazione sociale — per questo creiamo momenti di incontro sia durante i grandi eventi fieristici, sia tutto l'anno nelle sedi di ciascun ente.
+                  </p>
+                </div>
+              </div>
+            </Card>
+          </div>
         </div>
 
-        {/* Associations — the realities that make up the collective */}
-        <div className="mb-20">
-          <div className="text-center mb-12">
+        {/* Associations */}
+        <div className="mb-16">
+          <div className="text-center mb-10">
             <p className="font-body text-xs uppercase tracking-widest text-editorial-text-muted mb-3">
-              Le nostre realtà ludiche
+              {associations.length} associazion{associations.length === 1 ? 'e' : 'i'}{cities.length > 0 ? ` · ${cities.length} città` : ''}
             </p>
             <h2 className="font-elegant text-3xl text-editorial-text font-bold">Le associazioni</h2>
           </div>
@@ -81,8 +95,8 @@ export default function ChiSiamoPage({ associations = [] }) {
               <Link
                 key={assoc.id}
                 href={`/associazione/${assoc.slug || assoc.id}`}
-                className={`transition-all duration-500 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}
-                style={{ transitionDelay: `${0.3 + index * 0.1}s` }}
+                className={`transition-all duration-500 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'}`}
+                style={{ transitionDelay: `${Math.min(0.1 + index * 0.05, 0.4)}s` }}
               >
                 <Card
                   variant="editorial"
@@ -114,9 +128,7 @@ export default function ChiSiamoPage({ associations = [] }) {
                       </p>
                       <div className="flex items-center gap-2 text-editorial-terra font-body text-sm font-semibold group-hover:gap-3 transition-all">
                         <span>Scopri di più</span>
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                        </svg>
+                        <ArrowRightIcon className="w-4 h-4" />
                       </div>
                     </div>
                   </div>
@@ -126,84 +138,46 @@ export default function ChiSiamoPage({ associations = [] }) {
           </div>
           {associations.length === 0 && (
             <div className="text-center py-12">
-              <div className="text-5xl mb-4 float-energized">🎲</div>
               <p className="font-body text-editorial-text-secondary">Nessuna associazione disponibile al momento.</p>
             </div>
           )}
         </div>
 
-        <div className="section-divider-energized w-24 mx-auto mb-16" />
-
-        {/* Intro with animated reveal */}
-        <div
-          className={`max-w-3xl mx-auto text-center mb-12 transition-all duration-700 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}
-        >
-          <h2 className="font-elegant text-3xl md:text-4xl text-editorial-text mb-6 font-bold">
-            La nostra storia
-          </h2>
-          <p className="font-body text-lg text-editorial-text-secondary leading-relaxed">
-            <strong className="text-editorial-text font-semibold">Gioco in Loco</strong> è una rete di enti e gruppi di gioco in Campania (e oltre) che promuove il gioco libero e gratuito come atto culturale, sociale e di autoconsapevolezza. Nasce per giocare e far giocare, per diffondere tra giovani e meno giovani gli infiniti benefici del gioco da tavolo, di ruolo, del gamedesign e del multiforme mondo del gioco.
-          </p>
-        </div>
-
-        {/* Group photo placeholder */}
-        <div
-          className={`max-w-4xl mx-auto mb-16 transition-all duration-700 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}
-          style={{ transitionDelay: '0.1s' }}
-        >
-          <div className="relative rounded-xl overflow-hidden border-2 border-editorial-border shadow-soft-md">
-            {/* Placeholder: chi-siamo-group.jpg - Community group photo */}
-            <div className="aspect-[16/7] bg-gradient-to-br from-editorial-terra/10 via-editorial-forest/10 to-editorial-gold/10 flex items-center justify-center">
-              <div className="text-center">
-                <div className="text-5xl mb-3 float-energized">👥</div>
-                <p className="font-elegant text-xl text-editorial-text-muted/50">chi-siamo-group.jpg</p>
-                <p className="font-body text-sm text-editorial-text-muted/40 mt-1">16:7 ratio • ~1600×700px</p>
-                <p className="font-body text-xs text-editorial-text-muted/30 mt-2 max-w-sm mx-auto">Group photo of all associations at a gaming event</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Mission section */}
-        <div className="mb-20">
-          <Card variant="editorial" className="max-w-3xl mx-auto energized-card">
-            <div className="flex items-start gap-5">
-              <div className="w-12 h-12 rounded-full bg-editorial-terra/10 flex items-center justify-center flex-shrink-0 float-energized pulse-glow-energized">
-                <svg className="w-6 h-6 text-editorial-terra" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="1.5">
-                  <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-              </div>
-              <div>
-                <h2 className="font-elegant text-xl text-editorial-text mb-3 font-bold">La nostra missione</h2>
-                <p className="font-body text-editorial-text-secondary leading-relaxed">
-                  Crediamo che il gioco sia un linguaggio universale che supera barriere di età, estrazione sociale e provenienza. Gioco in Loco crea momenti di aggregazione e divertimento sano durante i più importanti eventi ludici nelle città, ma anche e soprattutto in tutto l'anno nelle sedi di ciascun ente e ovunque ci sia una giocatrice o un giocatore che necessiti di aiuto nel trovare un momento e uno spazio di gioco.
-                </p>
-              </div>
-            </div>
-          </Card>
-        </div>
-
         {/* Locations */}
-        <div className="mb-12">
-          <div className="text-center mb-8">
-            <p className="font-body text-xs uppercase tracking-widest text-editorial-text-muted mb-3">
+        {cities.length > 0 && (
+          <div className="mb-14 text-center">
+            <p className="font-body text-xs uppercase tracking-widest text-editorial-text-muted mb-4 flex items-center justify-center gap-2">
+              <MapPinIcon className="h-4 w-4" />
               Dove trovarci
             </p>
-            <div className="section-divider-energized w-16 mx-auto" />
+            <div className="flex flex-wrap justify-center gap-3">
+              {cities.map((city) => (
+                <div
+                  key={city}
+                  className="px-5 py-2.5 bg-white border-2 border-editorial-border rounded-full font-body text-sm text-editorial-text-secondary hover:border-editorial-terra hover:text-editorial-terra transition-all"
+                >
+                  {city}
+                </div>
+              ))}
+            </div>
           </div>
+        )}
 
-          <div className="flex flex-wrap justify-center gap-4">
-            {cities.map((city, index) => (
-              <div
-                key={city}
-                className="px-5 py-2.5 bg-white border-2 border-editorial-border rounded-full font-body text-sm text-editorial-text-secondary hover:border-editorial-terra hover:text-editorial-terra transition-all hover:scale-105 stagger-fade-energized"
-                style={{ animationDelay: `${index * 0.1}s` }}
-              >
-                {city}
-              </div>
-            ))}
+        {/* Closing CTA */}
+        <div className="text-center border-t border-editorial-border/60 pt-10">
+          <p className="font-elegant text-lg text-editorial-text-secondary mb-5">
+            Vuoi conoscerci di persona? Ci trovi ai nostri eventi.
+          </p>
+          <div className="flex flex-wrap items-center justify-center gap-3">
+            <Link href="/dice-fest" className="btn-primary">
+              Vai al Dice Fest
+            </Link>
+            <Link href="/contattaci" className="btn-ghost">
+              Contattaci
+            </Link>
           </div>
         </div>
+
       </div>
     </section>
   )

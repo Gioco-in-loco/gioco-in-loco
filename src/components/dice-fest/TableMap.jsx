@@ -47,6 +47,21 @@ export default function TableMap({ entries, activeDay, onChangeDay, renderCell, 
     return map
   }, [dayEntries])
 
+  // Mobile list grouped by time slot: only real entries are listed (no
+  // "Libero" placeholders), since scanning a flat list of open tables reads
+  // better on a phone than reconstructing an empty grid cell by cell.
+  const groupedByTimeSlot = useMemo(
+    () => timeSlots
+      .map((slotTime) => ({
+        slotTime,
+        entries: tables
+          .map((table) => cellMap.get(`${table}__${slotTime}`))
+          .filter(Boolean),
+      }))
+      .filter((group) => group.entries.length > 0),
+    [timeSlots, tables, cellMap],
+  )
+
   if (days.length === 0) return null
 
   return (
@@ -67,33 +82,57 @@ export default function TableMap({ entries, activeDay, onChangeDay, renderCell, 
       </div>
 
       {tables.length === 0 || timeSlots.length === 0 ? null : (
-        <div className="table-map-scroll">
-          <div
-            className="grid min-w-max"
-            style={{ gridTemplateColumns: `132px repeat(${timeSlots.length}, minmax(200px, 1fr))` }}
-          >
-            <div className="table-map__corner">Tavolo</div>
-            {timeSlots.map((slotTime) => (
-              <div key={slotTime} className="table-map__col-header">{slotTime}</div>
-            ))}
-
-            {tables.map((table) => (
-              <Fragment key={table}>
-                <div className="table-map__row-header">{table}</div>
-                {timeSlots.map((slotTime) => {
-                  const entry = cellMap.get(`${table}__${slotTime}`)
-                  const dimmed = entry && isDimmed ? isDimmed(entry) : false
-
-                  return (
-                    <div key={`${table}__${slotTime}`} className={`table-map__cell ${dimmed ? 'table-map__cell--dimmed' : ''}`}>
-                      {entry ? renderCell(entry) : <span className="table-map__empty">{emptyLabel}</span>}
-                    </div>
-                  )
-                })}
-              </Fragment>
+        <>
+          {/* Mobile / tablet: vertical list, no horizontal scroll. */}
+          <div className="space-y-5 lg:hidden">
+            {groupedByTimeSlot.map((group) => (
+              <div key={group.slotTime}>
+                <div className="timeslot-marker mb-2">
+                  <span className="timeslot-marker__hour">{group.slotTime}</span>
+                </div>
+                <div className="space-y-3">
+                  {group.entries.map((entry) => {
+                    const dimmed = isDimmed ? isDimmed(entry) : false
+                    return (
+                      <div key={`${entry.slot.table}__${entry.slot.slot}`} className={dimmed ? 'table-map__cell--dimmed' : ''}>
+                        {renderCell(entry)}
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
             ))}
           </div>
-        </div>
+
+          {/* Desktop / large tablet: full table × time-slot grid. */}
+          <div className="table-map-scroll hidden lg:block">
+            <div
+              className="grid min-w-max"
+              style={{ gridTemplateColumns: `132px repeat(${timeSlots.length}, minmax(200px, 1fr))` }}
+            >
+              <div className="table-map__corner">Tavolo</div>
+              {timeSlots.map((slotTime) => (
+                <div key={slotTime} className="table-map__col-header">{slotTime}</div>
+              ))}
+
+              {tables.map((table) => (
+                <Fragment key={table}>
+                  <div className="table-map__row-header">{table}</div>
+                  {timeSlots.map((slotTime) => {
+                    const entry = cellMap.get(`${table}__${slotTime}`)
+                    const dimmed = entry && isDimmed ? isDimmed(entry) : false
+
+                    return (
+                      <div key={`${table}__${slotTime}`} className={`table-map__cell ${dimmed ? 'table-map__cell--dimmed' : ''}`}>
+                        {entry ? renderCell(entry) : <span className="table-map__empty">{emptyLabel}</span>}
+                      </div>
+                    )
+                  })}
+                </Fragment>
+              ))}
+            </div>
+          </div>
+        </>
       )}
     </div>
   )

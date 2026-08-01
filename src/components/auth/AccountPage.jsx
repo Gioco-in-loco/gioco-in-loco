@@ -263,7 +263,7 @@ export default function AccountPage() {
         <div className="relative w-full max-w-md mx-auto space-y-4">
 
           {/* Identity card */}
-          <div className="rounded-xl border-2 border-editorial-border bg-white p-6 shadow-soft-md energized-card">
+          <div className="card-surface p-6">
             <div className="flex items-center gap-4">
               <Avatar name={user?.name} email={user?.email} />
               <div className="flex-1 min-w-0">
@@ -304,7 +304,7 @@ export default function AccountPage() {
 
           {/* Tab: Profilo */}
           {activeTab === 'profile' && (
-            <div className="rounded-xl border-2 border-editorial-border bg-white p-6 shadow-soft-md energized-card space-y-6">
+            <div className="card-surface p-6 space-y-6">
 
               {/* Name + phone */}
               <div>
@@ -320,7 +320,7 @@ export default function AccountPage() {
                       onChange={(e) => setFullName(e.target.value)}
                       autoComplete="name"
                       placeholder="Mario Rossi"
-                      className="w-full rounded-lg border-2 border-editorial-border px-4 py-2.5 font-body text-editorial-text outline-none focus:border-editorial-terra focus:ring-4 focus:ring-editorial-terra/10 transition-all auth-input"
+                      className="input-field"
                     />
                   </div>
                   <div>
@@ -333,14 +333,14 @@ export default function AccountPage() {
                       required
                       autoComplete="tel"
                       placeholder="+39 333 000 0000"
-                      className={`w-full rounded-lg border-2 px-4 py-2.5 font-body text-editorial-text outline-none transition-all auth-input ${phoneError ? 'border-red-400 focus:border-red-500 focus:ring-4 focus:ring-red-500/10' : 'border-editorial-border focus:border-editorial-terra focus:ring-4 focus:ring-editorial-terra/10'}`}
+                      className={`input-field ${phoneError ? 'input-field--error' : ''}`}
                     />
                     {phoneError && <p className="mt-1.5 font-body text-xs text-red-500">{phoneError}</p>}
                   </div>
                   <button
                     type="submit"
                     disabled={profileState.saving || !profileChanged || !isProfileFormValid}
-                    className="rounded-lg bg-editorial-terra px-5 py-2.5 font-body text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40 hover:bg-editorial-terra/90 hover:scale-[1.02] transition-all energized-btn"
+                    className="btn-primary"
                   >
                     {profileState.saving ? 'Salvataggio...' : 'Salva modifiche'}
                   </button>
@@ -410,7 +410,7 @@ export default function AccountPage() {
                       autoComplete="email"
                       placeholder="nuova@email.it"
                       autoFocus
-                      className="w-full rounded-lg border-2 border-editorial-border px-4 py-2.5 font-body text-editorial-text outline-none focus:border-editorial-terra focus:ring-4 focus:ring-editorial-terra/10 transition-all auth-input"
+                      className="input-field"
                     />
                     <div className="flex gap-2">
                       <button
@@ -423,7 +423,7 @@ export default function AccountPage() {
                       <button
                         type="submit"
                         disabled={emailState.saving || !newEmail || newEmail === user?.email}
-                        className="px-4 py-2 rounded-lg bg-editorial-terra font-body text-sm font-semibold text-white disabled:opacity-40 disabled:cursor-not-allowed hover:bg-editorial-terra/90 transition-all energized-btn"
+                        className="btn-primary"
                       >
                         {emailState.saving ? 'Invio...' : 'Conferma'}
                       </button>
@@ -436,7 +436,7 @@ export default function AccountPage() {
 
           {/* Tab: Sicurezza */}
           {activeTab === 'security' && (
-            <div className="rounded-xl border-2 border-editorial-border bg-white p-6 shadow-soft-md energized-card">
+            <div className="card-surface p-6">
               <h2 className="font-body text-xs uppercase tracking-widest text-editorial-terra font-semibold mb-4">Cambia password</h2>
               <AuthMessage type="error">{passwordState.error}</AuthMessage>
               <AuthMessage type="success">{passwordState.success}</AuthMessage>
@@ -466,7 +466,7 @@ export default function AccountPage() {
                 <button
                   type="submit"
                   disabled={passwordState.saving || !isPasswordFormValid}
-                  className="w-full rounded-lg bg-editorial-terra px-5 py-2.5 font-body text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40 hover:bg-editorial-terra/90 hover:scale-[1.02] transition-all energized-btn"
+                  className="w-full btn-primary"
                 >
                   {passwordState.saving ? 'Aggiornamento...' : 'Aggiorna password'}
                 </button>
@@ -479,7 +479,7 @@ export default function AccountPage() {
             <div className="space-y-4">
 
               {/* Info */}
-              <div className="rounded-xl border-2 border-editorial-border bg-white p-6 shadow-soft-md energized-card">
+              <div className="card-surface p-6">
                 <h2 className="font-body text-xs uppercase tracking-widest text-editorial-terra font-semibold mb-4">Informazioni</h2>
                 <dl className="space-y-3">
                   <div className="flex items-center justify-between">

@@ -37,6 +37,7 @@ export default function DiceFestBookingPage({ event }) {
   const [mainEventItems, setMainEventItems] = useState(event.mainEvents || [])
   const [pendingMainSessionKey, setPendingMainSessionKey] = useState(null)
   const [pendingWaitlistDay, setPendingWaitlistDay] = useState(null)
+  const [showSummary, setShowSummary] = useState(false)
 
   const hasMainEvents = mainEventItems.length > 0
 
@@ -418,8 +419,10 @@ export default function DiceFestBookingPage({ event }) {
           }}
         />
 
-        {/* PANELS */}
-        <div className="mt-8 grid gap-8 lg:grid-cols-[1fr_320px]">
+        {/* TABLE MAP — full width: the order summary lives in a popup (see below)
+            so the room map gets all the horizontal space it needs and isn't
+            squeezed by a permanently reserved sidebar column. */}
+        <div className="mt-8">
           <main className="min-w-0">
             <div className="space-y-4">
               <WaitlistBanner
@@ -484,30 +487,37 @@ export default function DiceFestBookingPage({ event }) {
               )}
             </div>
           </main>
-
-          <aside className="hidden lg:block">
-            <BookingOrderSummary
-              cartState={cartState}
-              mainCartSlots={filteredMainCartSlots}
-              timeRemaining={timeRemaining}
-              isLoggedIn={Boolean(user)}
-            />
-          </aside>
         </div>
       </div>
 
-      {/* MOBILE STICKY CART PILL */}
+      {/* STICKY SUMMARY TRIGGER — same control on every breakpoint. Opens a
+          quick-glance popup instead of reserving a permanent sidebar column
+          or navigating away, so the table map keeps full width and the user
+          doesn't lose their place while scanning tables. */}
       {pendingOrderCount > 0 ? (
-        <div className="fixed inset-x-0 bottom-3 z-30 flex justify-center px-4 lg:hidden">
-          <Link
-            href="/dice-fest/carrello"
-            className="flex items-center gap-3 rounded-full bg-editorial-text px-5 py-3 font-body text-sm font-semibold text-editorial-bg shadow-2xl"
+        <div className="fixed inset-x-0 bottom-3 z-30 flex justify-center px-4">
+          <button
+            type="button"
+            onClick={() => setShowSummary(true)}
+            className="flex items-center gap-3 rounded-full bg-editorial-text px-5 py-3 font-body text-sm font-semibold text-editorial-bg shadow-2xl transition-transform hover:-translate-y-0.5"
           >
             <span className="fantasy-badge fantasy-badge--gold">{pendingOrderCount}</span>
-            <span>Vai alle Prenotazioni</span>
+            <span>Riepilogo prenotazioni</span>
             {timeRemaining ? <span className="font-elegant text-editorial-gold">{timeRemaining}</span> : null}
-          </Link>
+          </button>
         </div>
+      ) : null}
+
+      {showSummary ? (
+        <ModalShell onClose={() => setShowSummary(false)}>
+          <BookingOrderSummary
+            cartState={cartState}
+            mainCartSlots={filteredMainCartSlots}
+            timeRemaining={timeRemaining}
+            isLoggedIn={Boolean(user)}
+            bare
+          />
+        </ModalShell>
       ) : null}
 
       {openedEntry ? (
@@ -922,14 +932,44 @@ function MainEventMapCell({ session, sessionKey, reservation, inCart, hasReserve
 
 /* ============ DETAILS MODALS ============ */
 
+const FOCUSABLE_SELECTOR = 'a[href], button:not([disabled]), textarea, input, select, [tabindex]:not([tabindex="-1"])'
+
 function ModalShell({ children, onClose }) {
+  const modalRef = useRef(null)
+  const closeButtonRef = useRef(null)
+
   useEffect(() => {
-    const handler = (e) => { if (e.key === 'Escape') onClose() }
+    const triggerElement = document.activeElement
+
+    const handler = (e) => {
+      if (e.key === 'Escape') {
+        onClose()
+        return
+      }
+      if (e.key !== 'Tab' || !modalRef.current) return
+
+      const focusable = Array.from(modalRef.current.querySelectorAll(FOCUSABLE_SELECTOR))
+      if (focusable.length === 0) return
+      const first = focusable[0]
+      const last = focusable[focusable.length - 1]
+
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault()
+        last.focus()
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault()
+        first.focus()
+      }
+    }
+
     document.body.style.overflow = 'hidden'
     window.addEventListener('keydown', handler)
+    closeButtonRef.current?.focus()
+
     return () => {
       document.body.style.overflow = ''
       window.removeEventListener('keydown', handler)
+      if (triggerElement instanceof HTMLElement) triggerElement.focus()
     }
   }, [onClose])
 
@@ -940,8 +980,8 @@ function ModalShell({ children, onClose }) {
       aria-modal="true"
       onClick={onClose}
     >
-      <div className="fantasy-modal" onClick={(e) => e.stopPropagation()}>
-        <button type="button" onClick={onClose} className="fantasy-modal__close" aria-label="Chiudi">
+      <div className="fantasy-modal" ref={modalRef} onClick={(e) => e.stopPropagation()}>
+        <button ref={closeButtonRef} type="button" onClick={onClose} className="fantasy-modal__close" aria-label="Chiudi">
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
             <path d="M2 2 L12 12 M12 2 L2 12" />
           </svg>
@@ -1110,12 +1150,16 @@ function MainEventDetailsModal({ session, sessionKey, reservation, inCart, hasRe
 
 /* ============ ORDER SUMMARY ============ */
 
-const BookingOrderSummary = memo(function BookingOrderSummary({ cartState, mainCartSlots, timeRemaining, isLoggedIn }) {
+const BookingOrderSummary = memo(function BookingOrderSummary({ cartState, mainCartSlots, timeRemaining, isLoggedIn, bare = false }) {
   const lowTime = timeRemaining && timeRemaining < '01:00'
+  // Inside the popup (ModalShell already provides a parchment surface) we
+  // render a plain div instead of nesting a second ParchmentCard.
+  const Wrapper = bare ? 'div' : ParchmentCard
+  const wrapperProps = bare ? {} : { className: 'lg:sticky lg:top-24' }
 
   if (!isLoggedIn) {
     return (
-      <ParchmentCard className="lg:sticky lg:top-24">
+      <Wrapper {...wrapperProps}>
         <div className="px-6 py-6 text-center">
           <h3 className="font-elegant text-lg font-bold text-editorial-text">Le tue prenotazioni</h3>
           <p className="mt-2 font-body text-sm leading-relaxed text-editorial-text-secondary">
@@ -1125,7 +1169,7 @@ const BookingOrderSummary = memo(function BookingOrderSummary({ cartState, mainC
             Accedi
           </Link>
         </div>
-      </ParchmentCard>
+      </Wrapper>
     )
   }
 
@@ -1161,7 +1205,7 @@ const BookingOrderSummary = memo(function BookingOrderSummary({ cartState, mainC
   const hasPendingItems = entries.length > 0
 
   return (
-    <ParchmentCard className="lg:sticky lg:top-24">
+    <Wrapper {...wrapperProps}>
       <div className="px-6 py-6">
         <div className="flex items-center justify-between gap-3">
           <h3 className="font-elegant text-lg font-bold text-editorial-text">Le tue prenotazioni</h3>
@@ -1206,7 +1250,7 @@ const BookingOrderSummary = memo(function BookingOrderSummary({ cartState, mainC
           Le prenotazioni scadono in 10 minuti dall&apos;ultima aggiunta.
         </p>
       </div>
-    </ParchmentCard>
+    </Wrapper>
   )
 })
 

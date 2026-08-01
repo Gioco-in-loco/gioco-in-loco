@@ -376,10 +376,65 @@ body {
   transform: rotate(2deg) scale(1.05);
 }
 
-/* Focus states for accessibility */
+/* Focus states for accessibility — editorial gold everywhere except the
+   comic-book theme (/comicon-2026), which keeps its native cyan accent. */
 *:focus-visible {
-  outline: 3px solid var(--accent-cyan);
+  outline: 3px solid var(--editorial-accent-gold);
   outline-offset: 2px;
+}
+
+.comic-paper :focus-visible,
+.comic-paper.comic-paper :focus-visible {
+  outline-color: var(--accent-cyan);
+}
+
+/* Respect reduced-motion: decorative loops stop, one-shot entrances resolve
+   instantly instead of animating. Interaction feedback (hover/focus) is left
+   alone since it's not the kind of motion this preference targets. */
+@media (prefers-reduced-motion: reduce) {
+  .float-animation,
+  .spin-slow,
+  .pulse-pop,
+  .dice-roll,
+  .pulse-glow,
+  .float-bounce,
+  .wiggle,
+  .shimmer,
+  .starburst-animate,
+  .pattern-drift,
+  .heartbeat,
+  .float-energized,
+  .pulse-glow-energized,
+  .sigil-glow,
+  .clock-pulse,
+  .dice-deco {
+    animation: none !important;
+  }
+
+  .animate-fade-in-up,
+  .stagger-fade-in,
+  .pop-entrance,
+  .slide-in-left,
+  .slide-in-right,
+  .animate-soft-fade,
+  .animate-soft-slide,
+  .animate-editorial-fade,
+  .animate-editorial-slide,
+  .animate-editorial-line,
+  .stagger-fade-energized,
+  .slide-up-energized,
+  .wax-stamp,
+  .parchment-reveal,
+  .fade-stagger,
+  .ink-trace path {
+    animation-duration: 0.01ms !important;
+    animation-delay: 0s !important;
+    opacity: 1 !important;
+    transform: none !important;
+    filter: none !important;
+    clip-path: none !important;
+    stroke-dashoffset: 0 !important;
+  }
 }
 
 /* Title font */
@@ -684,19 +739,6 @@ body {
 /* ============================================
    ENHANCED CARD EFFECTS
    ============================================ */
-
-/* 3D tilt card effect */
-.card-3d {
-  transition: transform 0.3s cubic-bezier(0.23, 1, 0.32, 1),
-              box-shadow 0.3s ease;
-  transform-style: preserve-3d;
-  perspective: 1000px;
-}
-
-.card-3d:hover {
-  transform: perspective(1000px) rotateX(5deg) rotateY(-5deg) scale(1.05);
-  box-shadow: 0 20px 40px rgba(26, 26, 46, 0.3);
-}
 
 /* Card glow border on hover */
 .card-glow-border {
@@ -1006,61 +1048,6 @@ body {
     radial-gradient(ellipse at 50% 50%, rgba(201, 162, 39, 0.05) 0%, transparent 70%);
 }
 
-.energized-card {
-  background: var(--editorial-bg-card);
-  border: 2px solid var(--editorial-border);
-  border-radius: var(--editorial-border-radius, 12px);
-  box-shadow: 0 4px 16px rgba(45, 42, 38, 0.08);
-  transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
-}
-
-.energized-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 12px 32px rgba(45, 42, 38, 0.15);
-  border-color: var(--editorial-accent-terra);
-}
-
-.energized-btn {
-  position: relative;
-  overflow: hidden;
-  background: var(--editorial-accent-terra);
-  color: white;
-  font-family: 'Fraunces', serif;
-  font-weight: 600;
-  padding: 0.75rem 1.5rem;
-  border-radius: 8px;
-  border: none;
-  cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
-}
-
-.energized-btn::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(135deg, transparent 0%, rgba(255,255,255,0.2) 50%, transparent 100%);
-  transform: translateX(-100%);
-  transition: transform 0.5s ease;
-}
-
-.energized-btn:hover::before {
-  transform: translateX(100%);
-}
-
-.energized-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(196, 93, 58, 0.3);
-}
-
-.energized-btn-secondary {
-  background: var(--editorial-accent-forest);
-}
-
-.energized-btn-gold {
-  background: var(--editorial-accent-gold);
-  color: var(--editorial-text);
-}
-
 .energized-heading {
   font-family: 'Fraunces', serif;
   font-weight: 700;
@@ -1220,169 +1207,8 @@ body {
   border-color: var(--editorial-accent-terra);
 }
 
-.association-card-logo {
-  width: 80px;
-  height: 80px;
-  border-radius: 12px;
-  object-fit: contain;
-  background: var(--editorial-bg);
-  padding: 0.5rem;
-  border: 2px solid var(--editorial-border);
-}
-
-/* Info pill */
-.info-pill-energized {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 1rem;
-  background: white;
-  border: 2px solid var(--editorial-border);
-  border-radius: 9999px;
-  font-family: 'Nunito', sans-serif;
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: var(--editorial-text);
-  transition: all 0.2s ease;
-}
-
-.info-pill-energized:hover {
-  border-color: var(--editorial-accent-terra);
-  transform: scale(1.05);
-}
-
-/* ============================================
-   AUTH PAGES STYLING
-   ============================================ */
-
-.auth-container {
-  min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 2rem;
-  background: linear-gradient(135deg, var(--editorial-bg) 0%, #f5f0eb 100%);
-}
-
-.auth-card {
-  width: 100%;
-  max-width: 420px;
-  background: white;
-  border-radius: 16px;
-  box-shadow: 0 8px 32px rgba(45, 42, 38, 0.12);
-  padding: 2.5rem;
-  border: 2px solid var(--editorial-border);
-}
-
-.auth-title {
-  font-family: 'Fraunces', serif;
-  font-size: 2rem;
-  font-weight: 700;
-  color: var(--editorial-text);
-  text-align: center;
-  margin-bottom: 0.5rem;
-}
-
-.auth-subtitle {
-  font-family: 'Nunito', sans-serif;
-  color: var(--editorial-text-secondary);
-  text-align: center;
-  margin-bottom: 2rem;
-}
-
-.auth-input {
-  width: 100%;
-  padding: 0.875rem 1rem;
-  border: 2px solid var(--editorial-border);
-  border-radius: 8px;
-  font-family: 'Nunito', sans-serif;
-  font-size: 1rem;
-  color: var(--editorial-text);
-  transition: all 0.2s ease;
-  background: white;
-}
-
-.auth-input:focus {
-  outline: none;
-  border-color: var(--editorial-accent-terra);
-  box-shadow: 0 0 0 4px rgba(196, 93, 58, 0.1);
-}
-
-.auth-input::placeholder {
-  color: var(--editorial-text-muted);
-}
-
-.auth-btn-primary {
-  width: 100%;
-  padding: 1rem;
-  background: var(--editorial-accent-terra);
-  color: white;
-  font-family: 'Fraunces', serif;
-  font-size: 1.125rem;
-  font-weight: 600;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.auth-btn-primary:hover {
-  background: #b3523a;
-  transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(196, 93, 58, 0.3);
-}
-
-.auth-link {
-  color: var(--editorial-accent-terra);
-  font-weight: 600;
-  text-decoration: none;
-}
-
-.auth-link:hover {
-  text-decoration: underline;
-}
-
-.auth-divider {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  margin: 1.5rem 0;
-}
-
-.auth-divider::before,
-.auth-divider::after {
-  content: '';
-  flex: 1;
-  height: 1px;
-  background: var(--editorial-border);
-}
-
-.auth-divider span {
-  color: var(--editorial-text-muted);
-  font-size: 0.875rem;
-}
-
-.auth-social-btn {
-  width: 100%;
-  padding: 0.875rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.75rem;
-  background: white;
-  border: 2px solid var(--editorial-border);
-  border-radius: 8px;
-  font-family: 'Nunito', sans-serif;
-  font-weight: 600;
-  color: var(--editorial-text);
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.auth-social-btn:hover {
-  background: var(--editorial-bg);
-  border-color: var(--editorial-accent-terra);
-}
+/* Auth pages (login/register/account/...) now share the same primitives as
+   the rest of the app: .card-surface, .input-field, .btn-primary, .btn-ghost. */
 
 /* ============================================
    PRIVACY PAGE STYLING
@@ -1435,12 +1261,7 @@ body {
    RESPONSIVE UTILITIES
    ============================================ */
 
-/* Perspective for 3D effects */
 @media (max-width: 768px) {
-  .card-3d:hover {
-    transform: scale(1.03);
-  }
-
   .energized-section-header h2 {
     font-size: 2rem;
   }
@@ -1450,6 +1271,230 @@ body {
 ::selection {
   background: var(--editorial-accent-gold);
   color: var(--editorial-text);
+}
+
+/* ============================================
+   SHARED PRIMITIVES — one button/card/input/badge
+   language for the whole app (built on --editorial-*
+   tokens). Used everywhere except /comicon-2026, which
+   keeps its own distinct comic-book identity. Dice Fest
+   layers its extra decorations (parchment, wax seal,
+   corner glyphs) on top of these, it does not replace them.
+   ============================================ */
+
+.btn-primary,
+.btn-secondary {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 44px;
+  color: #FFFFFF;
+  font-family: 'Fraunces', serif;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  padding: 0.75rem 1.5rem;
+  border-radius: 10px;
+  border: 1px solid rgba(91, 30, 14, 0.25);
+  text-decoration: none;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--editorial-accent-terra) 0%, #A24628 100%);
+  box-shadow: 0 4px 16px rgba(196, 93, 58, 0.22);
+}
+
+.btn-secondary {
+  background: linear-gradient(135deg, var(--editorial-accent-forest) 0%, #3D5A4A 100%);
+  border-color: rgba(23, 51, 40, 0.25);
+  box-shadow: 0 4px 16px rgba(91, 123, 106, 0.22);
+}
+
+.btn-primary:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(196, 93, 58, 0.3);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(91, 123, 106, 0.3);
+}
+
+.btn-primary:active:not(:disabled),
+.btn-secondary:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.btn-primary:disabled,
+.btn-secondary:disabled {
+  background: linear-gradient(135deg, #b8aaa0 0%, #968a82 100%);
+  border-color: rgba(0, 0, 0, 0.15);
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+.btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 44px;
+  padding: 0.7rem 1.4rem;
+  border-radius: 10px;
+  border: 1px solid var(--editorial-border);
+  background: #FFFFFF;
+  color: var(--editorial-text);
+  font-family: 'Fraunces', serif;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition: border-color 0.2s ease, background 0.2s ease, color 0.2s ease;
+}
+
+.btn-ghost:hover:not(:disabled) {
+  border-color: var(--editorial-accent-terra);
+  color: var(--editorial-accent-terra);
+  background: rgba(196, 93, 58, 0.06);
+}
+
+.btn-ghost:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.card-surface {
+  background: #FFFFFF;
+  border: 1px solid var(--editorial-border);
+  border-radius: 14px;
+  box-shadow: 0 2px 8px rgba(45, 42, 38, 0.06);
+}
+
+.card-surface--interactive {
+  transition: transform 0.25s cubic-bezier(0.23, 1, 0.32, 1), box-shadow 0.25s ease, border-color 0.25s ease;
+}
+
+.card-surface--interactive:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 28px rgba(45, 42, 38, 0.12);
+  border-color: var(--editorial-accent-terra);
+}
+
+/* .input-field is the canonical name; .form-input (used by the Dice Fest
+   filters) is kept as an alias so existing markup keeps working unchanged. */
+.input-field,
+.form-input {
+  width: 100%;
+  padding: 0.75rem 0.9rem;
+  min-height: 44px;
+  border: 1px solid var(--editorial-border);
+  border-radius: 8px;
+  background: #FFFFFF;
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.95rem;
+  color: var(--editorial-text);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+
+.input-field::placeholder,
+.form-input::placeholder {
+  color: var(--editorial-text-muted);
+}
+
+.input-field:hover,
+.form-input:hover {
+  border-color: rgba(91, 65, 38, 0.3);
+}
+
+.input-field:focus,
+.form-input:focus {
+  outline: none;
+  border-color: var(--editorial-accent-terra);
+  box-shadow: 0 0 0 3px rgba(196, 93, 58, 0.15);
+}
+
+.input-field:disabled {
+  background: var(--editorial-bg);
+  color: var(--editorial-text-muted);
+  cursor: not-allowed;
+}
+
+/* Room for a trailing icon button (e.g. the show/hide toggle on password fields). */
+.input-field--with-icon {
+  padding-right: 3rem;
+}
+
+/* Error state overrides both the resting border and the focus ring. */
+.input-field--error {
+  border-color: #f87171;
+}
+
+.input-field--error:focus {
+  border-color: #ef4444;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.12);
+}
+
+/* .badge / .eyebrow are the canonical names; .fantasy-badge / .fantasy-eyebrow
+   (Dice Fest markup) are kept as aliases pointing at the same rules. */
+.badge,
+.fantasy-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.2rem 0.65rem;
+  border-radius: 999px;
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.badge--gold,
+.fantasy-badge--gold {
+  background: rgba(201, 162, 39, 0.15);
+  color: #806416;
+  border: 1px solid rgba(201, 162, 39, 0.4);
+}
+
+.badge--terra,
+.fantasy-badge--terra {
+  background: rgba(196, 93, 58, 0.12);
+  color: #8E3F22;
+  border: 1px solid rgba(196, 93, 58, 0.35);
+}
+
+.badge--forest,
+.fantasy-badge--forest {
+  background: rgba(91, 123, 106, 0.15);
+  color: #3D5A4A;
+  border: 1px solid rgba(91, 123, 106, 0.4);
+}
+
+.eyebrow,
+.fantasy-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--editorial-accent-terra);
+}
+
+.eyebrow::before,
+.eyebrow::after,
+.fantasy-eyebrow::before,
+.fantasy-eyebrow::after {
+  content: '';
+  display: inline-block;
+  width: 22px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--editorial-accent-gold), transparent);
 }
 
 /* ============================================
@@ -1851,44 +1896,6 @@ body {
     0 12px 22px -14px rgba(91, 65, 38, 0.3);
 }
 
-/* Compact slot row */
-.slot-row {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.55rem 0.85rem;
-  background: rgba(255, 252, 247, 0.55);
-  border: 1px solid rgba(91, 65, 38, 0.18);
-  border-left: 3px solid var(--editorial-accent-gold);
-  border-radius: 6px;
-  transition: background 0.2s ease, border-color 0.2s ease;
-}
-
-.slot-row:hover {
-  background: rgba(255, 252, 247, 0.85);
-  border-color: rgba(91, 65, 38, 0.28);
-}
-
-.slot-row--in-cart {
-  background: linear-gradient(90deg, rgba(201, 162, 39, 0.16) 0%, rgba(201, 162, 39, 0.04) 100%);
-  border-color: rgba(201, 162, 39, 0.4);
-  border-left-color: var(--editorial-accent-terra);
-}
-
-.slot-row--confirmed {
-  background: linear-gradient(90deg, rgba(91, 123, 106, 0.16) 0%, rgba(91, 123, 106, 0.04) 100%);
-  border-color: rgba(91, 123, 106, 0.4);
-  border-left-color: var(--editorial-accent-forest);
-}
-
-.slot-row--full {
-  background: rgba(196, 93, 58, 0.04);
-  border-color: rgba(196, 93, 58, 0.22);
-  border-left-color: rgba(196, 93, 58, 0.45);
-  opacity: 0.85;
-}
-
 /* Compact slot action button (smaller than btn-wax) */
 .btn-slot-wax {
   display: inline-flex;
@@ -1947,6 +1954,17 @@ body {
   color: var(--editorial-text-muted);
   cursor: not-allowed;
   opacity: 0.7;
+}
+
+/* Below lg the slot buttons live in the full-width mobile list (TableMap),
+   not the tight desktop grid cell, so they can afford a real touch target. */
+@media (max-width: 1023.98px) {
+  .btn-slot-wax,
+  .btn-slot-ghost {
+    min-height: 44px;
+    padding: 0.6rem 1rem;
+    font-size: 0.85rem;
+  }
 }
 
 /* Decorative initial mark for parchment passages */
@@ -2070,52 +2088,6 @@ body {
   font-size: 0.75rem;
   color: var(--editorial-text-muted);
   opacity: 0.55;
-}
-
-/* Session list row — clickable for details */
-.session-row {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.65rem 0.5rem;
-  border-radius: 6px;
-  transition: background 0.15s ease;
-}
-
-.session-row__main {
-  flex: 1;
-  min-width: 0;
-  text-align: left;
-  background: transparent;
-  border: none;
-  padding: 0.25rem 0.4rem;
-  margin: -0.25rem -0.4rem;
-  border-radius: 5px;
-  cursor: pointer;
-  transition: background 0.15s ease;
-}
-
-.session-row__main:hover {
-  background: rgba(201, 162, 39, 0.08);
-}
-
-.session-row__main:focus-visible {
-  outline: 2px solid var(--editorial-accent-gold);
-  outline-offset: 1px;
-}
-
-.session-row--in-cart {
-  background: linear-gradient(90deg, rgba(201, 162, 39, 0.14) 0%, rgba(201, 162, 39, 0.03) 70%);
-  box-shadow: inset 3px 0 0 var(--editorial-accent-terra);
-}
-
-.session-row--confirmed {
-  background: linear-gradient(90deg, rgba(91, 123, 106, 0.14) 0%, rgba(91, 123, 106, 0.03) 70%);
-  box-shadow: inset 3px 0 0 var(--editorial-accent-forest);
-}
-
-.session-row--full {
-  opacity: 0.65;
 }
 
 /* Form inputs */

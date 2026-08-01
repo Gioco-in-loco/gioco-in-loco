@@ -168,7 +168,7 @@ export default function CompleteAccountPage() {
               type="email"
               value={invitedEmail}
               disabled
-              className="w-full rounded-lg border-2 border-editorial-border bg-editorial-bg px-4 py-3 font-body text-editorial-text-muted outline-none"
+              className="input-field"
             />
           </div>
 
@@ -181,7 +181,7 @@ export default function CompleteAccountPage() {
               required
               autoComplete="name"
               placeholder="Mario Rossi"
-              className="w-full rounded-lg border-2 border-editorial-border px-4 py-3 font-body text-editorial-text outline-none focus:border-editorial-terra focus:ring-4 focus:ring-editorial-terra/10 transition-all auth-input"
+              className="input-field"
             />
           </div>
 
@@ -195,7 +195,7 @@ export default function CompleteAccountPage() {
               required
               autoComplete="tel"
               placeholder="333 000 0000"
-              className={`w-full rounded-lg border-2 px-4 py-3 font-body text-editorial-text outline-none transition-all auth-input ${phoneError ? 'border-red-400 focus:border-red-500 focus:ring-4 focus:ring-red-500/10' : 'border-editorial-border focus:border-editorial-terra focus:ring-4 focus:ring-editorial-terra/10'}`}
+              className={`input-field ${phoneError ? 'input-field--error' : ''}`}
             />
             {phoneError && <p className="mt-1.5 font-body text-xs text-red-500">{phoneError}</p>}
           </div>
@@ -247,7 +247,7 @@ export default function CompleteAccountPage() {
           <button
             type="submit"
             disabled={!isConfigured || !isReady || isSubmitting || !isFormValid}
-            className="w-full rounded-lg bg-editorial-terra px-5 py-3 font-body font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60 hover:bg-editorial-terra/90 hover:scale-[1.02] hover:shadow-soft-md transition-all energized-btn"
+            className="w-full btn-primary"
           >
             {isSubmitting ? 'Salvataggio in corso...' : 'Completa account'}
           </button>

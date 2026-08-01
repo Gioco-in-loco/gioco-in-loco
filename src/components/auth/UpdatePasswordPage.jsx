@@ -128,7 +128,7 @@ export default function UpdatePasswordPage() {
         <button
           type="submit"
           disabled={!isConfigured || !isReady || isSubmitting || !isFormValid}
-          className="w-full rounded-lg bg-editorial-terra px-5 py-3 font-body font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60 hover:bg-editorial-terra/90 hover:scale-[1.02] hover:shadow-soft-md transition-all energized-btn"
+          className="w-full btn-primary"
         >
           {isSubmitting ? 'Salvataggio in corso...' : 'Salva nuova password'}
         </button>

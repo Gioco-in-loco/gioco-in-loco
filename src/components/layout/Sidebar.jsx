@@ -29,6 +29,68 @@ const navItems = [
   },
 ]
 
+// One variant map for the whole navigation chrome (mobile bar, mobile
+// overlay, desktop aside). /comicon-2026 is the only route that keeps the
+// legacy comic-book identity — every other route renders the shared
+// editorial theme. Centralizing the two skins here replaces the long
+// isComicRoute ? '...' : '...' ternaries that used to repeat on every element.
+const THEMES = {
+  comic: {
+    topBar: 'bg-comic-cream border-b-4 border-comic-navy',
+    hamburgerButton: 'bg-comic-yellow border-4 border-comic-navy rounded-xl shadow-[2px_2px_0px_0px_#1A1A2E]',
+    hamburgerIcon: 'text-comic-navy',
+    overlayBg: 'bg-comic-paper',
+    overlayHeader: 'bg-comic-cream border-b-4 border-comic-navy',
+    overlayCloseButton: 'bg-comic-yellow border-4 border-comic-navy rounded-xl',
+    overlayCloseIcon: 'text-comic-navy',
+    mobileNavButton: 'bg-comic-cream border-3 border-comic-navy rounded-xl font-bangers text-xl text-comic-navy',
+    authSectionBorder: 'border-comic-navy/20',
+    userBox: 'rounded-xl bg-comic-cream p-3 border-3 border-comic-navy',
+    logoutButton: 'bg-comic-magenta/20 text-comic-navy',
+    accountLink: 'bg-comic-magenta text-comic-navy',
+    responsabileLink: 'bg-comic-yellow text-comic-navy',
+    adminLink: 'bg-comic-cyan text-comic-navy',
+    loginButtonMobile: 'bg-comic-cyan border-3 border-comic-navy rounded-xl font-bangers text-lg text-comic-navy shadow-[2px_2px_0px_0px_#1A1A2E]',
+    loginButtonDesktop: 'bg-comic-cyan border-3 border-comic-navy rounded-xl font-bangers text-lg text-comic-navy shadow-[2px_2px_0px_0px_#1A1A2E] hover:shadow-[3px_3px_0px_0px_#1A1A2E] transition-shadow',
+    eventLink: 'text-comic-magenta',
+    wrapper: 'bg-comic-paper border-r-4 border-comic-navy',
+    header: 'bg-comic-cream border-b-4 border-comic-navy pt-safe',
+    navButton: 'bg-comic-cream border-3 border-comic-navy rounded-xl hover:translate-x-2 hover:shadow-[4px_4px_0px_0px_#1A1A2E] transition-all duration-200',
+    navButtonText: 'font-bangers text-xl text-comic-navy',
+    eventWrapper: 'bg-comic-yellow border-3 border-comic-navy rounded-xl p-3 shadow-[3px_3px_0px_0px_#1A1A2E] hover:shadow-[4px_4px_0px_0px_#1A1A2E] transition-shadow',
+    eventBadge: 'font-bangers text-comic-orange text-lg',
+    eventTitle: 'font-bangers text-2xl text-comic-navy',
+    eventInfo: 'text-comic-navy/80 text-sm',
+  },
+  editorial: {
+    topBar: 'bg-white border-b-2 border-editorial-border',
+    hamburgerButton: 'bg-editorial-terra/10 border-2 border-editorial-border rounded-lg shadow-soft',
+    hamburgerIcon: 'text-editorial-text',
+    overlayBg: 'bg-editorial-bg',
+    overlayHeader: 'bg-white border-b-2 border-editorial-border',
+    overlayCloseButton: 'bg-editorial-terra/10 border-2 border-editorial-border rounded-lg',
+    overlayCloseIcon: 'text-editorial-text',
+    mobileNavButton: 'bg-white border-2 border-editorial-border rounded-lg font-body text-base text-editorial-text font-semibold hover:border-editorial-terra transition-colors',
+    authSectionBorder: 'border-editorial-border/50',
+    userBox: '',
+    logoutButton: 'bg-editorial-terra/10 text-editorial-terra hover:bg-editorial-terra/20',
+    accountLink: 'bg-editorial-terra text-white',
+    responsabileLink: 'bg-editorial-gold text-editorial-text',
+    adminLink: 'bg-editorial-forest text-white',
+    loginButtonMobile: 'bg-editorial-terra text-white font-body text-sm font-semibold rounded-lg',
+    loginButtonDesktop: 'bg-editorial-terra text-white font-semibold rounded-lg',
+    eventLink: 'text-editorial-terra',
+    wrapper: 'bg-editorial-bg border-r-2 border-editorial-border',
+    header: 'bg-white border-b-2 border-editorial-border pt-safe',
+    navButton: 'bg-white border-2 border-editorial-border rounded-lg hover:translate-x-2 hover:shadow-soft-md hover:border-editorial-terra transition-all duration-300',
+    navButtonText: 'font-body text-base text-editorial-text font-semibold',
+    eventWrapper: 'bg-white border-2 border-editorial-border rounded-xl p-4 shadow-soft hover:shadow-soft-md hover:border-editorial-terra transition-all duration-300',
+    eventBadge: 'font-body text-xs text-editorial-terra uppercase tracking-widest',
+    eventTitle: 'font-elegant text-xl text-editorial-text font-bold',
+    eventInfo: 'text-editorial-text-secondary text-sm font-body',
+  },
+}
+
 function formatEventDateRange(startDate, endDate) {
   if (!startDate) {
     return 'Data da definire'
@@ -77,6 +139,7 @@ export default function Sidebar({ onNavigate, upcomingEvent }) {
   const [resolvedUpcomingEvent, setResolvedUpcomingEvent] = useState(upcomingEvent)
   const location = useLocation()
   const isComicRoute = location.pathname === '/comicon-2026'
+  const theme = THEMES[isComicRoute ? 'comic' : 'editorial']
   const { user: authUser, isConfigured, isPasswordRecovery, logout } = useAuth()
   // While a password-recovery session is active, treat the user as logged out:
   // the session was granted by the emailed link, not by entering credentials,
@@ -137,31 +200,6 @@ export default function Sidebar({ onNavigate, upcomingEvent }) {
     setIsOpen(false)
   }
 
-  // Comic theme styles
-  const comic = {
-    wrapper: 'bg-comic-paper border-r-4 border-comic-navy',
-    header: 'bg-comic-cream border-b-4 border-comic-navy pt-safe',
-    navButton: 'bg-comic-cream border-3 border-comic-navy rounded-xl hover:translate-x-2 hover:shadow-[4px_4px_0px_0px_#1A1A2E] transition-all duration-200',
-    navButtonText: 'font-bangers text-xl text-comic-navy',
-    eventWrapper: 'bg-comic-yellow border-3 border-comic-navy rounded-xl p-3 shadow-[3px_3px_0px_0px_#1A1A2E] hover:shadow-[4px_4px_0px_0px_#1A1A2E] transition-shadow',
-    eventBadge: 'font-bangers text-comic-orange text-lg',
-    eventTitle: 'font-bangers text-2xl text-comic-navy',
-    eventInfo: 'text-comic-navy/80 text-sm',
-  }
-
-  // Energized Editorial theme styles
-  const editorial = {
-    wrapper: 'bg-editorial-bg border-r-2 border-editorial-border',
-    header: 'bg-white border-b-2 border-editorial-border pt-safe',
-    navButton: 'bg-white border-2 border-editorial-border rounded-lg hover:translate-x-2 hover:shadow-soft-md hover:border-editorial-terra transition-all duration-300',
-    navButtonText: 'font-body text-base text-editorial-text font-semibold',
-    eventWrapper: 'bg-white border-2 border-editorial-border rounded-xl p-4 shadow-soft hover:shadow-soft-md hover:border-editorial-terra transition-all duration-300',
-    eventBadge: 'font-body text-xs text-editorial-terra uppercase tracking-widest',
-    eventTitle: 'font-elegant text-xl text-editorial-text font-bold',
-    eventInfo: 'text-editorial-text-secondary text-sm font-body',
-  }
-
-  const theme = isComicRoute ? comic : editorial
   const upcomingEventHref = getEventHref(resolvedUpcomingEvent)
   const upcomingEventDateLabel = formatEventDateRange(resolvedUpcomingEvent?.startDate, resolvedUpcomingEvent?.endDate)
 
@@ -170,7 +208,7 @@ export default function Sidebar({ onNavigate, upcomingEvent }) {
       {/* Top Navbar - Mobile only */}
       <div className="md:hidden fixed top-0 left-0 right-0 z-[100]" style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
         <nav
-          className={`grid grid-cols-[3rem_1fr_3rem] items-center px-4 ${isComicRoute ? 'bg-comic-cream border-b-4 border-comic-navy' : 'bg-white border-b-2 border-editorial-border'}`}
+          className={`grid grid-cols-[3rem_1fr_3rem] items-center px-4 ${theme.topBar}`}
           style={{ minHeight: '3.5rem' }}
         >
           <span />
@@ -181,11 +219,11 @@ export default function Sidebar({ onNavigate, upcomingEvent }) {
 
           <button
             onClick={() => setIsOpen(!isOpen)}
-            className={`w-12 h-12 flex items-center justify-center justify-self-end ${isComicRoute ? 'bg-comic-yellow border-4 border-comic-navy rounded-xl shadow-[2px_2px_0px_0px_#1A1A2E]' : 'bg-editorial-terra/10 border-2 border-editorial-border rounded-lg shadow-soft'}`}
+            className={`w-12 h-12 flex items-center justify-center justify-self-end ${theme.hamburgerButton}`}
             aria-label="Toggle navigation"
           >
             <svg
-              className={`w-6 h-6 ${isComicRoute ? 'text-comic-navy' : 'text-editorial-text'} transition-transform duration-300 ${isOpen ? 'rotate-90' : ''}`}
+              className={`w-6 h-6 ${theme.hamburgerIcon} transition-transform duration-300 ${isOpen ? 'rotate-90' : ''}`}
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -202,17 +240,18 @@ export default function Sidebar({ onNavigate, upcomingEvent }) {
 
       {/* Mobile Menu Overlay */}
       {isOpen && (
-        <div className={`fixed inset-0 z-[60] md:hidden flex flex-col ${isComicRoute ? 'bg-comic-paper' : 'bg-editorial-bg'}`}>
-          <div className={`grid grid-cols-[3rem_1fr_3rem] items-center p-4 ${isComicRoute ? 'bg-comic-cream border-b-4 border-comic-navy' : 'bg-white border-b-2 border-editorial-border'}`}>
+        <div className={`fixed inset-0 z-[60] md:hidden flex flex-col ${theme.overlayBg}`}>
+          <div className={`grid grid-cols-[3rem_1fr_3rem] items-center p-4 ${theme.overlayHeader}`}>
             <span />
             <button onClick={() => handleNavigation('/')} className="flex items-center justify-center">
               <img src="/loghi-ass/gioco-in-loco-512.png" alt="Gioco In Loco" className="h-9 w-auto" />
             </button>
             <button
               onClick={() => setIsOpen(false)}
-              className={`w-12 h-12 flex items-center justify-center justify-self-end ${isComicRoute ? 'bg-comic-yellow border-4 border-comic-navy rounded-xl' : 'bg-editorial-terra/10 border-2 border-editorial-border rounded-lg'}`}
+              className={`w-12 h-12 flex items-center justify-center justify-self-end ${theme.overlayCloseButton}`}
+              aria-label="Chiudi navigazione"
             >
-              <svg className={`w-6 h-6 ${isComicRoute ? 'text-comic-navy' : 'text-editorial-text'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className={`w-6 h-6 ${theme.overlayCloseIcon}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
@@ -224,7 +263,7 @@ export default function Sidebar({ onNavigate, upcomingEvent }) {
                 <button
                   key={item.id}
                   onClick={() => handleNavigation(item.href)}
-                  className={`group w-full flex items-center px-5 py-4 ${isComicRoute ? 'bg-comic-cream border-3 border-comic-navy rounded-xl font-bangers text-xl text-comic-navy' : 'bg-white border-2 border-editorial-border rounded-lg font-body text-base text-editorial-text font-semibold hover:border-editorial-terra transition-colors'}`}
+                  className={`group w-full flex items-center px-5 py-4 min-h-[44px] ${theme.mobileNavButton}`}
                 >
                   {item.label}
                 </button>
@@ -232,63 +271,63 @@ export default function Sidebar({ onNavigate, upcomingEvent }) {
             </div>
 
             {isConfigured && (
-              <div className={`mt-6 pt-6 border-t ${isComicRoute ? 'border-comic-navy/20' : 'border-editorial-border/50'}`}>
+              <div className={`mt-6 pt-6 border-t ${theme.authSectionBorder}`}>
                 {user ? (
-                  <div className={`space-y-3 ${isComicRoute ? 'rounded-xl bg-comic-cream p-3 border-3 border-comic-navy' : ''}`}>
+                  <div className={`space-y-3 ${theme.userBox}`}>
                     <div className="flex items-center gap-2">
                       {user.avatarUrl && <img src={user.avatarUrl} alt="" className="w-8 h-8 rounded-full" />}
                       <div className="min-w-0 flex-1">
                         <p className="font-body text-sm text-editorial-text flex-1 truncate font-semibold">{user.name || user.email}</p>
                       </div>
-                      <button onClick={logout} className={`px-3 py-1.5 text-xs font-semibold rounded transition-colors ${isComicRoute ? 'bg-comic-magenta/20 text-comic-navy' : 'bg-editorial-terra/10 text-editorial-terra hover:bg-editorial-terra/20'}`}>
+                      <button onClick={logout} className={`px-3 py-1.5 text-xs font-semibold rounded transition-colors ${theme.logoutButton}`}>
                         Logout
                       </button>
                     </div>
                     <div className="space-y-2">
-                      <Link href="/account" onClick={() => setIsOpen(false)} className={`block rounded-lg px-4 py-2.5 text-center font-body text-sm font-semibold ${isComicRoute ? 'bg-comic-magenta text-comic-navy' : 'bg-editorial-terra text-white'}`}>
+                      <Link href="/account" onClick={() => setIsOpen(false)} className={`block rounded-lg px-4 py-2.5 text-center font-body text-sm font-semibold ${theme.accountLink}`}>
                         Area utente
                       </Link>
                       {isResponsabile && (
-                        <Link href="/responsabile" onClick={() => setIsOpen(false)} className={`block rounded-lg px-4 py-2.5 text-center font-body text-sm font-semibold ${isComicRoute ? 'bg-comic-yellow text-comic-navy' : 'bg-editorial-gold text-editorial-text'}`}>
+                        <Link href="/responsabile" onClick={() => setIsOpen(false)} className={`block rounded-lg px-4 py-2.5 text-center font-body text-sm font-semibold ${theme.responsabileLink}`}>
                           Area responsabile
                         </Link>
                       )}
                       {isAdmin && (
-                        <Link href="/admin" onClick={() => setIsOpen(false)} className={`block rounded-lg px-4 py-2.5 text-center font-body text-sm font-semibold ${isComicRoute ? 'bg-comic-cyan text-comic-navy' : 'bg-editorial-forest text-white'}`}>
+                        <Link href="/admin" onClick={() => setIsOpen(false)} className={`block rounded-lg px-4 py-2.5 text-center font-body text-sm font-semibold ${theme.adminLink}`}>
                           Area admin
                         </Link>
                       )}
                     </div>
                   </div>
                 ) : (
-                  <Link href="/auth/login" onClick={() => setIsOpen(false)} className={`block w-full py-2.5 text-center ${isComicRoute ? 'bg-comic-cyan border-3 border-comic-navy rounded-xl font-bangers text-lg text-comic-navy shadow-[2px_2px_0px_0px_#1A1A2E]' : 'bg-editorial-terra text-white font-body text-sm font-semibold rounded-lg'}`}>
+                  <Link href="/auth/login" onClick={() => setIsOpen(false)} className={`block w-full py-2.5 text-center ${theme.loginButtonMobile}`}>
                     Accedi
                   </Link>
                 )}
               </div>
             )}
 
-            <div className={`mt-6 p-4 ${isComicRoute ? 'bg-comic-yellow border-3 border-comic-navy rounded-xl shadow-[3px_3px_0px_0px_#1A1A2E]' : 'bg-white border-2 border-editorial-border rounded-xl shadow-soft'}`}>
-              <span className={`block mb-2 ${isComicRoute ? 'font-bangers text-comic-orange text-lg' : 'font-body text-xs text-editorial-terra uppercase tracking-widest'}`}>
+            <div className={`mt-6 p-4 ${theme.eventWrapper}`}>
+              <span className={`block mb-2 ${theme.eventBadge}`}>
                 Prossimo evento
               </span>
-              <span className={`block mb-2 ${isComicRoute ? 'font-bangers text-2xl text-comic-navy' : 'font-elegant text-xl text-editorial-text font-bold'}`}>
+              <span className={`block mb-2 ${theme.eventTitle}`}>
                 {resolvedUpcomingEvent?.name || 'Nessun evento futuro'}
               </span>
-              <div className={`flex items-center gap-2 ${isComicRoute ? 'text-comic-navy/80 text-sm' : 'text-editorial-text-secondary text-sm font-body'} mb-1.5`}>
+              <div className={`flex items-center gap-2 ${theme.eventInfo} mb-1.5`}>
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
                 <span>{upcomingEventDateLabel}</span>
               </div>
-              <div className={`flex items-center gap-2 ${isComicRoute ? 'text-comic-navy/80 text-sm' : 'text-editorial-text-secondary text-sm font-body'}`}>
+              <div className={`flex items-center gap-2 ${theme.eventInfo}`}>
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                 </svg>
                 <span>{resolvedUpcomingEvent?.location || 'Location da definire'}</span>
               </div>
               {upcomingEventHref && (
-                <button onClick={() => handleNavigation(upcomingEventHref)} className={`mt-4 font-body text-sm font-semibold ${isComicRoute ? 'text-comic-magenta' : 'text-editorial-terra'} underline underline-offset-4`}>
+                <button onClick={() => handleNavigation(upcomingEventHref)} className={`mt-4 font-body text-sm font-semibold ${theme.eventLink} underline underline-offset-4`}>
                   Vai all&apos;evento
                 </button>
               )}
@@ -347,7 +386,7 @@ export default function Sidebar({ onNavigate, upcomingEvent }) {
                 </div>
               </div>
             ) : (
-              <Link href="/auth/login" className={`block w-full py-2.5 text-center ${isComicRoute ? 'bg-comic-cyan border-3 border-comic-navy rounded-xl font-bangers text-lg text-comic-navy shadow-[2px_2px_0px_0px_#1A1A2E] hover:shadow-[3px_3px_0px_0px_#1A1A2E] transition-shadow' : 'bg-editorial-terra text-white font-semibold rounded-lg'}`}>
+              <Link href="/auth/login" className={`block w-full py-2.5 text-center ${theme.loginButtonDesktop}`}>
                 Accedi
               </Link>
             )}

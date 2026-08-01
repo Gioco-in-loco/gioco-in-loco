@@ -20,7 +20,7 @@ export default function AuthShell({ eyebrow, title, description, children, foote
       <div className="absolute bottom-40 right-10 w-32 h-32 rounded-full bg-editorial-forest/10" />
 
       <div
-        className={`relative w-full max-w-md bg-white border-2 border-editorial-border rounded-xl shadow-soft-lg p-8 energized-card transition-all duration-700 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}
+        className={`relative w-full max-w-md card-surface p-8 transition-all duration-700 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}
       >
         <p className="font-body text-xs uppercase tracking-widest text-editorial-terra mb-4 font-semibold">
           {eyebrow}

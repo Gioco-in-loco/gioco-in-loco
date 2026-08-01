@@ -41,9 +41,11 @@ export default {
         'comic': '4px 4px 0px 0px #1A1A2E',
         'comic-lg': '6px 6px 0px 0px #1A1A2E',
         'comic-hover': '2px 2px 0px 0px #1A1A2E',
-        'soft': '0 2px 8px rgba(61, 61, 61, 0.06)',
-        'soft-md': '0 4px 12px rgba(61, 61, 61, 0.08)',
-        'soft-lg': '0 8px 24px rgba(61, 61, 61, 0.10)',
+        // 'soft-*' kept as aliases of 'editorial-*' (same values) so every existing
+        // usage renders identically after the shadow-scale consolidation.
+        'soft': '0 2px 8px rgba(45, 42, 38, 0.06)',
+        'soft-md': '0 4px 16px rgba(45, 42, 38, 0.08)',
+        'soft-lg': '0 8px 32px rgba(45, 42, 38, 0.10)',
         'editorial': '0 2px 8px rgba(45, 42, 38, 0.06)',
         'editorial-md': '0 4px 16px rgba(45, 42, 38, 0.08)',
         'editorial-lg': '0 8px 32px rgba(45, 42, 38, 0.10)',

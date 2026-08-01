@@ -58,20 +58,19 @@ export default function DiceFestPage({ event }) {
               {isMultiDay ? `${dayCount} giornate · Un solo rito` : 'Una giornata · Un solo rito'}
             </p>
 
-            <h1 className="parchment-reveal mt-5 font-elegant text-5xl font-bold leading-[1.05] text-editorial-text sm:text-6xl md:text-7xl" style={{ animationDelay: '0.1s' }}>
+            <h1 className="parchment-reveal mt-5 font-elegant text-5xl font-bold leading-[1.05] text-editorial-text sm:text-6xl md:text-7xl" style={{ animationDelay: '0.05s' }}>
               DICE FEST
             </h1>
 
-            <p className="fade-stagger mt-6 max-w-2xl font-elegant text-xl italic text-editorial-text-secondary sm:text-2xl" style={{ animationDelay: '0.25s' }}>
+            <p className="fade-stagger mt-6 max-w-2xl font-elegant text-xl italic text-editorial-text-secondary sm:text-2xl" style={{ animationDelay: '0.15s' }}>
               {isMultiDay ? 'I giorni in cui dadi e leggende si incontrano.' : 'Il giorno in cui dadi e leggende si incontrano.'}
             </p>
 
-            <p className="fade-stagger mt-4 max-w-2xl font-body text-[15px] leading-relaxed text-editorial-text-secondary" style={{ animationDelay: '0.35s' }}>
-              Master, tavoli, sessioni{hasMainEvent ? ' e un evento principale che raduna tutti i giocatori attorno allo stesso gioco' : ''}.
-              {' '}Tutto si svolge in un&apos;unica sala{isMultiDay ? ', lungo più giornate' : ', in un solo giorno'}. Vieni, scegli il tuo posto al tavolo e lascia che la storia inizi.
+            <p className="fade-stagger mt-4 max-w-2xl font-body text-[15px] leading-relaxed text-editorial-text-secondary" style={{ animationDelay: '0.22s' }}>
+              Master, tavoli e sessioni{hasMainEvent ? ', con un Main Event che raduna tutti i giocatori' : ''} in un&apos;unica sala{isMultiDay ? ', lungo più giornate' : ''}. Scegli il tuo posto e lascia che la storia inizi.
             </p>
 
-            <div className="fade-stagger mt-10" style={{ animationDelay: '0.5s' }}>
+            <div className="fade-stagger mt-10" style={{ animationDelay: '0.3s' }}>
               <EventMeta
                 startDate={event.startDate}
                 endDate={event.endDate}
@@ -79,8 +78,8 @@ export default function DiceFestPage({ event }) {
                 price={event.price}
               />
             </div>
-            
-            <div className="fade-stagger mt-8 flex flex-col gap-3 border-t border-dashed border-editorial-border pt-6 sm:flex-row sm:items-center sm:justify-between" style={{ animationDelay: '0.8s' }}>
+
+            <div className="fade-stagger mt-8 flex flex-col gap-3 border-t border-dashed border-editorial-border pt-6 sm:flex-row sm:items-center sm:justify-between" style={{ animationDelay: '0.38s' }}>
               <div className="max-w-sm">
                 <p className="font-elegant text-sm font-bold text-editorial-text">Non sai ancora a quale tavolo sederti?</p>
                 <p className="mt-1 font-body text-[13px] leading-relaxed text-editorial-text-secondary">

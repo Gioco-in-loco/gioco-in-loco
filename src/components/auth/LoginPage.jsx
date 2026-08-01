@@ -81,7 +81,7 @@ export default function LoginPage() {
             required
             autoComplete="email"
             placeholder="la-tua@email.it"
-            className="w-full rounded-lg border-2 border-editorial-border px-4 py-3 font-body text-editorial-text outline-none focus:border-editorial-terra focus:ring-4 focus:ring-editorial-terra/10 transition-all auth-input"
+            className="input-field"
           />
         </div>
         <div>
@@ -101,7 +101,7 @@ export default function LoginPage() {
         <button
           type="submit"
           disabled={!isConfigured || isSubmitting}
-          className="w-full rounded-lg bg-editorial-terra px-5 py-3 font-body font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60 hover:bg-editorial-terra/90 hover:scale-[1.02] hover:shadow-soft-md transition-all energized-btn"
+          className="w-full btn-primary"
         >
           {isSubmitting ? 'Accesso in corso...' : 'Accedi'}
         </button>
@@ -112,7 +112,7 @@ export default function LoginPage() {
           type="button"
           onClick={handleGoogleLogin}
           disabled={!isConfigured || isSubmitting}
-          className="mt-4 w-full rounded-lg border-2 border-editorial-border bg-white px-5 py-3 font-body font-semibold text-editorial-text disabled:cursor-not-allowed disabled:opacity-60 hover:border-editorial-terra hover:scale-[1.02] transition-all auth-social-btn"
+          className="mt-4 w-full btn-ghost"
         >
           Continua con Google
         </button>
