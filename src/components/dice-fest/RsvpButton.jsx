@@ -146,8 +146,8 @@ export default function RsvpButton({ oneshots }) {
 
   if (isAuthLoading || state.loading) {
     return (
-      <div className="inline-flex items-center gap-2 rounded-full border border-editorial-border bg-white/60 px-4 py-2.5 font-elegant text-sm font-semibold text-editorial-text-muted">
-        <span className="inline-block h-3 w-3 animate-pulse rounded-full bg-editorial-gold" />
+      <div className="inline-flex items-center gap-2 border border-dicefest-border bg-dicefest-surface-2 px-4 py-2.5 font-df-mono text-sm font-bold uppercase tracking-wide text-dicefest-paper/60">
+        <span className="inline-block h-2.5 w-2.5 animate-pulse bg-dicefest-pink" />
         Carico…
       </div>
     )
@@ -156,9 +156,9 @@ export default function RsvpButton({ oneshots }) {
   const registerLink = state.hasActiveSessions ? (
     <Link
       href="/dice-fest/prenotazioni"
-      className="inline-flex items-center rounded-full border border-editorial-border bg-white/70 px-4 py-2.5 font-elegant text-sm font-bold text-editorial-text transition hover:border-editorial-gold/60 hover:bg-editorial-gold/10"
+      className="inline-flex items-center border border-dicefest-border bg-dicefest-surface-2 px-4 py-2.5 font-df-mono text-sm font-bold uppercase tracking-wide text-dicefest-paper transition hover:border-dicefest-green hover:text-dicefest-green"
     >
-      Guarda il registro delle missioni
+      Vai alle tue prenotazioni
     </Link>
   ) : null
 
@@ -170,7 +170,7 @@ export default function RsvpButton({ oneshots }) {
     if (state.hasConfirmedAdmission) {
       return (
         <div className="inline-flex flex-wrap items-center gap-2">
-          <span className="inline-flex items-center gap-2 rounded-full border border-editorial-forest/50 bg-editorial-forest/10 px-4 py-2.5 font-elegant text-sm font-bold text-editorial-forest">
+          <span className="inline-flex items-center gap-2 border border-dicefest-green bg-dicefest-green/10 px-4 py-2.5 font-df-mono text-sm font-bold uppercase tracking-wide text-dicefest-green">
             <CheckIcon />
             Ci sarai
           </span>
@@ -180,7 +180,7 @@ export default function RsvpButton({ oneshots }) {
               type="button"
               onClick={() => handleCancel('')}
               disabled={isPending}
-              className="font-body text-xs font-semibold uppercase tracking-[0.18em] text-editorial-text-muted underline-offset-2 hover:text-editorial-terra hover:underline disabled:cursor-not-allowed disabled:opacity-50"
+              className="font-df-mono text-xs font-semibold uppercase tracking-[0.18em] text-dicefest-paper/50 underline-offset-2 hover:text-dicefest-pink hover:underline disabled:cursor-not-allowed disabled:opacity-50"
             >
               {isPending ? 'Annullo…' : 'Annulla'}
             </button>
@@ -194,7 +194,7 @@ export default function RsvpButton({ oneshots }) {
         <div className="inline-flex flex-wrap items-center gap-2">
           <Link
             href="/dice-fest/carrello"
-            className="inline-flex items-center gap-2 rounded-full border border-editorial-gold/60 bg-editorial-gold/10 px-4 py-2.5 font-elegant text-sm font-bold text-editorial-text transition hover:bg-editorial-gold/20"
+            className="inline-flex items-center gap-2 border border-dicefest-pink bg-dicefest-pink/10 px-4 py-2.5 font-df-mono text-sm font-bold uppercase tracking-wide text-dicefest-pink transition hover:bg-dicefest-pink/20"
           >
             <HandRaisedIcon />
             Pass da confermare
@@ -205,7 +205,7 @@ export default function RsvpButton({ oneshots }) {
               type="button"
               onClick={() => handleCancel('')}
               disabled={isPending}
-              className="font-body text-xs font-semibold uppercase tracking-[0.18em] text-editorial-text-muted underline-offset-2 hover:text-editorial-terra hover:underline disabled:cursor-not-allowed disabled:opacity-50"
+              className="font-df-mono text-xs font-semibold uppercase tracking-[0.18em] text-dicefest-paper/50 underline-offset-2 hover:text-dicefest-pink hover:underline disabled:cursor-not-allowed disabled:opacity-50"
             >
               {isPending ? 'Annullo…' : 'Annulla'}
             </button>
@@ -219,10 +219,10 @@ export default function RsvpButton({ oneshots }) {
         type="button"
         onClick={() => handleRsvp('')}
         disabled={isPending}
-        className="inline-flex items-center gap-2 rounded-full border-2 border-dashed border-editorial-gold/70 bg-editorial-gold/10 px-5 py-2.5 font-elegant text-sm font-bold text-editorial-text transition-all hover:border-solid hover:bg-editorial-gold/20 hover:shadow-[0_4px_12px_-4px_rgba(201,162,39,0.6)] disabled:cursor-not-allowed disabled:opacity-60"
+        className="inline-flex items-center gap-2 border-2 border-dashed border-dicefest-pink bg-dicefest-surface px-5 py-2.5 font-df-mono text-sm font-bold uppercase tracking-wide text-dicefest-paper transition-all hover:border-solid hover:bg-dicefest-pink/10 hover:shadow-df-hard-pink disabled:cursor-not-allowed disabled:opacity-60"
       >
         <HandRaisedIcon />
-        {isPending ? 'Aggiungo…' : 'Dicci che sarai'}
+        {isPending ? 'Aggiungo…' : 'Confermo la mia presenza'}
       </button>
     )
   }
@@ -238,7 +238,7 @@ export default function RsvpButton({ oneshots }) {
         if (isConfirmed) {
           return (
             <div key={day} className="inline-flex flex-wrap items-center gap-2">
-              <span className="inline-flex items-center gap-2 rounded-full border border-editorial-forest/50 bg-editorial-forest/10 px-4 py-2 font-elegant text-sm font-bold text-editorial-forest">
+              <span className="inline-flex items-center gap-2 border border-dicefest-green bg-dicefest-green/10 px-4 py-2 font-df-mono text-sm font-bold uppercase tracking-wide text-dicefest-green">
                 <CheckIcon />
                 Ci sarai · {day}
               </span>
@@ -247,7 +247,7 @@ export default function RsvpButton({ oneshots }) {
                   type="button"
                   onClick={() => handleCancel(day)}
                   disabled={isPending}
-                  className="font-body text-xs font-semibold uppercase tracking-[0.18em] text-editorial-text-muted underline-offset-2 hover:text-editorial-terra hover:underline disabled:cursor-not-allowed disabled:opacity-50"
+                  className="font-df-mono text-xs font-semibold uppercase tracking-[0.18em] text-dicefest-paper/50 underline-offset-2 hover:text-dicefest-pink hover:underline disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {isPending ? 'Annullo…' : 'Annulla'}
                 </button>
@@ -261,7 +261,7 @@ export default function RsvpButton({ oneshots }) {
             <div key={day} className="inline-flex flex-wrap items-center gap-2">
               <Link
                 href="/dice-fest/carrello"
-                className="inline-flex items-center gap-2 rounded-full border border-editorial-gold/60 bg-editorial-gold/10 px-4 py-2 font-elegant text-sm font-bold text-editorial-text transition hover:bg-editorial-gold/20"
+                className="inline-flex items-center gap-2 border border-dicefest-pink bg-dicefest-pink/10 px-4 py-2 font-df-mono text-sm font-bold uppercase tracking-wide text-dicefest-pink transition hover:bg-dicefest-pink/20"
               >
                 <HandRaisedIcon />
                 {day} · da confermare
@@ -271,7 +271,7 @@ export default function RsvpButton({ oneshots }) {
                   type="button"
                   onClick={() => handleCancel(day)}
                   disabled={isPending}
-                  className="font-body text-xs font-semibold uppercase tracking-[0.18em] text-editorial-text-muted underline-offset-2 hover:text-editorial-terra hover:underline disabled:cursor-not-allowed disabled:opacity-50"
+                  className="font-df-mono text-xs font-semibold uppercase tracking-[0.18em] text-dicefest-paper/50 underline-offset-2 hover:text-dicefest-pink hover:underline disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {isPending ? 'Annullo…' : 'Annulla'}
                 </button>
@@ -286,10 +286,10 @@ export default function RsvpButton({ oneshots }) {
             type="button"
             onClick={() => handleRsvp(day)}
             disabled={isPending}
-            className="inline-flex items-center gap-2 rounded-full border-2 border-dashed border-editorial-gold/70 bg-editorial-gold/10 px-4 py-2 font-elegant text-sm font-bold text-editorial-text transition-all hover:border-solid hover:bg-editorial-gold/20 disabled:cursor-not-allowed disabled:opacity-60"
+            className="inline-flex items-center gap-2 border-2 border-dashed border-dicefest-pink bg-dicefest-surface px-4 py-2 font-df-mono text-sm font-bold uppercase tracking-wide text-dicefest-paper transition-all hover:border-solid hover:bg-dicefest-pink/10 disabled:cursor-not-allowed disabled:opacity-60"
           >
             <HandRaisedIcon />
-            {isPending ? 'Aggiungo…' : `Dicci che sarai · ${day}`}
+            {isPending ? 'Aggiungo…' : `Sarò presente · ${day}`}
           </button>
         )
       })}

@@ -16,6 +16,7 @@ export default function AppShell({ children, upcomingEvent }) {
   const router = useRouter()
   const [waitingWorker, setWaitingWorker] = useState(null)
   const isComicRoute = pathname === '/comicon-2026'
+  const isDiceFestRoute = pathname.startsWith('/dice-fest')
 
   useEffect(() => {
     window.scrollTo(0, 0)
@@ -120,7 +121,7 @@ export default function AppShell({ children, upcomingEvent }) {
           {isComicRoute && <div className="halftone-overlay z-[1]" />}
           <Sidebar onNavigate={handleNavigate} upcomingEvent={upcomingEvent} />
           <main className="min-h-screen md:ml-72 flex flex-col">
-            <div className={`flex-1 ${isComicRoute ? 'comic-paper' : 'energized-bg'} ${!isComicRoute ? 'dice-pattern-energized' : ''}`}>
+            <div className={`flex-1 ${isComicRoute ? 'comic-paper' : isDiceFestRoute ? '' : 'energized-bg dice-pattern-energized'}`}>
               {isComicRoute && <div className="absolute inset-0 comic-dots opacity-20 pointer-events-none" />}
               {children}
             </div>

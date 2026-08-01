@@ -8,7 +8,7 @@ import { requireAdmin } from '../../../src/lib/admin-guard'
 export const dynamic = 'force-dynamic'
 
 export const metadata = {
-  title: 'Registro prenotazioni — DICE FEST',
+  title: 'Prenotazioni — DICE FEST',
   description: 'Scegli il tuo tavolo: Main Event multi-tavolo e one-shot del giorno.',
 }
 
@@ -20,15 +20,15 @@ export default async function DiceFestBookingRoute() {
 
   if (!event) {
     return (
-      <div className="parchment-bg">
+      <div className="dicefest-bg">
         <section className="mx-auto max-w-3xl px-5 py-16 md:px-8">
-          <div className="parchment-surface px-7 py-10 sm:px-10 sm:py-12">
-            <p className="fantasy-eyebrow">Registro</p>
-            <h1 className="mt-3 font-elegant text-4xl font-bold text-editorial-text">DICE FEST</h1>
-            <p className="mt-4 font-body text-sm leading-relaxed text-editorial-text-secondary">
-              Il registro non è ancora aperto: il programma sarà annunciato a breve.
+          <div className="dicefest-surface px-7 py-10 sm:px-10 sm:py-12">
+            <p className="dicefest-eyebrow">Prenotazioni</p>
+            <h1 className="mt-3 font-df-display text-4xl uppercase text-dicefest-paper">DICE FEST</h1>
+            <p className="mt-4 font-df-body text-sm leading-relaxed text-dicefest-paper/75">
+              Le prenotazioni non sono ancora aperte: il programma sarà annunciato a breve.
             </p>
-            <Link href="/dice-fest" className="btn-ghost-fantasy mt-6">Torna all&apos;evento</Link>
+            <Link href="/dice-fest" className="dicefest-btn-secondary mt-6">Torna all&apos;evento</Link>
           </div>
         </section>
       </div>
@@ -44,10 +44,10 @@ export default async function DiceFestBookingRoute() {
 
 function BookingFallback() {
   return (
-    <div className="parchment-bg">
+    <div className="dicefest-bg">
       <div className="mx-auto max-w-7xl px-5 py-10 md:px-8 lg:px-10">
-        <div className="parchment-surface px-7 py-10">
-          <p className="font-body text-sm text-editorial-text-secondary">Apertura della prenotazione in corso…</p>
+        <div className="dicefest-surface px-7 py-10">
+          <p className="font-df-body text-sm text-dicefest-paper/75">Apertura della prenotazione in corso…</p>
         </div>
       </div>
     </div>

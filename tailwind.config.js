@@ -29,6 +29,19 @@ export default {
           'text-secondary': '#6B6560',
           'text-muted': '#8A847D',
         },
+        // Dark brutalist/neon palette for the Dice Fest hub only — mirrors
+        // the standalone dice-fest.it brand, kept separate from `editorial`.
+        dicefest: {
+          ink: '#0F0F11',
+          surface: '#17171A',
+          'surface-2': '#1E1E22',
+          border: '#2C2C31',
+          paper: '#F3F1EA',
+          pink: '#FF2F8F',
+          'pink-dim': '#B81F66',
+          green: '#39FF8A',
+          'green-dim': '#1FB864',
+        },
       },
       fontFamily: {
         display: ['Bangers', 'cursive'],
@@ -36,11 +49,18 @@ export default {
         comic: ['Comic Neue', 'cursive'],
         elegant: ['Fraunces', 'serif'],
         serif: ['Source Serif 4', 'serif'],
+        'df-display': ['Anton', 'sans-serif'],
+        'df-body': ['Barlow', 'sans-serif'],
+        'df-mono': ['"Space Mono"', 'monospace'],
       },
       boxShadow: {
         'comic': '4px 4px 0px 0px #1A1A2E',
         'comic-lg': '6px 6px 0px 0px #1A1A2E',
         'comic-hover': '2px 2px 0px 0px #1A1A2E',
+        'df-hard': '6px 6px 0px 0px #0F0F11',
+        'df-hard-sm': '3px 3px 0px 0px #0F0F11',
+        'df-hard-pink': '6px 6px 0px 0px #FF2F8F',
+        'df-hard-green': '6px 6px 0px 0px #39FF8A',
         // 'soft-*' kept as aliases of 'editorial-*' (same values) so every existing
         // usage renders identically after the shadow-scale consolidation.
         'soft': '0 2px 8px rgba(45, 42, 38, 0.06)',

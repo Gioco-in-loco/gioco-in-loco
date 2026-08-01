@@ -11,7 +11,7 @@ export async function GET() {
     return NextResponse.json(cartState)
   } catch (cartError) {
     return NextResponse.json(
-      { error: cartError.message || 'Impossibile caricare il registro dell\'evento principale.' },
+      { error: cartError.message || 'Impossibile caricare le prenotazioni del Main Event.' },
       { status: cartError.status || 400 },
     )
   }

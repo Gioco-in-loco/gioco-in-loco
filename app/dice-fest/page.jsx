@@ -19,15 +19,15 @@ export default async function DiceFestRoute() {
 
   if (!event) {
     return (
-      <div className="parchment-bg">
+      <div className="dicefest-bg">
         <section className="mx-auto max-w-3xl px-5 py-16 md:px-8">
-          <div className="parchment-surface px-7 py-10 sm:px-10 sm:py-12">
-            <p className="fantasy-eyebrow">Evento speciale</p>
-            <h1 className="mt-3 font-elegant text-4xl font-bold text-editorial-text">DICE FEST</h1>
-            <p className="mt-4 font-body text-sm leading-relaxed text-editorial-text-secondary">
+          <div className="dicefest-surface px-7 py-10 sm:px-10 sm:py-12">
+            <p className="dicefest-eyebrow">Evento speciale</p>
+            <h1 className="mt-3 font-df-display text-4xl uppercase text-dicefest-paper">DICE FEST</h1>
+            <p className="mt-4 font-df-body text-sm leading-relaxed text-dicefest-paper/75">
               L&apos;evento non è ancora stato annunciato. Tornate presto per scoprire il programma.
             </p>
-            <Link href="/" className="btn-ghost-fantasy mt-6">Torna alla home</Link>
+            <Link href="/" className="dicefest-btn-secondary mt-6">Torna alla home</Link>
           </div>
         </section>
       </div>

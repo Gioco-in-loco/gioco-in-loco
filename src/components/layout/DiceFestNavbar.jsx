@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation'
 
 const NAV_ITEMS = [
   { href: '/dice-fest', label: 'Homepage', exact: true },
-  { href: '/dice-fest/prenotazioni', label: 'Registro missioni' },
+  { href: '/dice-fest/prenotazioni', label: 'Prenotazioni' },
   { href: '/dice-fest/carrello', label: 'Ordine' },
 ]
 
@@ -18,7 +18,7 @@ export default function DiceFestNavbar() {
   const pathname = usePathname()
 
   return (
-    <nav className="flex items-center gap-1">
+    <nav className="flex items-center gap-4 sm:gap-6">
       {NAV_ITEMS.map((item) => {
         const isActive = isActivePath(pathname, item)
         return (
@@ -26,10 +26,10 @@ export default function DiceFestNavbar() {
             key={item.href}
             href={item.href}
             className={[
-              'rounded-full px-3.5 py-1.5 font-elegant text-sm font-semibold transition-all',
+              'font-df-mono text-xs font-bold uppercase tracking-wide transition-colors sm:text-sm',
               isActive
-                ? 'bg-editorial-terra text-editorial-bg shadow-[0_4px_10px_-4px_rgba(196,93,58,0.5)]'
-                : 'text-editorial-text-secondary hover:text-editorial-terra',
+                ? 'text-dicefest-pink underline decoration-2 underline-offset-4'
+                : 'text-dicefest-paper/70 hover:text-dicefest-green',
             ].join(' ')}
             aria-current={isActive ? 'page' : undefined}
           >

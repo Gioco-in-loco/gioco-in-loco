@@ -73,7 +73,7 @@ export default function TableMap({ entries, activeDay, onChangeDay, renderCell, 
             type="button"
             role="tab"
             aria-selected={activeDay === day}
-            className="tab-fantasy"
+            className="dicefest-tab"
             onClick={() => onChangeDay(day)}
           >
             {day}
@@ -87,14 +87,14 @@ export default function TableMap({ entries, activeDay, onChangeDay, renderCell, 
           <div className="space-y-5 lg:hidden">
             {groupedByTimeSlot.map((group) => (
               <div key={group.slotTime}>
-                <div className="timeslot-marker mb-2">
-                  <span className="timeslot-marker__hour">{group.slotTime}</span>
+                <div className="dicefest-timeslot mb-2">
+                  <span className="dicefest-timeslot__hour">{group.slotTime}</span>
                 </div>
                 <div className="space-y-3">
                   {group.entries.map((entry) => {
                     const dimmed = isDimmed ? isDimmed(entry) : false
                     return (
-                      <div key={`${entry.slot.table}__${entry.slot.slot}`} className={dimmed ? 'table-map__cell--dimmed' : ''}>
+                      <div key={`${entry.slot.table}__${entry.slot.slot}`} className={dimmed ? 'dicefest-table__cell--dimmed' : ''}>
                         {renderCell(entry)}
                       </div>
                     )
@@ -105,26 +105,26 @@ export default function TableMap({ entries, activeDay, onChangeDay, renderCell, 
           </div>
 
           {/* Desktop / large tablet: full table × time-slot grid. */}
-          <div className="table-map-scroll hidden lg:block">
+          <div className="dicefest-table-scroll hidden lg:block">
             <div
               className="grid min-w-max"
-              style={{ gridTemplateColumns: `132px repeat(${timeSlots.length}, minmax(200px, 1fr))` }}
+              style={{ gridTemplateColumns: `104px repeat(${timeSlots.length}, minmax(148px, 1fr))` }}
             >
-              <div className="table-map__corner">Tavolo</div>
+              <div className="dicefest-table__corner">Tavolo</div>
               {timeSlots.map((slotTime) => (
-                <div key={slotTime} className="table-map__col-header">{slotTime}</div>
+                <div key={slotTime} className="dicefest-table__col-header">{slotTime}</div>
               ))}
 
               {tables.map((table) => (
                 <Fragment key={table}>
-                  <div className="table-map__row-header">{table}</div>
+                  <div className="dicefest-table__row-header">{table}</div>
                   {timeSlots.map((slotTime) => {
                     const entry = cellMap.get(`${table}__${slotTime}`)
                     const dimmed = entry && isDimmed ? isDimmed(entry) : false
 
                     return (
-                      <div key={`${table}__${slotTime}`} className={`table-map__cell ${dimmed ? 'table-map__cell--dimmed' : ''}`}>
-                        {entry ? renderCell(entry) : <span className="table-map__empty">{emptyLabel}</span>}
+                      <div key={`${table}__${slotTime}`} className={`dicefest-table__cell ${dimmed ? 'dicefest-table__cell--dimmed' : ''}`}>
+                        {entry ? renderCell(entry) : <span className="dicefest-table__empty">{emptyLabel}</span>}
                       </div>
                     )
                   })}

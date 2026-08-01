@@ -16,33 +16,15 @@ function formatDateRange(startDate, endDate) {
   return startLabel === endLabel ? startLabel : `${startLabel} – ${endLabel}`
 }
 
-export function CornerGlyphs({ color = 'currentColor' }) {
-  return (
-    <>
-      <svg className="corner-glyph" style={{ top: 10, left: 10 }} viewBox="0 0 28 28" aria-hidden="true">
-        <path d="M2 14 L2 2 L14 2" fill="none" stroke={color} strokeWidth="1.4" strokeLinecap="round" />
-        <circle cx="2" cy="2" r="1.6" fill={color} />
-      </svg>
-      <svg className="corner-glyph" style={{ top: 10, right: 10, transform: 'scaleX(-1)' }} viewBox="0 0 28 28" aria-hidden="true">
-        <path d="M2 14 L2 2 L14 2" fill="none" stroke={color} strokeWidth="1.4" strokeLinecap="round" />
-        <circle cx="2" cy="2" r="1.6" fill={color} />
-      </svg>
-      <svg className="corner-glyph" style={{ bottom: 10, left: 10, transform: 'scaleY(-1)' }} viewBox="0 0 28 28" aria-hidden="true">
-        <path d="M2 14 L2 2 L14 2" fill="none" stroke={color} strokeWidth="1.4" strokeLinecap="round" />
-        <circle cx="2" cy="2" r="1.6" fill={color} />
-      </svg>
-      <svg className="corner-glyph" style={{ bottom: 10, right: 10, transform: 'scale(-1, -1)' }} viewBox="0 0 28 28" aria-hidden="true">
-        <path d="M2 14 L2 2 L14 2" fill="none" stroke={color} strokeWidth="1.4" strokeLinecap="round" />
-        <circle cx="2" cy="2" r="1.6" fill={color} />
-      </svg>
-    </>
-  )
+// The neon-brutalist brand has no corner-flourish decoration — kept as a
+// no-op export only so nothing breaks if still imported elsewhere.
+export function CornerGlyphs() {
+  return null
 }
 
-export function ParchmentCard({ children, className = '', withGlyphs = true, as: Tag = 'section' }) {
+export function ParchmentCard({ children, className = '', as: Tag = 'section' }) {
   return (
-    <Tag className={`parchment-surface ${className}`}>
-      {withGlyphs ? <CornerGlyphs color="#C9A227" /> : null}
+    <Tag className={`dicefest-surface ${className}`}>
       {children}
     </Tag>
   )
@@ -50,15 +32,10 @@ export function ParchmentCard({ children, className = '', withGlyphs = true, as:
 
 export function SigilDivider({ className = '' }) {
   return (
-    <div className={`flex items-center justify-center gap-4 ${className}`} aria-hidden="true">
-      <span className="h-px w-16 bg-gradient-to-r from-transparent via-editorial-gold to-transparent sm:w-28" />
-      <svg className="ink-trace text-editorial-terra" width="46" height="20" viewBox="0 0 46 20">
-        <path d="M2 10 Q 12 2 23 10 T 44 10" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
-        <circle cx="23" cy="10" r="2.2" fill="#C9A227" />
-        <circle cx="6" cy="10" r="1" fill="currentColor" />
-        <circle cx="40" cy="10" r="1" fill="currentColor" />
-      </svg>
-      <span className="h-px w-16 bg-gradient-to-l from-transparent via-editorial-gold to-transparent sm:w-28" />
+    <div className={`dicefest-divider ${className}`} aria-hidden="true">
+      <span className="dicefest-divider__line" />
+      <span className="dicefest-divider__glyph" />
+      <span className="dicefest-divider__line" />
     </div>
   )
 }
@@ -66,32 +43,10 @@ export function SigilDivider({ className = '' }) {
 export function WaxSeal({ size = 96, label = 'DF', className = '' }) {
   return (
     <div
-      className={`relative flex items-center justify-center ${className}`}
+      className={`dicefest-seal ${className}`}
       style={{ width: size, height: size }}
-      aria-hidden="true"
     >
-      <svg viewBox="0 0 100 100" className="absolute inset-0">
-        <defs>
-          <radialGradient id="wax-grad" cx="38%" cy="32%" r="70%">
-            <stop offset="0%" stopColor="#E27553" />
-            <stop offset="55%" stopColor="#C45D3A" />
-            <stop offset="100%" stopColor="#7A2E16" />
-          </radialGradient>
-          <filter id="wax-shadow" x="-20%" y="-20%" width="140%" height="140%">
-            <feDropShadow dx="0" dy="2" stdDeviation="2" floodColor="#3D1308" floodOpacity="0.35" />
-          </filter>
-        </defs>
-        <path
-          d="M50 4 L60 16 L76 14 L78 30 L92 38 L86 53 L96 66 L84 76 L84 92 L68 88 L58 96 L50 84 L42 96 L32 88 L16 92 L16 76 L4 66 L14 53 L8 38 L22 30 L24 14 L40 16 Z"
-          fill="url(#wax-grad)"
-          filter="url(#wax-shadow)"
-        />
-        <circle cx="50" cy="52" r="28" fill="none" stroke="#FBE7D6" strokeWidth="1" strokeOpacity="0.35" />
-      </svg>
-      <span
-        className="relative font-elegant text-[14px] font-bold tracking-widest"
-        style={{ color: '#FBE7D6', textShadow: '0 1px 2px rgba(91,30,14,0.7)' }}
-      >
+      <span className="dicefest-seal__label" style={{ fontSize: size * 0.22 }}>
         {label}
       </span>
     </div>
@@ -101,24 +56,24 @@ export function WaxSeal({ size = 96, label = 'DF', className = '' }) {
 function MetaItem({ icon, label, value }) {
   return (
     <div className="flex items-start gap-3">
-      <span className="mt-0.5 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-editorial-gold/50 bg-editorial-gold/10 text-editorial-terra">
+      <span className="mt-0.5 inline-flex h-9 w-9 shrink-0 items-center justify-center border border-dicefest-border bg-dicefest-surface-2 text-dicefest-green">
         {icon}
       </span>
       <div>
-        <p className="font-body text-[10px] font-bold uppercase tracking-[0.22em] text-editorial-text-muted">{label}</p>
-        <p className="mt-1 font-elegant text-base font-semibold text-editorial-text">{value}</p>
+        <p className="font-df-mono text-[10px] font-bold uppercase tracking-[0.22em] text-dicefest-paper/50">{label}</p>
+        <p className="mt-1 font-df-body text-base font-semibold text-dicefest-paper">{value}</p>
       </div>
     </div>
   )
 }
 
 export function EventMeta({ startDate, endDate, location, price }) {
-  const dateLabel = formatDateRange(startDate, endDate) || 'Data sospesa nel tempo'
-  const locationLabel = location || 'Luogo ancora segreto'
+  const dateLabel = formatDateRange(startDate, endDate) || 'Data da annunciare'
+  const locationLabel = location || 'Luogo da annunciare'
   const priceLabel = formatPrice(price) || 'Libero'
 
   return (
-    <div className="grid gap-6 sm:grid-cols-3">
+    <div className="flex flex-col gap-5">
       <MetaItem
         label="Quando"
         value={dateLabel}
@@ -140,7 +95,7 @@ export function EventMeta({ startDate, endDate, location, price }) {
         }
       />
       <MetaItem
-        label="Pegno d'ingresso"
+        label="Ingresso"
         value={priceLabel}
         icon={
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
@@ -155,7 +110,7 @@ export function EventMeta({ startDate, endDate, location, price }) {
 }
 
 export function FantasyLinkButton({ href, children, variant = 'wax' }) {
-  const className = variant === 'wax' ? 'btn-wax' : 'btn-ghost-fantasy'
+  const className = variant === 'wax' ? 'dicefest-btn-primary' : 'dicefest-btn-secondary'
   return (
     <Link href={href} className={className}>
       {children}

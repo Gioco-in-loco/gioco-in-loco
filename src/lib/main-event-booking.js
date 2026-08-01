@@ -522,7 +522,7 @@ export async function confirmMainEventCart({ userId, eventId, db = prisma }) {
     })
 
     if (holdReservations.length === 0) {
-      throw createHttpError(400, 'Il registro dell\'evento principale è vuoto oppure la prenotazione è scaduta.')
+      throw createHttpError(400, 'Le prenotazioni del Main Event sono vuote oppure il tempo è scaduto.')
     }
 
     await tx.mainEventReservation.updateMany({

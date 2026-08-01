@@ -168,13 +168,13 @@ export default function DiceFestCartPage({ event }) {
         credentials: 'same-origin',
       })
       const payload = await response.json().catch(() => ({}))
-      if (!response.ok) throw new Error(payload.error || 'Impossibile sigillare la prenotazione.')
+      if (!response.ok) throw new Error(payload.error || 'Impossibile confermare la prenotazione.')
       setCartState({ loading: false, ...payload })
       setRequestState({ loading: false, error: '' })
       setJustConfirmed(true)
       toast.success('Prepara i dadi! Le tue prenotazioni sono confermate, ci vediamo tavolo!')
     } catch (err) {
-      const msg = err.message || 'Impossibile sigillare la prenotazione.'
+      const msg = err.message || 'Impossibile confermare la prenotazione.'
       setRequestState({ loading: false, error: msg })
       toast.error(msg)
       await loadCart()
@@ -233,27 +233,27 @@ export default function DiceFestCartPage({ event }) {
   // NOT LOGGED IN
   if (!user && !isLoading) {
     return (
-      <div className="parchment-bg">
+      <div className="dicefest-bg">
         <div className="mx-auto max-w-3xl px-5 py-16 md:px-8">
           <ParchmentCard>
             <div className="px-7 py-10 text-center sm:px-10 sm:py-12">
               <div className="mx-auto wax-stamp" style={{ width: 'fit-content' }}>
                 <WaxSeal size={80} label="DF" />
               </div>
-              <h1 className="mt-6 font-elegant text-3xl font-bold text-editorial-text sm:text-4xl">
+              <h1 className="mt-6 font-df-display text-3xl uppercase text-dicefest-paper sm:text-4xl">
                 Solo i nomi in prenotazione
               </h1>
-              <p className="mx-auto mt-3 max-w-md font-body text-[15px] leading-relaxed text-editorial-text-secondary">
+              <p className="mx-auto mt-3 max-w-md font-df-body text-[15px] leading-relaxed text-dicefest-paper/75">
                 Le tue Prenotazioni sono personali e le prenotazioni durano 10 minuti. Accedi per vedere i tavoli che hai bloccato e confermare la tua prenotazione.
               </p>
               <div className="mt-7 flex flex-wrap justify-center gap-3">
-                <Link href="/auth/login?next=/dice-fest/carrello" className="btn-wax">Accedi</Link>
-                <Link href="/dice-fest/prenotazioni" className="btn-ghost-fantasy">Conferma ordine</Link>
+                <Link href="/auth/login?next=/dice-fest/carrello" className="dicefest-btn-primary">Accedi</Link>
+                <Link href="/dice-fest/prenotazioni" className="dicefest-btn-secondary">Conferma ordine</Link>
               </div>
             </div>
           </ParchmentCard>
         </div>
-      </div>  
+      </div>
     )
   }
 
@@ -267,23 +267,23 @@ export default function DiceFestCartPage({ event }) {
   )
 
   return (
-    <div className="parchment-bg pb-16">
+    <div className="dicefest-bg pb-16">
       <div className="mx-auto max-w-5xl px-5 py-10 md:px-8 lg:px-10">
         {/* HEADER */}
-        <header className="parchment-reveal flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+        <header className="fade-stagger flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <p className="fantasy-eyebrow">Sigilla l'ordine</p>
-            <h1 className="mt-3 font-elegant text-4xl font-bold text-editorial-text sm:text-5xl">
+            <p className="dicefest-eyebrow">Conferma Prenotazioni</p>
+            <h1 className="mt-3 font-df-display text-4xl uppercase text-dicefest-paper sm:text-5xl">
               Le tue Prenotazioni
             </h1>
-            <p className="mt-3 max-w-xl font-body text-[15px] leading-relaxed text-editorial-text-secondary">
-              I tavoli che hai prenotato rimangono bloccati per dieci minuti. Sigilla per renderli definitivi.
+            <p className="mt-3 max-w-xl font-df-body text-[15px] leading-relaxed text-dicefest-paper/75">
+              I tavoli che hai prenotato rimangono bloccati per dieci minuti. Confermali per renderli definitivi.
             </p>
           </div>
           {timeRemaining && !justConfirmed ? (
             <div className="flex flex-col items-start gap-1 lg:items-end">
-              <p className="font-body text-[10px] font-bold uppercase tracking-[0.22em] text-editorial-text-muted">Tempo rimasto</p>
-              <p className={`font-elegant text-5xl font-bold tabular-nums ${lowTime ? 'text-editorial-terra clock-pulse' : 'text-editorial-gold'}`}>
+              <p className="font-df-mono text-[10px] font-bold uppercase tracking-[0.22em] text-dicefest-paper/50">Tempo rimasto</p>
+              <p className={`font-df-display text-5xl tabular-nums ${lowTime ? 'text-dicefest-pink clock-pulse' : 'text-dicefest-green'}`}>
                 {timeRemaining}
               </p>
             </div>
@@ -291,25 +291,25 @@ export default function DiceFestCartPage({ event }) {
         </header>
 
         {requestState.error ? (
-          <p className="mt-6 rounded-xl border border-red-200 bg-red-50/80 px-4 py-3 font-body text-sm text-red-700">{requestState.error}</p>
+          <p className="mt-6 border border-red-500/40 bg-red-500/10 px-4 py-3 font-df-body text-sm text-red-300">{requestState.error}</p>
         ) : null}
 
         {/* CONFIRMED STATE */}
         {justConfirmed ? (
-          <ParchmentCard className="mt-8 parchment-edge">
+          <ParchmentCard className="mt-8 dicefest-surface--accent">
             <div className="px-7 py-10 text-center sm:px-10 sm:py-14">
               <div className="mx-auto wax-stamp" style={{ width: 'fit-content' }}>
                 <WaxSeal size={112} label="✓" />
               </div>
-              <h2 className="mt-6 font-elegant text-3xl font-bold text-editorial-text sm:text-4xl">
+              <h2 className="mt-6 font-df-display text-3xl uppercase text-dicefest-paper sm:text-4xl">
                 Prepara i Dadi!
               </h2>
-              <p className="mx-auto mt-3 max-w-md font-body text-[15px] leading-relaxed text-editorial-text-secondary">
+              <p className="mx-auto mt-3 max-w-md font-df-body text-[15px] leading-relaxed text-dicefest-paper/75">
                 Le tue prenotazioni sono confermate. Ci vediamo al tavolo.
               </p>
               <div className="mt-7 flex flex-wrap justify-center gap-3">
-                <Link href="/account" className="btn-wax">Vedi le tue prenotazioni</Link>
-                <Link href="/dice-fest" className="btn-ghost-fantasy">Torna all&apos;evento</Link>
+                <Link href="/account" className="dicefest-btn-primary">Vedi le tue prenotazioni</Link>
+                <Link href="/dice-fest" className="dicefest-btn-secondary">Torna all&apos;evento</Link>
               </div>
             </div>
           </ParchmentCard>
@@ -319,7 +319,7 @@ export default function DiceFestCartPage({ event }) {
         {!justConfirmed && cartState.loading ? (
           <ParchmentCard className="mt-8">
             <div className="px-7 py-10">
-              <p className="font-body text-sm text-editorial-text-secondary">Apertura della prenotazione in corso…</p>
+              <p className="font-df-body text-sm text-dicefest-paper/75">Apertura della prenotazione in corso…</p>
             </div>
           </ParchmentCard>
         ) : null}
@@ -327,12 +327,12 @@ export default function DiceFestCartPage({ event }) {
         {!justConfirmed && isEmpty ? (
           <ParchmentCard className="mt-8">
             <div className="px-7 py-12 text-center sm:px-10">
-              <h2 className="font-elegant text-2xl font-bold text-editorial-text">Nessuna prenotazione</h2>
-              <p className="mx-auto mt-3 max-w-md font-body text-[15px] leading-relaxed text-editorial-text-secondary">
-                Torna al registro e scegli a cosa giocare!.
+              <h2 className="font-df-display text-2xl uppercase text-dicefest-paper">Nessuna prenotazione</h2>
+              <p className="mx-auto mt-3 max-w-md font-df-body text-[15px] leading-relaxed text-dicefest-paper/75">
+                Torna alle prenotazioni e scegli a cosa giocare!
               </p>
-              <Link href="/dice-fest/prenotazioni" className="btn-wax mt-7">
-                Registro
+              <Link href="/dice-fest/prenotazioni" className="dicefest-btn-primary mt-7">
+                Vai alle prenotazioni
               </Link>
             </div>
           </ParchmentCard>
@@ -387,25 +387,25 @@ const PendingOrderLayout = memo(function PendingOrderLayout({
       <section className="space-y-5">
         <ParchmentCard>
           <div className="px-6 py-5 sm:px-7">
-            <p className="fantasy-eyebrow">Pass d&apos;ingresso</p>
-            {cartAdmissions.length > 0 ? (
+            <p className="dicefest-eyebrow">Pass d&apos;ingresso</p>
+            {(cartState.cartAdmissions || []).length > 0 ? (
               <>
                 <ul className="mt-3 space-y-2">
-                  {cartAdmissions.map((admission) => (
+                  {cartState.cartAdmissions.map((admission) => (
                     <li key={admission.day || 'evento'} className="flex items-start justify-between gap-3">
-                      <p className="font-elegant text-base font-bold text-editorial-text">
+                      <p className="font-df-display text-base uppercase text-dicefest-paper">
                         Ingresso · {admission.day || 'Evento completo'}
                       </p>
-                      <p className="shrink-0 font-elegant text-base font-bold text-editorial-terra">{formatCartPrice(admission.price)}</p>
+                      <p className="shrink-0 font-df-display text-base text-dicefest-pink">{formatCartPrice(admission.price)}</p>
                     </li>
                   ))}
                 </ul>
-                <p className="mt-2 font-body text-sm text-editorial-text-secondary">
+                <p className="mt-2 font-df-body text-sm text-dicefest-paper/75">
                   Bloccato insieme a one-shot e Main Event per 10 minuti.
                 </p>
               </>
             ) : (
-              <p className="mt-4 font-body text-sm leading-relaxed text-editorial-text-secondary">
+              <p className="mt-4 font-df-body text-sm leading-relaxed text-dicefest-paper/75">
                 {cartState.hasConfirmedAdmission
                   ? 'Sei già in possesso dell\'ingresso.'
                   : 'Nessun pass nelle Prenotazioni.'}
@@ -416,30 +416,30 @@ const PendingOrderLayout = memo(function PendingOrderLayout({
 
         <ParchmentCard>
           <div className="px-6 py-5 sm:px-7">
-            <p className="fantasy-eyebrow">Evento principale nelle tue Prenotazioni</p>
+            <p className="dicefest-eyebrow">Evento principale nelle tue Prenotazioni</p>
             {filteredMainCartSlots.length === 0 ? (
-              <p className="mt-4 font-body text-sm leading-relaxed text-editorial-text-secondary">
+              <p className="mt-4 font-df-body text-sm leading-relaxed text-dicefest-paper/75">
                 Nessun Main Event nelle Prenotazioni.
               </p>
             ) : (
               <ul className="mt-4 space-y-3">
                 {filteredMainCartSlots.map((slot) => (
-                  <li key={`${slot.mainEventId}-${slot.day}-${slot.slot}`} className="slot-card slot-card--in-cart">
+                  <li key={`${slot.mainEventId}-${slot.day}-${slot.slot}`} className="dicefest-slot-card dicefest-slot-card--in-cart">
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
-                        <span className="fantasy-badge fantasy-badge--forest">Main Event</span>
-                        <p className="mt-2 font-elegant text-base font-bold text-editorial-text">{slot.mainEventTitle}</p>
-                        <p className="mt-1 font-body text-sm text-editorial-text-secondary">
+                        <span className="dicefest-badge dicefest-badge--green">Main Event</span>
+                        <p className="mt-2 font-df-display text-base text-dicefest-paper">{slot.mainEventTitle}</p>
+                        <p className="mt-1 font-df-body text-sm text-dicefest-paper/75">
                           {slot.day} · {slot.slot}
                         </p>
                       </div>
                       <div className="text-right">
-                        <p className="font-elegant text-base font-bold text-editorial-terra">{formatCartPrice(slot.price)}</p>
+                        <p className="font-df-display text-base text-dicefest-pink">{formatCartPrice(slot.price)}</p>
                         <button
                           type="button"
                           onClick={() => onRemoveMainFromCart({ mainEventId: slot.mainEventId, day: slot.day, slot: slot.slot }, `${slot.day} ${slot.slot}`)}
                           disabled={busy}
-                          className="mt-2 font-body text-xs font-semibold uppercase tracking-widest text-editorial-text-muted underline-offset-2 hover:text-editorial-terra hover:underline disabled:cursor-not-allowed disabled:opacity-50"
+                          className="mt-2 font-df-mono text-xs font-semibold uppercase tracking-widest text-dicefest-paper/50 underline-offset-2 hover:text-dicefest-pink hover:underline disabled:cursor-not-allowed disabled:opacity-50"
                         >
                           Lascia il posto
                         </button>
@@ -454,29 +454,29 @@ const PendingOrderLayout = memo(function PendingOrderLayout({
 
         <ParchmentCard>
           <div className="px-6 py-5 sm:px-7">
-            <p className="fantasy-eyebrow">One-shot prenotate</p>
+            <p className="dicefest-eyebrow">One-shot prenotate</p>
             {cartState.cartSlots.length === 0 ? (
-              <p className="mt-4 font-body text-sm leading-relaxed text-editorial-text-secondary">
+              <p className="mt-4 font-df-body text-sm leading-relaxed text-dicefest-paper/75">
                 Nessuna one-shot nelle Prenotazioni.
               </p>
             ) : (
               <ul className="mt-4 space-y-3">
                 {cartState.cartSlots.map((slot) => (
-                  <li key={slot.id} className="slot-card slot-card--in-cart">
+                  <li key={slot.id} className="dicefest-slot-card dicefest-slot-card--in-cart">
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
-                        <p className="font-elegant text-base font-bold text-editorial-text">{slot.oneshotTitle}</p>
-                        <p className="mt-1 font-body text-sm text-editorial-text-secondary">
+                        <p className="font-df-display text-base text-dicefest-paper">{slot.oneshotTitle}</p>
+                        <p className="mt-1 font-df-body text-sm text-dicefest-paper/75">
                           {slot.day} · {slot.slot} · {slot.table}
                         </p>
                       </div>
                       <div className="text-right">
-                        <p className="font-elegant text-base font-bold text-editorial-terra">{formatCartPrice(slot.price)}</p>
+                        <p className="font-df-display text-base text-dicefest-pink">{formatCartPrice(slot.price)}</p>
                         <button
                           type="button"
                           onClick={() => onRemove(slot.id, `${slot.day} ${slot.slot}`)}
                           disabled={busy}
-                          className="mt-2 font-body text-xs font-semibold uppercase tracking-widest text-editorial-text-muted underline-offset-2 hover:text-editorial-terra hover:underline disabled:cursor-not-allowed disabled:opacity-50"
+                          className="mt-2 font-df-mono text-xs font-semibold uppercase tracking-widest text-dicefest-paper/50 underline-offset-2 hover:text-dicefest-pink hover:underline disabled:cursor-not-allowed disabled:opacity-50"
                         >
                           Libera slot
                         </button>
@@ -491,44 +491,44 @@ const PendingOrderLayout = memo(function PendingOrderLayout({
       </section>
 
       <aside className="lg:sticky lg:top-24 lg:self-start">
-        <ParchmentCard className="parchment-edge">
+        <ParchmentCard className="dicefest-surface--accent">
           <div className="px-6 py-6 sm:px-7">
-            <p className="fantasy-eyebrow">Riepilogo</p>
-            <h2 className="mt-3 font-elegant text-2xl font-bold text-editorial-text">Sigilla il tuo ordine</h2>
-            <p className="mt-2 font-body text-sm leading-relaxed text-editorial-text-secondary">
-              Finché il timer è attivo, tutte le missioni selezionate sono prenotate ma non sono confermate. Al sigillo diventano definitivi.
+            <p className="dicefest-eyebrow">Riepilogo</p>
+            <h2 className="mt-3 font-df-display text-2xl uppercase text-dicefest-paper">Conferma le tue prenotazioni</h2>
+            <p className="mt-2 font-df-body text-sm leading-relaxed text-dicefest-paper/75">
+              Finché il timer è attivo, tutte le scelte selezionate sono bloccate ma non confermate. Alla conferma diventano definitive.
             </p>
 
-            <div className="mt-5 space-y-2 border-t border-dashed border-editorial-border pt-4">
+            <div className="mt-5 space-y-2 border-t border-dashed border-dicefest-border pt-4">
               {summaryRows.map((row) => (
                 <Row key={row.key} label={row.label} meta={row.meta} value={row.value} />
               ))}
             </div>
-            <div className="mt-4 flex items-end justify-between border-t border-editorial-border pt-4">
-              <span className="font-body text-xs uppercase tracking-[0.18em] text-editorial-text-muted">Totale</span>
-              <span className="font-elegant text-3xl font-bold text-editorial-gold">{formatCartPrice(total)}</span>
+            <div className="mt-4 flex items-end justify-between border-t border-dicefest-border pt-4">
+              <span className="font-df-mono text-xs uppercase tracking-[0.18em] text-dicefest-paper/50">Totale</span>
+              <span className="font-df-display text-3xl text-dicefest-green">{formatCartPrice(total)}</span>
             </div>
 
             <button
               type="button"
               onClick={onConfirm}
               disabled={busy || (!cartState.hasCartAdmission && cartState.cartSlots.length === 0 && filteredMainCartSlots.length === 0)}
-              className="btn-wax mt-6 w-full"
+              className="dicefest-btn-primary mt-6 w-full"
             >
-              {isSubmitting ? 'Sigillo in corso…' : 'Sigilla il tuo ordine'}
+              {isSubmitting ? 'Conferma in corso…' : 'Conferma Prenotazioni'}
             </button>
 
             <button
               type="button"
               onClick={onClearCart}
               disabled={busy || !canClearCart}
-              className="mt-3 w-full rounded-full border border-editorial-terra/30 bg-white/70 px-4 py-2.5 font-elegant text-sm font-semibold text-editorial-terra transition hover:bg-editorial-terra/10 disabled:cursor-not-allowed disabled:opacity-50"
+              className="mt-3 w-full border border-dicefest-pink/40 bg-dicefest-surface-2 px-4 py-2.5 font-df-display text-sm uppercase text-dicefest-pink transition hover:bg-dicefest-pink/10 disabled:cursor-not-allowed disabled:opacity-50"
             >
               Svuota l'ordine
             </button>
 
-            <p className="mt-3 text-center font-body text-[11px] leading-relaxed text-editorial-text-muted">
-              Se il tempo scade, il sigillo si scioglie e tutte le prenotazioni vengono annullate.
+            <p className="mt-3 text-center font-df-body text-[11px] leading-relaxed text-dicefest-paper/50">
+              Se il tempo scade, il blocco decade e tutte le scelte vengono annullate.
             </p>
           </div>
         </ParchmentCard>
@@ -546,20 +546,20 @@ const ConfirmedMainReservationsSection = memo(function ConfirmedMainReservations
     <>
       <SigilDivider className="my-12" />
       <section>
-        <p className="fantasy-eyebrow">Evento Principale</p>
-        <h2 className="mt-3 font-elegant text-2xl font-bold text-editorial-text sm:text-3xl">Le tue prenotazioni Main Event</h2>
-        <p className="mt-2 max-w-2xl font-body text-sm leading-relaxed text-editorial-text-secondary">
+        <p className="dicefest-eyebrow">Evento Principale</p>
+        <h2 className="mt-3 font-df-display text-2xl uppercase text-dicefest-paper sm:text-3xl">Le tue prenotazioni Main Event</h2>
+        <p className="mt-2 max-w-2xl font-df-body text-sm leading-relaxed text-dicefest-paper/75">
           Le prenotazioni del Main Event sono già confermate. Da qui puoi cancellarle se non potrai più partecipare.
         </p>
         <ul className="mt-6 grid gap-4 sm:grid-cols-2">
           {reservations.map((reservation) => (
             <li key={reservation.id}>
-              <div className="slot-card slot-card--confirmed">
+              <div className="dicefest-slot-card dicefest-slot-card--confirmed">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <span className="fantasy-badge fantasy-badge--forest">Main Event</span>
-                    <p className="mt-2 font-elegant text-base font-bold text-editorial-text">{reservation.mainEventTitle}</p>
-                    <p className="mt-1 font-body text-sm text-editorial-text-secondary">
+                    <span className="dicefest-badge dicefest-badge--green">Main Event</span>
+                    <p className="mt-2 font-df-display text-base text-dicefest-paper">{reservation.mainEventTitle}</p>
+                    <p className="mt-1 font-df-body text-sm text-dicefest-paper/75">
                       {reservation.day} · {reservation.slot}
                     </p>
                   </div>
@@ -568,7 +568,7 @@ const ConfirmedMainReservationsSection = memo(function ConfirmedMainReservations
                   type="button"
                   onClick={() => onCancelMain(reservation)}
                   disabled={busy}
-                  className="mt-3 w-full inline-flex items-center justify-center rounded-full border border-editorial-terra/40 bg-white/60 px-4 py-2 font-elegant text-sm font-semibold text-editorial-terra transition hover:bg-editorial-terra/10 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="mt-3 w-full inline-flex items-center justify-center border border-dicefest-pink/40 bg-dicefest-surface-2 px-4 py-2 font-df-display text-sm uppercase text-dicefest-pink transition hover:bg-dicefest-pink/10 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {pendingMainResId === reservation.id ? 'Cancello…' : 'Cancella prenotazione'}
                 </button>
@@ -585,12 +585,12 @@ function Row({ label, meta, value }) {
   return (
     <div className="flex items-start justify-between gap-3">
       <div className="min-w-0">
-        <p className="font-body text-sm text-editorial-text-secondary">{label}</p>
+        <p className="font-df-body text-sm text-dicefest-paper/75">{label}</p>
         {meta ? (
-          <p className="mt-0.5 font-body text-[11px] leading-relaxed text-editorial-text-muted">{meta}</p>
+          <p className="mt-0.5 font-df-body text-[11px] leading-relaxed text-dicefest-paper/50">{meta}</p>
         ) : null}
       </div>
-      <span className="shrink-0 font-elegant text-base font-semibold text-editorial-text">{value}</span>
+      <span className="shrink-0 font-df-display text-base text-dicefest-paper">{value}</span>
     </div>
   )
 }

@@ -11,7 +11,7 @@ export async function POST() {
     return NextResponse.json(cartState)
   } catch (cartError) {
     return NextResponse.json(
-      { error: cartError.message || 'Impossibile confermare il registro dell\'evento principale.' },
+      { error: cartError.message || 'Impossibile confermare le prenotazioni del Main Event.' },
       { status: cartError.status || 400 },
     )
   }

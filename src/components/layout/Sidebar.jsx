@@ -46,10 +46,11 @@ const THEMES = {
     mobileNavButton: 'bg-comic-cream border-3 border-comic-navy rounded-xl font-bangers text-xl text-comic-navy',
     authSectionBorder: 'border-comic-navy/20',
     userBox: 'rounded-xl bg-comic-cream p-3 border-3 border-comic-navy',
-    logoutButton: 'bg-comic-magenta/20 text-comic-navy',
-    accountLink: 'bg-comic-magenta text-comic-navy',
-    responsabileLink: 'bg-comic-yellow text-comic-navy',
-    adminLink: 'bg-comic-cyan text-comic-navy',
+    userText: 'text-comic-navy',
+    logoutButton: 'rounded bg-comic-magenta/20 text-comic-navy',
+    accountLink: 'rounded-lg bg-comic-magenta text-comic-navy',
+    responsabileLink: 'rounded-lg bg-comic-yellow text-comic-navy',
+    adminLink: 'rounded-lg bg-comic-cyan text-comic-navy',
     loginButtonMobile: 'bg-comic-cyan border-3 border-comic-navy rounded-xl font-bangers text-lg text-comic-navy shadow-[2px_2px_0px_0px_#1A1A2E]',
     loginButtonDesktop: 'bg-comic-cyan border-3 border-comic-navy rounded-xl font-bangers text-lg text-comic-navy shadow-[2px_2px_0px_0px_#1A1A2E] hover:shadow-[3px_3px_0px_0px_#1A1A2E] transition-shadow',
     eventLink: 'text-comic-magenta',
@@ -73,10 +74,11 @@ const THEMES = {
     mobileNavButton: 'bg-white border-2 border-editorial-border rounded-lg font-body text-base text-editorial-text font-semibold hover:border-editorial-terra transition-colors',
     authSectionBorder: 'border-editorial-border/50',
     userBox: '',
-    logoutButton: 'bg-editorial-terra/10 text-editorial-terra hover:bg-editorial-terra/20',
-    accountLink: 'bg-editorial-terra text-white',
-    responsabileLink: 'bg-editorial-gold text-editorial-text',
-    adminLink: 'bg-editorial-forest text-white',
+    userText: 'text-editorial-text',
+    logoutButton: 'rounded bg-editorial-terra/10 text-editorial-terra hover:bg-editorial-terra/20',
+    accountLink: 'rounded-lg bg-editorial-terra text-white',
+    responsabileLink: 'rounded-lg bg-editorial-gold text-editorial-text',
+    adminLink: 'rounded-lg bg-editorial-forest text-white',
     loginButtonMobile: 'bg-editorial-terra text-white font-body text-sm font-semibold rounded-lg',
     loginButtonDesktop: 'bg-editorial-terra text-white font-semibold rounded-lg',
     eventLink: 'text-editorial-terra',
@@ -88,6 +90,37 @@ const THEMES = {
     eventBadge: 'font-body text-xs text-editorial-terra uppercase tracking-widest',
     eventTitle: 'font-elegant text-xl text-editorial-text font-bold',
     eventInfo: 'text-editorial-text-secondary text-sm font-body',
+  },
+  // Dark brutalist/neon skin, shown only while browsing under /dice-fest —
+  // keeps the sidebar/topbar/footer chrome coherent with the hub's own
+  // dicefest-* tokens defined in main.css / tailwind.config.js.
+  dicefest: {
+    topBar: 'bg-dicefest-ink border-b-2 border-dicefest-border',
+    hamburgerButton: 'bg-dicefest-surface-2 border-2 border-dicefest-border',
+    hamburgerIcon: 'text-dicefest-paper',
+    overlayBg: 'bg-dicefest-ink',
+    overlayHeader: 'bg-dicefest-ink border-b-2 border-dicefest-border',
+    overlayCloseButton: 'bg-dicefest-surface-2 border-2 border-dicefest-border',
+    overlayCloseIcon: 'text-dicefest-paper',
+    mobileNavButton: 'bg-dicefest-surface border-2 border-dicefest-border font-df-mono uppercase tracking-wide text-sm text-dicefest-paper hover:border-dicefest-pink transition-colors',
+    authSectionBorder: 'border-dicefest-border',
+    userBox: 'bg-dicefest-surface-2 p-3 border-2 border-dicefest-border',
+    userText: 'text-dicefest-paper',
+    logoutButton: 'bg-dicefest-pink/10 text-dicefest-pink hover:bg-dicefest-pink/20',
+    accountLink: 'bg-dicefest-pink text-dicefest-ink',
+    responsabileLink: 'bg-dicefest-green text-dicefest-ink',
+    adminLink: 'border-2 border-dicefest-border bg-dicefest-surface-2 text-dicefest-paper',
+    loginButtonMobile: 'bg-dicefest-pink border-2 border-dicefest-ink font-df-display uppercase text-lg text-dicefest-ink shadow-df-hard-sm',
+    loginButtonDesktop: 'bg-dicefest-pink border-2 border-dicefest-ink font-df-display uppercase text-lg text-dicefest-ink shadow-df-hard-sm hover:shadow-df-hard transition-shadow',
+    eventLink: 'text-dicefest-pink',
+    wrapper: 'bg-dicefest-ink border-r-2 border-dicefest-border',
+    header: 'bg-dicefest-ink border-b-2 border-dicefest-border pt-safe',
+    navButton: 'bg-dicefest-surface border-2 border-dicefest-border hover:translate-x-2 hover:border-dicefest-pink transition-all duration-200',
+    navButtonText: 'font-df-mono uppercase tracking-wide text-sm text-dicefest-paper',
+    eventWrapper: 'bg-dicefest-surface border-2 border-dicefest-border p-3 shadow-df-hard-sm hover:shadow-df-hard-pink transition-shadow',
+    eventBadge: 'font-df-mono text-dicefest-green text-xs uppercase tracking-[0.2em]',
+    eventTitle: 'font-df-display text-2xl text-dicefest-paper uppercase',
+    eventInfo: 'text-dicefest-paper/70 text-sm font-df-body',
   },
 }
 
@@ -139,7 +172,8 @@ export default function Sidebar({ onNavigate, upcomingEvent }) {
   const [resolvedUpcomingEvent, setResolvedUpcomingEvent] = useState(upcomingEvent)
   const location = useLocation()
   const isComicRoute = location.pathname === '/comicon-2026'
-  const theme = THEMES[isComicRoute ? 'comic' : 'editorial']
+  const isDiceFestRoute = location.pathname.startsWith('/dice-fest')
+  const theme = THEMES[isComicRoute ? 'comic' : isDiceFestRoute ? 'dicefest' : 'editorial']
   const { user: authUser, isConfigured, isPasswordRecovery, logout } = useAuth()
   // While a password-recovery session is active, treat the user as logged out:
   // the session was granted by the emailed link, not by entering credentials,
@@ -277,23 +311,23 @@ export default function Sidebar({ onNavigate, upcomingEvent }) {
                     <div className="flex items-center gap-2">
                       {user.avatarUrl && <img src={user.avatarUrl} alt="" className="w-8 h-8 rounded-full" />}
                       <div className="min-w-0 flex-1">
-                        <p className="font-body text-sm text-editorial-text flex-1 truncate font-semibold">{user.name || user.email}</p>
+                        <p className={`font-body text-sm flex-1 truncate font-semibold ${theme.userText}`}>{user.name || user.email}</p>
                       </div>
-                      <button onClick={logout} className={`px-3 py-1.5 text-xs font-semibold rounded transition-colors ${theme.logoutButton}`}>
+                      <button onClick={logout} className={`px-3 py-1.5 text-xs font-semibold transition-colors ${theme.logoutButton}`}>
                         Logout
                       </button>
                     </div>
                     <div className="space-y-2">
-                      <Link href="/account" onClick={() => setIsOpen(false)} className={`block rounded-lg px-4 py-2.5 text-center font-body text-sm font-semibold ${theme.accountLink}`}>
+                      <Link href="/account" onClick={() => setIsOpen(false)} className={`block px-4 py-2.5 text-center font-body text-sm font-semibold ${theme.accountLink}`}>
                         Area utente
                       </Link>
                       {isResponsabile && (
-                        <Link href="/responsabile" onClick={() => setIsOpen(false)} className={`block rounded-lg px-4 py-2.5 text-center font-body text-sm font-semibold ${theme.responsabileLink}`}>
+                        <Link href="/responsabile" onClick={() => setIsOpen(false)} className={`block px-4 py-2.5 text-center font-body text-sm font-semibold ${theme.responsabileLink}`}>
                           Area responsabile
                         </Link>
                       )}
                       {isAdmin && (
-                        <Link href="/admin" onClick={() => setIsOpen(false)} className={`block rounded-lg px-4 py-2.5 text-center font-body text-sm font-semibold ${theme.adminLink}`}>
+                        <Link href="/admin" onClick={() => setIsOpen(false)} className={`block px-4 py-2.5 text-center font-body text-sm font-semibold ${theme.adminLink}`}>
                           Area admin
                         </Link>
                       )}
@@ -364,22 +398,22 @@ export default function Sidebar({ onNavigate, upcomingEvent }) {
               <div className="space-y-3">
                 <div className="flex items-center gap-2">
                   {user.avatarUrl && <img src={user.avatarUrl} alt="" className="w-8 h-8 rounded-full" />}
-                  <span className="font-body text-sm text-editorial-text flex-1 truncate">{user.name || user.email}</span>
-                  <button onClick={logout} className="px-3 py-1.5 bg-editorial-terra/10 text-editorial-terra text-xs font-semibold rounded hover:bg-editorial-terra/20 transition-colors">
+                  <span className={`font-body text-sm flex-1 truncate ${theme.userText}`}>{user.name || user.email}</span>
+                  <button onClick={logout} className={`px-3 py-1.5 text-xs font-semibold transition-colors ${theme.logoutButton}`}>
                     Logout
                   </button>
                 </div>
                 <div className="space-y-2">
-                  <Link href="/account" className="block rounded-lg bg-editorial-terra px-4 py-2.5 text-center font-body text-sm font-semibold text-white">
+                  <Link href="/account" className={`block px-4 py-2.5 text-center font-body text-sm font-semibold ${theme.accountLink}`}>
                     Area utente
                   </Link>
                   {isResponsabile && (
-                    <Link href="/responsabile" className="block rounded-lg bg-editorial-gold px-4 py-2.5 text-center font-body text-sm font-semibold text-editorial-text">
+                    <Link href="/responsabile" className={`block px-4 py-2.5 text-center font-body text-sm font-semibold ${theme.responsabileLink}`}>
                       Area responsabile
                     </Link>
                   )}
                   {isAdmin && (
-                    <Link href="/admin" className="block rounded-lg bg-editorial-forest px-4 py-2.5 text-center font-body text-sm font-semibold text-white">
+                    <Link href="/admin" className={`block px-4 py-2.5 text-center font-body text-sm font-semibold ${theme.adminLink}`}>
                       Area admin
                     </Link>
                   )}
@@ -398,7 +432,7 @@ export default function Sidebar({ onNavigate, upcomingEvent }) {
             <div className="flex items-center gap-2 mb-2">
               <span className={theme.eventBadge}>Prossimo evento</span>
             </div>
-            <div className={`p-3 rounded-lg ${theme.eventWrapper}`}>
+            <div className={`p-3 ${theme.eventWrapper}`}>
               <span className={`block ${theme.eventTitle} mb-1`}>{resolvedUpcomingEvent?.name || 'Nessun evento futuro'}</span>
               <div className={`flex items-center gap-2 ${theme.eventInfo}`}>
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -413,7 +447,7 @@ export default function Sidebar({ onNavigate, upcomingEvent }) {
                 <span>{resolvedUpcomingEvent?.location || 'Location da definire'}</span>
               </div>
               {upcomingEventHref && (
-                <button onClick={() => handleNavigation(upcomingEventHref)} className="mt-4 font-body text-sm font-semibold text-editorial-terra underline underline-offset-4">
+                <button onClick={() => handleNavigation(upcomingEventHref)} className={`mt-4 font-body text-sm font-semibold underline underline-offset-4 ${theme.eventLink}`}>
                   Vai all&apos;evento
                 </button>
               )}

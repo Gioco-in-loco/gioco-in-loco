@@ -64,7 +64,7 @@ export default function DiceFestBookingPage({ event }) {
       }
       try {
         const response = await fetch(`${DICE_FEST_BOOKING_CONFIG.apiBasePath}/cart`, { cache: 'no-store', credentials: 'same-origin' })
-        if (!response.ok) throw new Error('Impossibile caricare il registro.')
+        if (!response.ok) throw new Error('Impossibile caricare le prenotazioni.')
         const payload = await response.json()
         if (isActive) setCartState({ loading: false, ...payload })
       } catch {
@@ -369,33 +369,33 @@ export default function DiceFestBookingPage({ event }) {
   const pendingOrderCount = cartItemsCount + mainCartItemsCount + (hasPendingPass ? 1 : 0)
 
   return (
-    <div className="parchment-bg pb-24">
+    <div className="dicefest-bg pb-24">
       <div className="mx-auto max-w-7xl px-5 py-10 md:px-8 lg:px-10">
         {/* HEADER */}
-        <header className="parchment-reveal">
-          <p className="fantasy-eyebrow">Il registro delle missioni</p>
-          <h1 className="mt-3 font-elegant text-4xl font-bold text-editorial-text sm:text-5xl">
+        <header className="fade-stagger">
+          <p className="dicefest-eyebrow">Prenotazioni</p>
+          <h1 className="mt-3 font-df-display text-4xl uppercase text-dicefest-paper sm:text-5xl">
             La mappa dei tavoli
           </h1>
-          <p className="mt-3 max-w-2xl font-body text-[15px] leading-relaxed text-editorial-text-secondary">
+          <p className="mt-3 max-w-2xl font-df-body text-[15px] leading-relaxed text-dicefest-paper/75">
             {hasMainEvents ? (
               <>
-                Ecco la sala: <strong className="text-editorial-text">one-shot</strong> dei nostri master e <strong className="text-editorial-text">Main Event</strong>, tavolo per tavolo.
-                <br /> Tocca un tavolo per i dettagli e sigilla la scelta quando sei pronto.
+                Ecco la sala: <strong className="text-dicefest-paper">one-shot</strong> dei nostri master e <strong className="text-dicefest-paper">Main Event</strong>, tavolo per tavolo.
+                <br /> Tocca un tavolo per i dettagli e conferma la scelta quando sei pronto.
               </>
             ) : (
-              <>Ecco la sala: scegli il tuo tavolo tra le <strong className="text-editorial-text">one-shot</strong> dei nostri master e sigilla la scelta quando sei pronto.</>
+              <>Ecco la sala: scegli il tuo tavolo tra le <strong className="text-dicefest-paper">one-shot</strong> dei nostri master e conferma la scelta quando sei pronto.</>
             )}
           </p>
         </header>
 
         {requestError ? (
-          <p className="mt-5 rounded-xl border border-red-200 bg-red-50/80 px-4 py-3 font-body text-sm text-red-700">{requestError}</p>
+          <p className="mt-5 border border-red-500/40 bg-red-500/10 px-4 py-3 font-df-body text-sm text-red-300">{requestError}</p>
         ) : null}
 
         {cartState.loading && user ? (
-          <p className="mt-5 inline-flex items-center gap-2 rounded-xl border border-editorial-gold/40 bg-editorial-gold/10 px-4 py-2.5 font-body text-sm text-editorial-text">
-            <span className="inline-block h-2.5 w-2.5 animate-pulse rounded-full bg-editorial-gold" aria-hidden="true" />
+          <p className="mt-5 inline-flex items-center gap-2 border border-dicefest-green/40 bg-dicefest-green/10 px-4 py-2.5 font-df-body text-sm text-dicefest-paper">
+            <span className="inline-block h-2.5 w-2.5 animate-pulse bg-dicefest-green" aria-hidden="true" />
             Carico le tue prenotazioni…
           </p>
         ) : null}
@@ -436,9 +436,9 @@ export default function DiceFestBookingPage({ event }) {
               {allEntries.length === 0 ? (
                 <ParchmentCard>
                   <div className="px-7 py-10 text-center">
-                    <h2 className="font-elegant text-xl font-bold text-editorial-text">Il programma è ancora un mistero</h2>
-                    <p className="mx-auto mt-2 max-w-md font-body text-sm leading-relaxed text-editorial-text-secondary">
-                      I master stanno ancora forgiando le loro avventure. Tornate presto, viandanti.
+                    <h2 className="font-df-display text-xl uppercase text-dicefest-paper">Il programma è ancora un mistero</h2>
+                    <p className="mx-auto mt-2 max-w-md font-df-body text-sm leading-relaxed text-dicefest-paper/75">
+                      I master stanno ancora preparando le loro avventure. Tornate presto.
                     </p>
                   </div>
                 </ParchmentCard>
@@ -499,11 +499,11 @@ export default function DiceFestBookingPage({ event }) {
           <button
             type="button"
             onClick={() => setShowSummary(true)}
-            className="flex items-center gap-3 rounded-full bg-editorial-text px-5 py-3 font-body text-sm font-semibold text-editorial-bg shadow-2xl transition-transform hover:-translate-y-0.5"
+            className="flex items-center gap-3 border-2 border-dicefest-ink bg-dicefest-pink px-5 py-3 font-df-mono text-sm font-bold uppercase tracking-wide text-dicefest-ink shadow-df-hard transition-transform hover:-translate-y-0.5"
           >
-            <span className="fantasy-badge fantasy-badge--gold">{pendingOrderCount}</span>
+            <span className="dicefest-badge dicefest-badge--neutral">{pendingOrderCount}</span>
             <span>Riepilogo prenotazioni</span>
-            {timeRemaining ? <span className="font-elegant text-editorial-gold">{timeRemaining}</span> : null}
+            {timeRemaining ? <span className="font-df-display text-dicefest-ink">{timeRemaining}</span> : null}
           </button>
         </div>
       ) : null}
@@ -592,29 +592,29 @@ function BookingFiltersPanel({ title, description, fields, filters, visibleCount
       <div className="px-5 py-5 sm:px-6">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <p className="fantasy-eyebrow">{title}</p>
-            <p className="mt-2 font-body text-sm leading-relaxed text-editorial-text-secondary">{description}</p>
+            <p className="dicefest-eyebrow">{title}</p>
+            <p className="mt-2 font-df-body text-sm leading-relaxed text-dicefest-paper/75">{description}</p>
           </div>
           <div className="flex items-center gap-3">
             {toggle ? (
-              <label className="flex items-center gap-2 font-body text-xs font-semibold text-editorial-text">
+              <label className="flex items-center gap-2 font-df-body text-xs font-semibold text-dicefest-paper">
                 <input
                   type="checkbox"
                   checked={toggle.checked}
                   onChange={(event) => toggle.onChange(event.target.checked)}
-                  className="h-4 w-4 rounded border-editorial-border text-editorial-terra focus:ring-editorial-terra/30"
+                  className="h-4 w-4 border-dicefest-border text-dicefest-pink focus:ring-dicefest-pink/30"
                 />
                 {toggle.label}
               </label>
             ) : null}
-            <p className="font-body text-[11px] font-semibold uppercase tracking-[0.18em] text-editorial-text-muted">
+            <p className="font-df-mono text-[11px] font-semibold uppercase tracking-[0.18em] text-dicefest-paper/50">
               {visibleCount} {pluralize(visibleCount, 'tavolo in evidenza', 'tavoli in evidenza')}
             </p>
             <button
               type="button"
               onClick={onReset}
               disabled={!hasActiveFilters}
-              className="rounded-full border border-editorial-border px-3 py-1.5 font-body text-xs font-semibold text-editorial-text transition-colors hover:border-editorial-terra disabled:cursor-not-allowed disabled:opacity-50"
+              className="border border-dicefest-border px-3 py-1.5 font-df-mono text-xs font-semibold uppercase text-dicefest-paper transition-colors hover:border-dicefest-pink disabled:cursor-not-allowed disabled:opacity-50"
             >
               Reset filtri
             </button>
@@ -624,13 +624,13 @@ function BookingFiltersPanel({ title, description, fields, filters, visibleCount
         <div className="mt-4 grid gap-3 md:grid-cols-3">
           {fields.map((field) => (
             <label key={field.key} className="block">
-              <span className="mb-1 block font-body text-[11px] font-semibold uppercase tracking-[0.16em] text-editorial-text-muted">
+              <span className="mb-1 block font-df-mono text-[11px] font-semibold uppercase tracking-[0.16em] text-dicefest-paper/50">
                 {field.label}
               </span>
               <select
                 value={filters[field.key] || ''}
                 onChange={(event) => onChange(field.key, event.target.value)}
-                className="w-full rounded-xl border border-editorial-border bg-white/80 px-3 py-2.5 font-body text-sm text-editorial-text outline-none transition-all focus:border-editorial-terra focus:ring-2 focus:ring-editorial-terra/10"
+                className="dicefest-input"
               >
                 <option value="">{field.placeholder}</option>
                 {field.options.map((option) => (
@@ -686,11 +686,11 @@ function WaitlistBanner({ fullyBookedDays, waitlistDays, pendingWaitlistDay, onJ
           <ParchmentCard key={day}>
             <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4 sm:px-6">
               <div>
-                <p className="fantasy-eyebrow">Tutto esaurito</p>
-                <p className="mt-1 font-elegant text-base font-bold text-editorial-text">
+                <p className="dicefest-eyebrow">Tutto esaurito</p>
+                <p className="mt-1 font-df-display text-base uppercase text-dicefest-paper">
                   Le one-shot di {day} sono al completo
                 </p>
-                <p className="mt-1 font-body text-xs text-editorial-text-secondary">
+                <p className="mt-1 font-df-body text-xs text-dicefest-paper/75">
                   Iscriviti alla lista d&apos;attesa: ti avviseremo via email appena si libera un posto.
                 </p>
               </div>
@@ -698,7 +698,7 @@ function WaitlistBanner({ fullyBookedDays, waitlistDays, pendingWaitlistDay, onJ
                 type="button"
                 onClick={() => (isWaitlisted ? onLeaveWaitlist(day) : onJoinWaitlist(day))}
                 disabled={isPending}
-                className={isWaitlisted ? 'btn-ghost-fantasy' : 'btn-wax'}
+                className={isWaitlisted ? 'dicefest-btn-secondary' : 'dicefest-btn-primary'}
               >
                 {isPending
                   ? 'Attendere…'
@@ -788,30 +788,37 @@ function OneShotMapCell({ session, cartState, pendingSlotId, busy, onAdd, onRemo
     }
   }
 
-  const cardVariant = state.variant === 'in-cart' ? 'slot-card--in-cart'
-    : state.variant === 'confirmed' ? 'slot-card--confirmed'
-      : state.variant === 'full' ? 'slot-card--full' : ''
+  const cardVariant = state.variant === 'in-cart' ? 'dicefest-slot-card--in-cart'
+    : state.variant === 'confirmed' ? 'dicefest-slot-card--confirmed'
+      : state.variant === 'full' ? 'dicefest-slot-card--full' : ''
 
   return (
-    <div className={`slot-card ${cardVariant} flex h-full flex-col gap-2`}>
-      <button
-        type="button"
-        onClick={onOpenDetails}
-        className="flex flex-1 flex-col items-start gap-1 text-left"
-        aria-label={`Dettagli: ${oneshot.title}`}
-      >
-        <span className="fantasy-badge fantasy-badge--terra"><SwordsIcon />{oneshot.game || 'GDR'}</span>
-        <p className="font-elegant text-[13px] font-bold leading-tight text-editorial-text line-clamp-2">{oneshot.title}</p>
-        <p className="font-body text-[11px] text-editorial-text-muted line-clamp-1">{oneshot.master}</p>
-        {state.fewLeft && !state.confirmed && !state.inCart ? <span className="fantasy-badge fantasy-badge--terra">Ultimi</span> : null}
-      </button>
+    <div
+      className={`dicefest-slot-card ${cardVariant} flex h-full flex-col gap-1.5 cursor-pointer`}
+      onClick={onOpenDetails}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault()
+          onOpenDetails()
+        }
+      }}
+      aria-label={`Dettagli: ${oneshot.title}`}
+    >
+      <div className="flex flex-1 flex-col items-start gap-0.5 text-left">
+        <span className="dicefest-badge dicefest-badge--pink"><SwordsIcon />{oneshot.game || 'GDR'}</span>
+        <p className="font-df-display text-[12px] leading-tight text-dicefest-paper line-clamp-2">{oneshot.title}</p>
+        <p className="font-df-body text-[10px] text-dicefest-paper/50 line-clamp-1">{oneshot.master}</p>
+        {state.fewLeft && !state.confirmed && !state.inCart ? <span className="dicefest-badge dicefest-badge--pink">Ultimi</span> : null}
+      </div>
       <div className="flex items-center justify-between gap-2">
-        <span className="font-body text-[10px] uppercase tracking-wide text-editorial-text-muted">{state.remaining}/{slot.maxPlayers}</span>
+        <span className="font-df-mono text-[10px] uppercase tracking-wide text-dicefest-paper/50">{state.remaining}/{slot.maxPlayers}</span>
         <button
           type="button"
           onClick={handleAction}
           disabled={state.disabled}
-          className={state.actionKind === 'add' ? 'btn-slot-wax' : 'btn-slot-ghost'}
+          className={state.actionKind === 'add' ? 'dicefest-btn-slot-primary' : 'dicefest-btn-slot-ghost'}
         >
           {state.label}
         </button>
@@ -895,33 +902,40 @@ function MainEventMapCell({ session, sessionKey, reservation, inCart, hasReserve
     }
   }
 
-  const cardVariant = state.variant === 'confirmed' ? 'slot-card--confirmed'
-    : state.variant === 'in-cart' ? 'slot-card--in-cart'
-      : state.variant === 'full' ? 'slot-card--full' : ''
+  const cardVariant = state.variant === 'confirmed' ? 'dicefest-slot-card--confirmed'
+    : state.variant === 'in-cart' ? 'dicefest-slot-card--in-cart'
+      : state.variant === 'full' ? 'dicefest-slot-card--full' : ''
 
   return (
-    <div className={`slot-card ${cardVariant} flex h-full flex-col gap-2`}>
-      <button
-        type="button"
-        onClick={onOpenDetails}
-        className="flex flex-1 flex-col items-start gap-1 text-left"
-        aria-label={`Dettagli: ${mainEvent.title}`}
-      >
-        <span className="fantasy-badge fantasy-badge--forest"><CrownIcon />Main Event</span>
-        <p className="font-elegant text-[13px] font-bold leading-tight text-editorial-text line-clamp-2">{mainEvent.title}</p>
-        {mainEvent.game ? <p className="font-body text-[11px] text-editorial-text-muted line-clamp-1">{mainEvent.game}</p> : null}
-        {state.fewLeft && !reservation && !inCart ? <span className="fantasy-badge fantasy-badge--terra">Ultimi</span> : null}
+    <div
+      className={`dicefest-slot-card ${cardVariant} flex h-full flex-col gap-1.5 cursor-pointer`}
+      onClick={onOpenDetails}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault()
+          onOpenDetails()
+        }
+      }}
+      aria-label={`Dettagli: ${mainEvent.title}`}
+    >
+      <div className="flex flex-1 flex-col items-start gap-0.5 text-left">
+        <span className="dicefest-badge dicefest-badge--green"><CrownIcon />Main Event</span>
+        <p className="font-df-display text-[12px] leading-tight text-dicefest-paper line-clamp-2">{mainEvent.title}</p>
+        {mainEvent.game ? <p className="font-df-body text-[10px] text-dicefest-paper/50 line-clamp-1">{mainEvent.game}</p> : null}
+        {state.fewLeft && !reservation && !inCart ? <span className="dicefest-badge dicefest-badge--pink">Ultimi</span> : null}
         {!reservation && hasOneshotConflict ? (
-          <span className="fantasy-badge fantasy-badge--gold" title="Hai una one-shot in questa fascia">Conflitto</span>
+          <span className="dicefest-badge dicefest-badge--pink" title="Hai una one-shot in questa fascia">Conflitto</span>
         ) : null}
-      </button>
+      </div>
       <div className="flex items-center justify-between gap-2">
-        <span className="font-body text-[10px] uppercase tracking-wide text-editorial-text-muted">{state.remaining}/{slot.maxPlayers}</span>
+        <span className="font-df-mono text-[10px] uppercase tracking-wide text-dicefest-paper/50">{state.remaining}/{slot.maxPlayers}</span>
         <button
           type="button"
           onClick={handleAction}
           disabled={state.disabled}
-          className={state.actionKind === 'add' ? 'btn-slot-wax' : 'btn-slot-ghost'}
+          className={state.actionKind === 'add' ? 'dicefest-btn-slot-primary' : 'dicefest-btn-slot-ghost'}
         >
           {state.label}
         </button>
@@ -975,18 +989,18 @@ function ModalShell({ children, onClose }) {
 
   return (
     <div
-      className="fantasy-modal-backdrop"
+      className="dicefest-modal-backdrop"
       role="dialog"
       aria-modal="true"
       onClick={onClose}
     >
-      <div className="fantasy-modal" ref={modalRef} onClick={(e) => e.stopPropagation()}>
-        <button ref={closeButtonRef} type="button" onClick={onClose} className="fantasy-modal__close" aria-label="Chiudi">
+      <div className="dicefest-modal" ref={modalRef} onClick={(e) => e.stopPropagation()}>
+        <button ref={closeButtonRef} type="button" onClick={onClose} className="dicefest-modal__close" aria-label="Chiudi">
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
             <path d="M2 2 L12 12 M12 2 L2 12" />
           </svg>
         </button>
-        <div className="parchment-surface">
+        <div className="dicefest-surface">
           {children}
         </div>
       </div>
@@ -1009,7 +1023,7 @@ function OneShotDetailsModal({ session, cartState, pendingSlotId, busy, onAdd, o
     }
   }
 
-  const actionClass = state.actionKind === 'add' && !state.disabled ? 'btn-wax w-full' : 'btn-ghost-fantasy w-full'
+  const actionClass = state.actionKind === 'add' && !state.disabled ? 'dicefest-btn-primary w-full' : 'dicefest-btn-secondary w-full'
 
   return (
     <ModalShell onClose={onClose}>
@@ -1018,38 +1032,38 @@ function OneShotDetailsModal({ session, cartState, pendingSlotId, busy, onAdd, o
           <img
             src={oneshot.image}
             alt=""
-            className="mb-5 h-40 w-full rounded-xl border border-editorial-border object-cover sm:h-48"
+            className="mb-5 h-40 w-full border border-dicefest-border object-cover sm:h-48"
           />
         ) : null}
-        <p className="fantasy-eyebrow">{slot.day} · {slot.slot} · {slot.table}</p>
-        <h2 className="mt-3 font-elegant text-2xl font-bold leading-tight text-editorial-text sm:text-3xl">{oneshot.title}</h2>
+        <p className="dicefest-eyebrow">{slot.day} · {slot.slot} · {slot.table}</p>
+        <h2 className="mt-3 font-df-display text-2xl uppercase leading-tight text-dicefest-paper sm:text-3xl">{oneshot.title}</h2>
 
         <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1">
-          <span className="fantasy-badge fantasy-badge--terra">{oneshot.game || 'Sistema GDR'}</span>
+          <span className="dicefest-badge dicefest-badge--pink">{oneshot.game || 'Sistema GDR'}</span>
           {oneshot.association?.name ? (
-            <span className="font-body text-xs text-editorial-text-muted">{oneshot.association.name}</span>
+            <span className="font-df-body text-xs text-dicefest-paper/50">{oneshot.association.name}</span>
           ) : null}
         </div>
 
-        <p className="mt-3 font-body text-sm text-editorial-text-secondary">
-          Master · <span className="font-bold text-editorial-text">{oneshot.master}</span>
+        <p className="mt-3 font-df-body text-sm text-dicefest-paper/75">
+          Master · <span className="font-bold text-dicefest-paper">{oneshot.master}</span>
         </p>
 
         {oneshot.description ? (
-          <p className="passage mt-5 text-[14px] leading-[1.7]">{oneshot.description}</p>
+          <p className="dicefest-passage mt-5 text-[14px] leading-[1.7]">{oneshot.description}</p>
         ) : (
-          <p className="mt-5 font-body text-sm italic text-editorial-text-muted">Nessuna descrizione disponibile.</p>
+          <p className="mt-5 font-df-body text-sm italic text-dicefest-paper/50">Nessuna descrizione disponibile.</p>
         )}
 
-        <div className="mt-6 grid grid-cols-2 gap-3 border-t border-dashed border-editorial-border pt-5">
+        <div className="mt-6 grid grid-cols-2 gap-3 border-t border-dashed border-dicefest-border pt-5">
           <div>
-            <p className="font-body text-[10px] font-bold uppercase tracking-[0.22em] text-editorial-text-muted">Posti</p>
-            <p className="mt-1 font-elegant text-lg font-bold text-editorial-text">{state.remaining}/{slot.maxPlayers}</p>
+            <p className="font-df-mono text-[10px] font-bold uppercase tracking-[0.22em] text-dicefest-paper/50">Posti</p>
+            <p className="mt-1 font-df-display text-lg text-dicefest-paper">{state.remaining}/{slot.maxPlayers}</p>
           </div>
           {typeof oneshot.price === 'number' && oneshot.price > 0 ? (
             <div>
-              <p className="font-body text-[10px] font-bold uppercase tracking-[0.22em] text-editorial-text-muted">Per tavolo</p>
-              <p className="mt-1 font-elegant text-lg font-bold text-editorial-terra">{formatCartPrice(oneshot.price, { hideWhenMissing: true })}</p>
+              <p className="font-df-mono text-[10px] font-bold uppercase tracking-[0.22em] text-dicefest-paper/50">Per tavolo</p>
+              <p className="mt-1 font-df-display text-lg text-dicefest-pink">{formatCartPrice(oneshot.price, { hideWhenMissing: true })}</p>
             </div>
           ) : null}
         </div>
@@ -1084,7 +1098,7 @@ function MainEventDetailsModal({ session, sessionKey, reservation, inCart, hasRe
     }
   }
 
-  const actionClass = state.actionKind === 'add' && !state.disabled ? 'btn-wax w-full' : 'btn-ghost-fantasy w-full'
+  const actionClass = state.actionKind === 'add' && !state.disabled ? 'dicefest-btn-primary w-full' : 'dicefest-btn-secondary w-full'
 
   return (
     <ModalShell onClose={onClose}>
@@ -1093,44 +1107,44 @@ function MainEventDetailsModal({ session, sessionKey, reservation, inCart, hasRe
           <img
             src={mainEvent.image}
             alt=""
-            className="mb-5 h-40 w-full rounded-xl border border-editorial-border object-cover sm:h-48"
+            className="mb-5 h-40 w-full border border-dicefest-border object-cover sm:h-48"
           />
         ) : null}
-        <p className="fantasy-eyebrow">{slot.day} · {slot.slot}</p>
-        <h2 className="mt-3 font-elegant text-2xl font-bold leading-tight text-editorial-text sm:text-3xl">{mainEvent.title}</h2>
+        <p className="dicefest-eyebrow">{slot.day} · {slot.slot}</p>
+        <h2 className="mt-3 font-df-display text-2xl uppercase leading-tight text-dicefest-paper sm:text-3xl">{mainEvent.title}</h2>
 
         <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1">
-          <span className="fantasy-badge fantasy-badge--forest">Main Event</span>
-          {mainEvent.game ? <span className="font-body text-xs text-editorial-text-muted">{mainEvent.game}</span> : null}
+          <span className="dicefest-badge dicefest-badge--green">Main Event</span>
+          {mainEvent.game ? <span className="font-df-body text-xs text-dicefest-paper/50">{mainEvent.game}</span> : null}
         </div>
 
         {mainEvent.description ? (
-          <p className="passage mt-5 text-[14px] leading-[1.7]">{mainEvent.description}</p>
+          <p className="dicefest-passage mt-5 text-[14px] leading-[1.7]">{mainEvent.description}</p>
         ) : (
-          <p className="mt-5 font-body text-sm italic text-editorial-text-muted">Nessuna descrizione disponibile.</p>
+          <p className="mt-5 font-df-body text-sm italic text-dicefest-paper/50">Nessuna descrizione disponibile.</p>
         )}
 
         {hasOneshotConflict && !reservation ? (
-          <p className="mt-4 rounded-lg border border-editorial-gold/40 bg-editorial-gold/10 px-3 py-2 font-body text-xs leading-relaxed text-editorial-text">
+          <p className="mt-4 border border-dicefest-pink/40 bg-dicefest-pink/10 px-3 py-2 font-df-body text-xs leading-relaxed text-dicefest-paper">
             Attenzione: hai una one-shot nello stesso giorno e fascia oraria.
           </p>
         ) : null}
 
         {!reservation ? (
-          <p className="mt-4 rounded-lg border border-editorial-forest/20 bg-editorial-forest/5 px-3 py-2 font-body text-xs leading-relaxed text-editorial-text">
+          <p className="mt-4 border border-dicefest-green/30 bg-dicefest-green/5 px-3 py-2 font-df-body text-xs leading-relaxed text-dicefest-paper">
             Questo tavolo entra nello stesso ordine del DICE FEST e si conferma insieme alle eventuali one-shot nello stesso checkout finale.
           </p>
         ) : null}
 
-        <div className="mt-6 grid grid-cols-2 gap-3 border-t border-dashed border-editorial-border pt-5">
+        <div className="mt-6 grid grid-cols-2 gap-3 border-t border-dashed border-dicefest-border pt-5">
           <div>
-            <p className="font-body text-[10px] font-bold uppercase tracking-[0.22em] text-editorial-text-muted">Posti</p>
-            <p className="mt-1 font-elegant text-lg font-bold text-editorial-text">{state.remaining}/{slot.maxPlayers}</p>
+            <p className="font-df-mono text-[10px] font-bold uppercase tracking-[0.22em] text-dicefest-paper/50">Posti</p>
+            <p className="mt-1 font-df-display text-lg text-dicefest-paper">{state.remaining}/{slot.maxPlayers}</p>
           </div>
           {typeof mainEvent.price === 'number' && mainEvent.price > 0 ? (
             <div>
-              <p className="font-body text-[10px] font-bold uppercase tracking-[0.22em] text-editorial-text-muted">Per tavolo</p>
-              <p className="mt-1 font-elegant text-lg font-bold text-editorial-forest">{formatCartPrice(mainEvent.price, { hideWhenMissing: true })}</p>
+              <p className="font-df-mono text-[10px] font-bold uppercase tracking-[0.22em] text-dicefest-paper/50">Per tavolo</p>
+              <p className="mt-1 font-df-display text-lg text-dicefest-green">{formatCartPrice(mainEvent.price, { hideWhenMissing: true })}</p>
             </div>
           ) : null}
         </div>
@@ -1152,7 +1166,7 @@ function MainEventDetailsModal({ session, sessionKey, reservation, inCart, hasRe
 
 const BookingOrderSummary = memo(function BookingOrderSummary({ cartState, mainCartSlots, timeRemaining, isLoggedIn, bare = false }) {
   const lowTime = timeRemaining && timeRemaining < '01:00'
-  // Inside the popup (ModalShell already provides a parchment surface) we
+  // Inside the popup (ModalShell already provides a dark surface) we
   // render a plain div instead of nesting a second ParchmentCard.
   const Wrapper = bare ? 'div' : ParchmentCard
   const wrapperProps = bare ? {} : { className: 'lg:sticky lg:top-24' }
@@ -1161,11 +1175,11 @@ const BookingOrderSummary = memo(function BookingOrderSummary({ cartState, mainC
     return (
       <Wrapper {...wrapperProps}>
         <div className="px-6 py-6 text-center">
-          <h3 className="font-elegant text-lg font-bold text-editorial-text">Le tue prenotazioni</h3>
-          <p className="mt-2 font-body text-sm leading-relaxed text-editorial-text-secondary">
+          <h3 className="font-df-display text-lg uppercase text-dicefest-paper">Le tue prenotazioni</h3>
+          <p className="mt-2 font-df-body text-sm leading-relaxed text-dicefest-paper/75">
             Accedi per prenotare il tuo posto al tavolo.
           </p>
-          <Link href="/auth/login?next=/dice-fest/prenotazioni" className="btn-wax mt-5 w-full">
+          <Link href="/auth/login?next=/dice-fest/prenotazioni" className="dicefest-btn-primary mt-5 w-full">
             Accedi
           </Link>
         </div>
@@ -1178,7 +1192,7 @@ const BookingOrderSummary = memo(function BookingOrderSummary({ cartState, mainC
     ...cartAdmissions.map((admission) => ({
       key: `pass-${admission.day || 'evento'}`,
       badge: 'Pass',
-      badgeClass: 'fantasy-badge fantasy-badge--gold',
+      badgeClass: 'dicefest-badge dicefest-badge--pink',
       title: 'Pass giornaliero DICE FEST',
       subtitle: admission.day || 'Ingresso completo evento',
       price: admission.price ?? 0,
@@ -1186,7 +1200,7 @@ const BookingOrderSummary = memo(function BookingOrderSummary({ cartState, mainC
     ...mainCartSlots.map((slot) => ({
       key: `main-${slot.mainEventId}-${slot.day}-${slot.slot}`,
       badge: 'Main Event',
-      badgeClass: 'fantasy-badge fantasy-badge--forest',
+      badgeClass: 'dicefest-badge dicefest-badge--green',
       title: slot.mainEventTitle,
       subtitle: `${slot.day} · ${slot.slot}`,
       price: slot.price ?? 0,
@@ -1194,7 +1208,7 @@ const BookingOrderSummary = memo(function BookingOrderSummary({ cartState, mainC
     ...cartState.cartSlots.map((slot) => ({
       key: `oneshot-${slot.id}`,
       badge: 'One-shot',
-      badgeClass: 'fantasy-badge fantasy-badge--gold',
+      badgeClass: 'dicefest-badge dicefest-badge--pink',
       title: slot.oneshotTitle,
       subtitle: `${slot.day} · ${slot.slot}`,
       price: slot.price ?? 0,
@@ -1208,45 +1222,45 @@ const BookingOrderSummary = memo(function BookingOrderSummary({ cartState, mainC
     <Wrapper {...wrapperProps}>
       <div className="px-6 py-6">
         <div className="flex items-center justify-between gap-3">
-          <h3 className="font-elegant text-lg font-bold text-editorial-text">Le tue prenotazioni</h3>
+          <h3 className="font-df-display text-lg uppercase text-dicefest-paper">Le tue prenotazioni</h3>
           {timeRemaining ? (
-            <span className={`font-elegant text-base font-bold ${lowTime ? 'text-editorial-terra clock-pulse' : 'text-editorial-gold'}`}>
+            <span className={`font-df-display text-base ${lowTime ? 'text-dicefest-pink' : 'text-dicefest-green'}`}>
               {timeRemaining}
             </span>
           ) : null}
         </div>
 
         {!hasPendingItems ? (
-          <p className="mt-4 font-body text-sm leading-relaxed text-editorial-text-secondary">
+          <p className="mt-4 font-df-body text-sm leading-relaxed text-dicefest-paper/75">
             Nessuna prenotazione aggiunta.
           </p>
         ) : (
           <ul className="mt-4 space-y-3">
             {entries.map((entry) => (
-              <li key={entry.key} className="rounded-lg border border-editorial-border bg-white/60 px-3 py-2">
+              <li key={entry.key} className="border border-dicefest-border bg-dicefest-surface-2 px-3 py-2">
                 <div className="flex items-start justify-between gap-3">
                   <span className={entry.badgeClass}>{entry.badge}</span>
-                  <p className="shrink-0 font-body text-xs font-semibold text-editorial-terra">{formatCartPrice(entry.price, { hideWhenMissing: true })}</p>
+                  <p className="shrink-0 font-df-body text-xs font-semibold text-dicefest-pink">{formatCartPrice(entry.price, { hideWhenMissing: true })}</p>
                 </div>
-                <p className="mt-2 font-elegant text-sm font-bold text-editorial-text line-clamp-1">{entry.title}</p>
-                <p className="mt-0.5 font-body text-xs text-editorial-text-secondary">{entry.subtitle}</p>
+                <p className="mt-2 font-df-display text-sm text-dicefest-paper line-clamp-1">{entry.title}</p>
+                <p className="mt-0.5 font-df-body text-xs text-dicefest-paper/75">{entry.subtitle}</p>
               </li>
             ))}
           </ul>
         )}
 
         {hasPendingItems ? (
-          <div className="mt-5 flex items-center justify-between border-t border-dashed border-editorial-border pt-4">
-            <span className="font-body text-xs uppercase tracking-[0.18em] text-editorial-text-muted">Totale</span>
-            <span className="font-elegant text-2xl font-bold text-editorial-gold">{formatCartPrice(grandTotal)}</span>
+          <div className="mt-5 flex items-center justify-between border-t border-dashed border-dicefest-border pt-4">
+            <span className="font-df-mono text-xs uppercase tracking-[0.18em] text-dicefest-paper/50">Totale</span>
+            <span className="font-df-display text-2xl text-dicefest-green">{formatCartPrice(grandTotal)}</span>
           </div>
         ) : null}
 
-        <Link href="/dice-fest/carrello" className="btn-wax mt-5 w-full">
+        <Link href="/dice-fest/carrello" className="dicefest-btn-primary mt-5 w-full">
           Vai alle Prenotazioni
         </Link>
 
-        <p className="mt-3 text-center font-body text-[11px] leading-relaxed text-editorial-text-muted">
+        <p className="mt-3 text-center font-df-body text-[11px] leading-relaxed text-dicefest-paper/50">
           Le prenotazioni scadono in 10 minuti dall&apos;ultima aggiunta.
         </p>
       </div>

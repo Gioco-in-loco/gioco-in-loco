@@ -409,7 +409,7 @@ export async function handleAddEventCartSlot(request, { eventId, displayName }) 
     const cartState = await getUserEventCartState({ eventId, userId: user.id })
     return NextResponse.json(cartState)
   } catch (cartError) {
-    return NextResponse.json({ error: cartError.message || 'Impossibile aggiornare il registro.' }, { status: 400 })
+    return NextResponse.json({ error: cartError.message || 'Impossibile aggiornare le prenotazioni.' }, { status: 400 })
   }
 }
 
@@ -615,7 +615,7 @@ export async function handleAddEventCartMainEventSlot(request, { eventId, displa
     const cartState = await getUserEventCartState({ eventId, userId: user.id })
     return NextResponse.json(cartState)
   } catch (cartError) {
-    return NextResponse.json({ error: cartError.message || 'Impossibile aggiornare il registro.' }, { status: 400 })
+    return NextResponse.json({ error: cartError.message || 'Impossibile aggiornare le prenotazioni.' }, { status: 400 })
   }
 }
 
@@ -875,7 +875,7 @@ export async function handleConfirmEventCart(eventId) {
       const hasAdmissionHold = holdAdmissions.length > 0
 
       if (holdReservations.length === 0 && holdMainEventReservations.length === 0 && !hasAdmissionHold) {
-        throw new Error('Il registro è vuoto o la prenotazione di 10 minuti è scaduta.')
+        throw new Error('Le prenotazioni sono vuote o il tempo di 10 minuti è scaduto.')
       }
 
       const hasUsableAdmission = admissions.some((admission) => isConfirmedReservationStatus(admission.status) || admission.status === EVENT_CART_HOLD_STATUS)

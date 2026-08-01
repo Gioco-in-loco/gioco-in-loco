@@ -92,7 +92,7 @@ export default function MainEventsBookingPage({ mainEvents }) {
         const payload = await response.json().catch(() => ({}))
 
         if (!response.ok) {
-          throw new Error(payload.error || 'Impossibile caricare il registro dell\'evento principale.')
+          throw new Error(payload.error || 'Impossibile caricare le prenotazioni del Main Event.')
         }
 
         if (isActive) {
