@@ -248,7 +248,7 @@ export default function DiceFestCartPage({ event }) {
               </p>
               <div className="mt-7 flex flex-wrap justify-center gap-3">
                 <Link href="/auth/login?next=/dice-fest/carrello" className="dicefest-btn-primary">Accedi</Link>
-                <Link href="/dice-fest/prenotazioni" className="dicefest-btn-secondary">Conferma ordine</Link>
+                <Link href="/dice-fest/sessioni" className="dicefest-btn-secondary">Conferma ordine</Link>
               </div>
             </div>
           </ParchmentCard>
@@ -331,7 +331,7 @@ export default function DiceFestCartPage({ event }) {
               <p className="mx-auto mt-3 max-w-md font-df-body text-[15px] leading-relaxed text-dicefest-paper/75">
                 Torna alle prenotazioni e scegli a cosa giocare!
               </p>
-              <Link href="/dice-fest/prenotazioni" className="dicefest-btn-primary mt-7">
+              <Link href="/dice-fest/sessioni" className="dicefest-btn-primary mt-7">
                 Vai alle prenotazioni
               </Link>
             </div>

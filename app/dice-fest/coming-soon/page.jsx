@@ -11,7 +11,7 @@ export default function DiceFestComingSoonPage() {
     <div className="dicefest-bg">
       <section className="mx-auto max-w-3xl px-5 py-16 md:px-8">
         <ParchmentCard className="flex flex-col items-center px-7 py-12 text-center sm:px-10 sm:py-16">
-          <WaxSeal size={72} label="DF" />
+          <WaxSeal size={72} imageSrc="/dice-fest/dado.png" />
 
           <p className="dicefest-eyebrow mt-6">Evento speciale</p>
           <h1 className="mt-3 font-df-display text-4xl uppercase text-dicefest-paper sm:text-5xl">

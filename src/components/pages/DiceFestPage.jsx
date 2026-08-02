@@ -108,7 +108,7 @@ export default function DiceFestPage({ event }) {
                 </p>
 
                 <div className="fade-stagger mt-8 flex flex-wrap items-center gap-3" style={{ animationDelay: '0.28s' }}>
-                  <Link href="/dice-fest/prenotazioni" className="dicefest-btn-primary">
+                  <Link href="/dice-fest/sessioni" className="dicefest-btn-primary">
                     Prenota il tuo tavolo
                   </Link>
                   {distinctGames.length > 0 ? (
@@ -175,6 +175,34 @@ export default function DiceFestPage({ event }) {
             </div>
           ) : null}
         </section>
+
+        {event.location ? (
+          <>
+            <SigilDivider className="my-12 sm:my-16" />
+
+            {/* DOVE — embedded map, shown only when a location is configured */}
+            <section>
+              <p className="dicefest-eyebrow">Dove trovarci</p>
+              <h2 className="mt-3 font-df-display text-2xl uppercase text-dicefest-paper sm:text-3xl">
+                {event.location}
+              </h2>
+              <div className="mt-6 overflow-hidden border-2 border-dicefest-border bg-dicefest-surface">
+                <iframe
+                  title={`Mappa: ${event.location}`}
+                  src={`https://maps.google.com/maps?q=${encodeURIComponent(event.location)}&z=15&output=embed`}
+                  className="h-80 w-full grayscale invert-[0.92] contrast-[1.05] sm:h-96"
+                  loading="lazy"
+                  referrerPolicy="no-referrer-when-downgrade"
+                />
+              </div>
+              {event.mapsUrl ? (
+                <a href={event.mapsUrl} target="_blank" rel="noopener noreferrer" className="dicefest-btn-secondary mt-5 inline-flex">
+                  Apri in Google Maps
+                </a>
+              ) : null}
+            </section>
+          </>
+        ) : null}
 
         {distinctGames.length > 0 ? (
           <>
@@ -254,8 +282,8 @@ export default function DiceFestPage({ event }) {
                   </li>
                 ))}
               </ol>
-              <Link href="/dice-fest/prenotazioni" className="dicefest-btn-primary mt-8 w-full">
-                Vai alle prenotazioni
+              <Link href="/dice-fest/sessioni" className="dicefest-btn-primary mt-8 w-full">
+                Vai alle sessioni
               </Link>
             </div>
           </ParchmentCard>
@@ -301,14 +329,14 @@ export default function DiceFestPage({ event }) {
               Scegli il tuo tavolo, scegli la tua storia
             </h2>
             <p className="mx-auto mt-4 max-w-xl font-df-body text-[15px] leading-relaxed text-dicefest-paper/75">
-              Le prenotazioni sono aperte. I posti si assegnano in ordine di arrivo: chi prenota prima, si assicura il tavolo.
+              Le sessioni sono aperte. I posti si assegnano in ordine di arrivo: chi prenota prima, si assicura il tavolo.
             </p>
             <div className="mt-7 flex flex-wrap justify-center gap-3">
-              <Link href="/dice-fest/prenotazioni" className="dicefest-btn-primary">
+              <Link href="/dice-fest/sessioni" className="dicefest-btn-primary">
                 Entra nella sala
               </Link>
               {hasMainEvent ? (
-                <Link href="/dice-fest/prenotazioni" className="dicefest-btn-secondary">
+                <Link href="/dice-fest/sessioni" className="dicefest-btn-secondary">
                   Vedi il Main Event
                 </Link>
               ) : null}

@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation'
 
 const NAV_ITEMS = [
   { href: '/dice-fest', label: 'Homepage', exact: true },
-  { href: '/dice-fest/prenotazioni', label: 'Prenotazioni' },
+  { href: '/dice-fest/sessioni', label: 'Sessioni' },
   { href: '/dice-fest/carrello', label: 'Ordine' },
 ]
 

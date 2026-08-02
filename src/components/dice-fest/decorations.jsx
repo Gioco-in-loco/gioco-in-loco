@@ -40,15 +40,19 @@ export function SigilDivider({ className = '' }) {
   )
 }
 
-export function WaxSeal({ size = 96, label = 'DF', className = '' }) {
+export function WaxSeal({ size = 96, label = 'DF', imageSrc = null, className = '' }) {
   return (
     <div
       className={`dicefest-seal ${className}`}
       style={{ width: size, height: size }}
     >
-      <span className="dicefest-seal__label" style={{ fontSize: size * 0.22 }}>
-        {label}
-      </span>
+      {imageSrc ? (
+        <img src={imageSrc} alt="" className="h-full w-full object-contain p-2" />
+      ) : (
+        <span className="dicefest-seal__label" style={{ fontSize: size * 0.22 }}>
+          {label}
+        </span>
+      )}
     </div>
   )
 }

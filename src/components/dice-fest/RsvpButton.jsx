@@ -147,10 +147,10 @@ export default function RsvpButton({ oneshots }) {
 
   const registerLink = state.hasActiveSessions ? (
     <Link
-      href="/dice-fest/prenotazioni"
+      href="/dice-fest/sessioni"
       className="inline-flex items-center border border-dicefest-border bg-dicefest-surface-2 px-4 py-2.5 font-df-mono text-sm font-bold uppercase tracking-wide text-dicefest-paper transition hover:border-dicefest-green hover:text-dicefest-green"
     >
-      Vai alle tue prenotazioni
+      Vai alle sessioni
     </Link>
   ) : null
 

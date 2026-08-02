@@ -64,7 +64,7 @@ export default function DiceFestBookingPage({ event }) {
       }
       try {
         const response = await fetch(`${DICE_FEST_BOOKING_CONFIG.apiBasePath}/cart`, { cache: 'no-store', credentials: 'same-origin' })
-        if (!response.ok) throw new Error('Impossibile caricare le prenotazioni.')
+        if (!response.ok) throw new Error('Impossibile caricare le sessioni.')
         const payload = await response.json()
         if (isActive) setCartState({ loading: false, ...payload })
       } catch {
@@ -103,7 +103,7 @@ export default function DiceFestBookingPage({ event }) {
 
   const handleAddOneshot = useCallback(async (slot) => {
     if (!user) {
-      window.location.href = '/auth/login?next=/dice-fest/prenotazioni'
+      window.location.href = '/auth/login?next=/dice-fest/sessioni'
       return
     }
     if (inFlightRef.current) return
@@ -158,7 +158,7 @@ export default function DiceFestBookingPage({ event }) {
 
   const handleJoinWaitlist = useCallback(async (day) => {
     if (!user) {
-      window.location.href = '/auth/login?next=/dice-fest/prenotazioni'
+      window.location.href = '/auth/login?next=/dice-fest/sessioni'
       return
     }
     setPendingWaitlistDay(day)
@@ -202,7 +202,7 @@ export default function DiceFestBookingPage({ event }) {
 
   const handleAddMainToCart = useCallback(async (session) => {
     if (!user) {
-      window.location.href = '/auth/login?next=/dice-fest/prenotazioni'
+      window.location.href = '/auth/login?next=/dice-fest/sessioni'
       return
     }
     if (inFlightRef.current) return
@@ -373,7 +373,7 @@ export default function DiceFestBookingPage({ event }) {
       <div className="mx-auto max-w-7xl px-5 py-10 md:px-8 lg:px-10">
         {/* HEADER */}
         <header className="fade-stagger">
-          <p className="dicefest-eyebrow">Prenotazioni</p>
+          <p className="dicefest-eyebrow">Sessioni</p>
           <h1 className="mt-3 font-df-display text-4xl uppercase text-dicefest-paper sm:text-5xl">
             La mappa dei tavoli
           </h1>
@@ -396,7 +396,7 @@ export default function DiceFestBookingPage({ event }) {
         {cartState.loading && user ? (
           <p className="mt-5 inline-flex items-center gap-2 border border-dicefest-green/40 bg-dicefest-green/10 px-4 py-2.5 font-df-body text-sm text-dicefest-paper">
             <span className="inline-block h-2.5 w-2.5 animate-pulse bg-dicefest-green" aria-hidden="true" />
-            Carico le tue prenotazioni…
+            Carico le tue sessioni…
           </p>
         ) : null}
 
@@ -502,7 +502,7 @@ export default function DiceFestBookingPage({ event }) {
             className="flex items-center gap-3 border-2 border-dicefest-ink bg-dicefest-pink px-5 py-3 font-df-mono text-sm font-bold uppercase tracking-wide text-dicefest-ink shadow-df-hard transition-transform hover:-translate-y-0.5"
           >
             <span className="dicefest-badge dicefest-badge--neutral">{pendingOrderCount}</span>
-            <span>Riepilogo prenotazioni</span>
+            <span>Riepilogo sessioni</span>
             {timeRemaining ? <span className="font-df-display text-dicefest-ink">{timeRemaining}</span> : null}
           </button>
         </div>
@@ -752,11 +752,11 @@ function computeOneShotState({ slot, cartState, isLoggedIn, isPending, busy = fa
     variant = 'full'
   } else if (conflictConfirmed) {
     label = 'Slot occupato'
-    verboseLabel = 'Hai già un\'altra prenotazione in questa fascia'
+    verboseLabel = 'Hai già un\'altra sessione in questa fascia'
     disabled = true
   } else if (conflictCart) {
     label = 'Slot occupato'
-    verboseLabel = 'Hai già un\'altra prenotazione in questa fascia'
+    verboseLabel = 'Hai già un\'altra sessione in questa fascia'
     disabled = true
   } else {
     label = isPending ? 'Prenoto…' : 'Prenota'
@@ -780,7 +780,7 @@ function OneShotMapCell({ session, cartState, pendingSlotId, busy, onAdd, onRemo
   const handleAction = (e) => {
     e.stopPropagation()
     if (state.actionKind === 'login') {
-      window.location.href = '/auth/login?next=/dice-fest/prenotazioni'
+      window.location.href = '/auth/login?next=/dice-fest/sessioni'
     } else if (state.actionKind === 'add') {
       onAdd(slot)
     } else if (state.actionKind === 'remove') {
@@ -897,7 +897,7 @@ function MainEventMapCell({ session, sessionKey, reservation, inCart, hasReserve
   const handleAction = (e) => {
     e.stopPropagation()
     if (state.actionKind === 'login') {
-      window.location.href = '/auth/login?next=/dice-fest/prenotazioni'
+      window.location.href = '/auth/login?next=/dice-fest/sessioni'
     } else if (state.actionKind === 'add') {
       onAdd({ mainEventId: mainEvent.id, day: slot.day, slot: slot.slot })
     } else if (state.actionKind === 'remove') {
@@ -1027,7 +1027,7 @@ function OneShotDetailsModal({ session, cartState, pendingSlotId, busy, onAdd, o
 
   const handleAction = () => {
     if (state.actionKind === 'login') {
-      window.location.href = '/auth/login?next=/dice-fest/prenotazioni'
+      window.location.href = '/auth/login?next=/dice-fest/sessioni'
     } else if (state.actionKind === 'add') {
       onAdd(slot)
     } else if (state.actionKind === 'remove') {
@@ -1100,7 +1100,7 @@ function MainEventDetailsModal({ session, sessionKey, reservation, inCart, hasRe
 
   const handleAction = () => {
     if (state.actionKind === 'login') {
-      window.location.href = '/auth/login?next=/dice-fest/prenotazioni'
+      window.location.href = '/auth/login?next=/dice-fest/sessioni'
     } else if (state.actionKind === 'add') {
       onAdd({ mainEventId: mainEvent.id, day: slot.day, slot: slot.slot })
     } else if (state.actionKind === 'remove') {
@@ -1187,11 +1187,11 @@ const BookingOrderSummary = memo(function BookingOrderSummary({ cartState, mainC
     return (
       <Wrapper {...wrapperProps}>
         <div className="px-6 py-6 text-center">
-          <h3 className="font-df-display text-lg uppercase text-dicefest-paper">Le tue prenotazioni</h3>
+          <h3 className="font-df-display text-lg uppercase text-dicefest-paper">Le tue sessioni</h3>
           <p className="mt-2 font-df-body text-sm leading-relaxed text-dicefest-paper/75">
             Accedi per prenotare il tuo posto al tavolo.
           </p>
-          <Link href="/auth/login?next=/dice-fest/prenotazioni" className="dicefest-btn-primary mt-5 w-full">
+          <Link href="/auth/login?next=/dice-fest/sessioni" className="dicefest-btn-primary mt-5 w-full">
             Accedi
           </Link>
         </div>
@@ -1234,7 +1234,7 @@ const BookingOrderSummary = memo(function BookingOrderSummary({ cartState, mainC
     <Wrapper {...wrapperProps}>
       <div className="px-6 py-6">
         <div className="flex items-center justify-between gap-3">
-          <h3 className="font-df-display text-lg uppercase text-dicefest-paper">Le tue prenotazioni</h3>
+          <h3 className="font-df-display text-lg uppercase text-dicefest-paper">Le tue sessioni</h3>
           {timeRemaining ? (
             <span className={`font-df-display text-base ${lowTime ? 'text-dicefest-pink' : 'text-dicefest-green'}`}>
               {timeRemaining}
@@ -1244,7 +1244,7 @@ const BookingOrderSummary = memo(function BookingOrderSummary({ cartState, mainC
 
         {!hasPendingItems ? (
           <p className="mt-4 font-df-body text-sm leading-relaxed text-dicefest-paper/75">
-            Nessuna prenotazione aggiunta.
+            Nessuna sessione aggiunta.
           </p>
         ) : (
           <ul className="mt-4 space-y-3">
