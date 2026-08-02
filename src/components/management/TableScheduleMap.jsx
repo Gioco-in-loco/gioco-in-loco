@@ -141,6 +141,9 @@ export default function TableScheduleMap({ slots, loading, onCellClick, isCellCl
                             {isOneShot ? 'One shot' : 'Main event'}
                           </p>
                           <p className="font-body text-sm font-semibold text-editorial-text">{isOneShot ? (cell.oneshotTitle || 'One shot') : (cell.mainEventTitle || 'Main event')}</p>
+                          {isOneShot && cell.oneshotMaster ? (
+                            <p className="font-body text-xs text-editorial-text-muted">Master {cell.oneshotMaster}</p>
+                          ) : null}
                           {isOneShot && cell.associationName ? (
                             <p className="font-body text-xs text-editorial-text-muted">{cell.associationName}</p>
                           ) : null}

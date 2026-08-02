@@ -1,6 +1,26 @@
 'use client'
 
-import { Fragment, useEffect, useMemo } from 'react'
+import { Fragment, useEffect, useMemo, useState } from 'react'
+
+function GridIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+      <rect x="3" y="3" width="7" height="7" />
+      <rect x="14" y="3" width="7" height="7" />
+      <rect x="3" y="14" width="7" height="7" />
+      <rect x="14" y="14" width="7" height="7" />
+    </svg>
+  )
+}
+
+function ListIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+      <path d="M8 6h13M8 12h13M8 18h13" />
+      <path d="M3 6h.01M3 12h.01M3 18h.01" />
+    </svg>
+  )
+}
 
 const DAY_ORDER = ['Lunedi', 'Lunedì', 'Martedi', 'Martedì', 'Mercoledi', 'Mercoledì', 'Giovedi', 'Giovedì', 'Venerdi', 'Venerdì', 'Sabato', 'Domenica']
 
@@ -15,6 +35,11 @@ function dayIndex(day) {
 // in `entries` is `{ slot: { day, slot, table, ... }, ... }` and `renderCell`
 // decides what a cell looks like and does when clicked.
 export default function TableMap({ entries, activeDay, onChangeDay, renderCell, isDimmed, emptyLabel = 'Libero' }) {
+  // Below `lg` there's never room for the grid (see the comment on the
+  // desktop block below), so the toggle only matters — and is only shown —
+  // from `lg` up. Defaults to the grid to keep current desktop behaviour.
+  const [viewMode, setViewMode] = useState('table')
+
   const days = useMemo(() => {
     const unique = Array.from(new Set(entries.map((entry) => entry.slot.day)))
     return unique.sort((left, right) => dayIndex(left) - dayIndex(right))
@@ -66,31 +91,62 @@ export default function TableMap({ entries, activeDay, onChangeDay, renderCell, 
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap gap-2" role="tablist" aria-label="Scegli il giorno">
-        {days.map((day) => (
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap gap-2" role="tablist" aria-label="Scegli il giorno">
+          {days.map((day) => (
+            <button
+              key={day}
+              type="button"
+              role="tab"
+              aria-selected={activeDay === day}
+              className="dicefest-tab"
+              onClick={() => onChangeDay(day)}
+            >
+              {day}
+            </button>
+          ))}
+        </div>
+
+        {/* Sotto `lg` la griglia non ha mai spazio a sufficienza (vedi sotto),
+            quindi il toggle vista tabella/lista ha senso solo da `lg` in su:
+            sotto quella soglia resta sempre la lista. */}
+        <div className="hidden items-center gap-1 border-2 border-dicefest-border bg-dicefest-surface p-1 lg:inline-flex" role="group" aria-label="Tipo di visualizzazione">
           <button
-            key={day}
             type="button"
-            role="tab"
-            aria-selected={activeDay === day}
-            className="dicefest-tab"
-            onClick={() => onChangeDay(day)}
+            onClick={() => setViewMode('table')}
+            aria-pressed={viewMode === 'table'}
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 font-df-mono text-xs font-bold uppercase tracking-wide transition-colors ${
+              viewMode === 'table' ? 'bg-dicefest-pink text-dicefest-ink' : 'text-dicefest-paper/60 hover:text-dicefest-paper'
+            }`}
           >
-            {day}
+            <GridIcon />
+            Tabella
           </button>
-        ))}
+          <button
+            type="button"
+            onClick={() => setViewMode('list')}
+            aria-pressed={viewMode === 'list'}
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 font-df-mono text-xs font-bold uppercase tracking-wide transition-colors ${
+              viewMode === 'list' ? 'bg-dicefest-pink text-dicefest-ink' : 'text-dicefest-paper/60 hover:text-dicefest-paper'
+            }`}
+          >
+            <ListIcon />
+            Lista
+          </button>
+        </div>
       </div>
 
       {tables.length === 0 || timeSlots.length === 0 ? null : (
         <>
-          {/* Mobile / tablet: vertical list, no horizontal scroll. */}
-          <div className="space-y-5 lg:hidden">
+          {/* Sotto `lg`: sempre lista verticale, nessuno scroll orizzontale.
+              Da `lg` in su: lista o griglia in base al toggle sopra. */}
+          <div className={`space-y-5 ${viewMode === 'list' ? '' : 'lg:hidden'}`}>
             {groupedByTimeSlot.map((group) => (
               <div key={group.slotTime}>
                 <div className="dicefest-timeslot mb-2">
                   <span className="dicefest-timeslot__hour">{group.slotTime}</span>
                 </div>
-                <div className="space-y-3">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
                   {group.entries.map((entry) => {
                     const dimmed = isDimmed ? isDimmed(entry) : false
                     return (
@@ -105,7 +161,7 @@ export default function TableMap({ entries, activeDay, onChangeDay, renderCell, 
           </div>
 
           {/* Desktop / large tablet: full table × time-slot grid. */}
-          <div className="dicefest-table-scroll hidden lg:block">
+          <div className={`dicefest-table-scroll hidden ${viewMode === 'table' ? 'lg:block' : ''}`}>
             <div
               className="grid min-w-max"
               style={{ gridTemplateColumns: `104px repeat(${timeSlots.length}, minmax(148px, 1fr))` }}

@@ -5,14 +5,6 @@ import { useEffect, useMemo, useState } from 'react'
 import { useAuth } from '../../context/AuthContext'
 import { useToast } from '../../context/ToastContext'
 
-function CheckIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M3 8.5l3 3 7-7" />
-    </svg>
-  )
-}
-
 function HandRaisedIcon() {
   return (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -170,21 +162,15 @@ export default function RsvpButton({ oneshots }) {
     if (state.hasConfirmedAdmission) {
       return (
         <div className="inline-flex flex-wrap items-center gap-2">
-          <span className="inline-flex items-center gap-2 border border-dicefest-green bg-dicefest-green/10 px-4 py-2.5 font-df-mono text-sm font-bold uppercase tracking-wide text-dicefest-green">
-            <CheckIcon />
-            Ci sarai
-          </span>
+          <button
+            type="button"
+            onClick={() => handleCancel('')}
+            disabled={isPending}
+            className="inline-flex items-center gap-2 border border-red-400 bg-red-500/10 px-4 py-2.5 font-df-mono text-sm font-bold uppercase tracking-wide text-red-400 transition hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {isPending ? 'Annullo…' : 'Non ci sarò'}
+          </button>
           {registerLink}
-          {!state.hasActiveSessions ? (
-            <button
-              type="button"
-              onClick={() => handleCancel('')}
-              disabled={isPending}
-              className="font-df-mono text-xs font-semibold uppercase tracking-[0.18em] text-dicefest-paper/50 underline-offset-2 hover:text-dicefest-pink hover:underline disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {isPending ? 'Annullo…' : 'Annulla'}
-            </button>
-          ) : null}
         </div>
       )
     }
@@ -237,22 +223,15 @@ export default function RsvpButton({ oneshots }) {
 
         if (isConfirmed) {
           return (
-            <div key={day} className="inline-flex flex-wrap items-center gap-2">
-              <span className="inline-flex items-center gap-2 border border-dicefest-green bg-dicefest-green/10 px-4 py-2 font-df-mono text-sm font-bold uppercase tracking-wide text-dicefest-green">
-                <CheckIcon />
-                Ci sarai · {day}
-              </span>
-              {!state.hasActiveSessions ? (
-                <button
-                  type="button"
-                  onClick={() => handleCancel(day)}
-                  disabled={isPending}
-                  className="font-df-mono text-xs font-semibold uppercase tracking-[0.18em] text-dicefest-paper/50 underline-offset-2 hover:text-dicefest-pink hover:underline disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  {isPending ? 'Annullo…' : 'Annulla'}
-                </button>
-              ) : null}
-            </div>
+            <button
+              key={day}
+              type="button"
+              onClick={() => handleCancel(day)}
+              disabled={isPending}
+              className="inline-flex items-center gap-2 border border-red-400 bg-red-500/10 px-4 py-2 font-df-mono text-sm font-bold uppercase tracking-wide text-red-400 transition hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {isPending ? 'Annullo…' : `Non ci sarò · ${day}`}
+            </button>
           )
         }
 

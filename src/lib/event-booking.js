@@ -543,6 +543,7 @@ export const getBookableEventData = cache(async function getBookableEventData(ev
       name: true,
       description: true,
       location: true,
+      mapsUrl: true,
       price: true,
       dailyPrice: true,
       startDate: true,

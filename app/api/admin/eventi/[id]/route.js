@@ -57,7 +57,15 @@ export async function PATCH(request, { params }) {
     if (caughtError?.code === 'P2002') {
       return NextResponse.json({ error: 'externalId già esistente' }, { status: 409 })
     }
-    return NextResponse.json({ error: 'Evento non trovato' }, { status: 404 })
+    // P2025 = Prisma "record to update not found": the only case that
+    // genuinely means the event is gone. Any other error (validation,
+    // connection, unexpected field, ...) was previously collapsed into the
+    // same "Evento non trovato" message, which hid the real cause.
+    if (caughtError?.code === 'P2025') {
+      return NextResponse.json({ error: 'Evento non trovato' }, { status: 404 })
+    }
+    console.error('PATCH /api/admin/eventi/[id] failed:', caughtError)
+    return NextResponse.json({ error: caughtError?.message || 'Impossibile salvare le modifiche.' }, { status: 500 })
   }
 }
 
@@ -68,7 +76,11 @@ export async function DELETE(request, { params }) {
   try {
     await prisma.event.delete({ where: { externalId: params.id } })
     return new NextResponse(null, { status: 204 })
-  } catch {
-    return NextResponse.json({ error: 'Evento non trovato' }, { status: 404 })
+  } catch (caughtError) {
+    if (caughtError?.code === 'P2025') {
+      return NextResponse.json({ error: 'Evento non trovato' }, { status: 404 })
+    }
+    console.error('DELETE /api/admin/eventi/[id] failed:', caughtError)
+    return NextResponse.json({ error: caughtError?.message || 'Impossibile eliminare l\'evento.' }, { status: 500 })
   }
 }

@@ -330,7 +330,10 @@ export default function SlotCellDialog({
   const timeSlotOptions = Array.from(new Set([...(eventTimeSlots || []), slot.slot]))
 
   const visibleAssignableOneshots = assignSearch.trim()
-    ? assignableOneshots.filter((oneshot) => oneshot.title.toLowerCase().includes(assignSearch.trim().toLowerCase()))
+    ? assignableOneshots.filter((oneshot) => {
+        const needle = assignSearch.trim().toLowerCase()
+        return oneshot.title.toLowerCase().includes(needle) || (oneshot.master || '').toLowerCase().includes(needle)
+      })
     : assignableOneshots
 
   const visibleAssignableMainEvents = mainEventAssignSearch.trim()
@@ -476,12 +479,12 @@ export default function SlotCellDialog({
           ) : (
             <div className="space-y-3">
               <div>
-                <label className={labelClass}>Filtra per nome</label>
+                <label className={labelClass}>Filtra per nome o master</label>
                 <input
                   className={inputClass}
                   value={assignSearch}
                   onChange={(e) => { setAssignSearch(e.target.value); setSelectedAssignId('') }}
-                  placeholder="Cerca one shot..."
+                  placeholder="Cerca one shot o master..."
                 />
               </div>
               {visibleAssignableOneshots.length === 0 ? (
@@ -496,7 +499,7 @@ export default function SlotCellDialog({
                       <option value="">Seleziona</option>
                       {visibleAssignableOneshots.map((oneshot) => (
                         <option key={oneshot.id} value={oneshot.id}>
-                          {oneshot.title} · {oneshot.game}{oneshot.associationName ? ` · ${oneshot.associationName}` : ''}
+                          {oneshot.title} · {oneshot.game}{oneshot.master ? ` · Master ${oneshot.master}` : ''}{oneshot.associationName ? ` · ${oneshot.associationName}` : ''}
                         </option>
                       ))}
                     </select>

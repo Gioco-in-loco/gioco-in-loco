@@ -40,9 +40,6 @@ const THEMES = {
     hamburgerButton: 'bg-comic-yellow border-4 border-comic-navy rounded-xl shadow-[2px_2px_0px_0px_#1A1A2E]',
     hamburgerIcon: 'text-comic-navy',
     overlayBg: 'bg-comic-paper',
-    overlayHeader: 'bg-comic-cream border-b-4 border-comic-navy',
-    overlayCloseButton: 'bg-comic-yellow border-4 border-comic-navy rounded-xl',
-    overlayCloseIcon: 'text-comic-navy',
     mobileNavButton: 'bg-comic-cream border-3 border-comic-navy rounded-xl font-bangers text-xl text-comic-navy',
     authSectionBorder: 'border-comic-navy/20',
     userBox: 'rounded-xl bg-comic-cream p-3 border-3 border-comic-navy',
@@ -62,15 +59,15 @@ const THEMES = {
     eventBadge: 'font-bangers text-comic-orange text-lg',
     eventTitle: 'font-bangers text-2xl text-comic-navy',
     eventInfo: 'text-comic-navy/80 text-sm',
+    logo: 'font-bangers text-2xl text-comic-navy',
+    logoDesktop: 'font-bangers text-3xl text-comic-navy leading-tight',
+    logoAccent: 'font-bangers text-3xl text-comic-magenta leading-tight -mt-1',
   },
   editorial: {
     topBar: 'bg-white border-b-2 border-editorial-border',
     hamburgerButton: 'bg-editorial-terra/10 border-2 border-editorial-border rounded-lg shadow-soft',
     hamburgerIcon: 'text-editorial-text',
     overlayBg: 'bg-editorial-bg',
-    overlayHeader: 'bg-white border-b-2 border-editorial-border',
-    overlayCloseButton: 'bg-editorial-terra/10 border-2 border-editorial-border rounded-lg',
-    overlayCloseIcon: 'text-editorial-text',
     mobileNavButton: 'bg-white border-2 border-editorial-border rounded-lg font-body text-base text-editorial-text font-semibold hover:border-editorial-terra transition-colors',
     authSectionBorder: 'border-editorial-border/50',
     userBox: '',
@@ -90,6 +87,9 @@ const THEMES = {
     eventBadge: 'font-body text-xs text-editorial-terra uppercase tracking-widest',
     eventTitle: 'font-elegant text-xl text-editorial-text font-bold',
     eventInfo: 'text-editorial-text-secondary text-sm font-body',
+    logo: 'font-elegant text-xl tracking-wide font-bold text-editorial-text',
+    logoDesktop: 'font-elegant text-2xl tracking-wide font-bold text-editorial-text leading-tight',
+    logoAccent: 'font-elegant text-2xl tracking-wide font-bold text-editorial-terra leading-tight -mt-1',
   },
   // Dark brutalist/neon skin, shown only while browsing under /dice-fest —
   // keeps the sidebar/topbar/footer chrome coherent with the hub's own
@@ -99,9 +99,6 @@ const THEMES = {
     hamburgerButton: 'bg-dicefest-surface-2 border-2 border-dicefest-border',
     hamburgerIcon: 'text-dicefest-paper',
     overlayBg: 'bg-dicefest-ink',
-    overlayHeader: 'bg-dicefest-ink border-b-2 border-dicefest-border',
-    overlayCloseButton: 'bg-dicefest-surface-2 border-2 border-dicefest-border',
-    overlayCloseIcon: 'text-dicefest-paper',
     mobileNavButton: 'bg-dicefest-surface border-2 border-dicefest-border font-df-mono uppercase tracking-wide text-sm text-dicefest-paper hover:border-dicefest-pink transition-colors',
     authSectionBorder: 'border-dicefest-border',
     userBox: 'bg-dicefest-surface-2 p-3 border-2 border-dicefest-border',
@@ -121,6 +118,9 @@ const THEMES = {
     eventBadge: 'font-df-mono text-dicefest-green text-xs uppercase tracking-[0.2em]',
     eventTitle: 'font-df-display text-2xl text-dicefest-paper uppercase',
     eventInfo: 'text-dicefest-paper/70 text-sm font-df-body',
+    logo: 'font-df-display text-xl uppercase tracking-wide text-dicefest-paper',
+    logoDesktop: 'font-df-display text-2xl uppercase tracking-wide text-dicefest-paper leading-tight',
+    logoAccent: 'font-df-display text-2xl uppercase tracking-wide text-dicefest-pink leading-tight -mt-1',
   },
 }
 
@@ -248,7 +248,7 @@ export default function Sidebar({ onNavigate, upcomingEvent }) {
           <span />
 
           <button onClick={() => handleNavigation('/')} className="flex items-center justify-center">
-            <img src="/loghi-ass/gioco-in-loco-512.png" alt="Gioco In Loco" className="h-9 w-auto" />
+            <span className={theme.logo}>GIOCO IN LOCO</span>
           </button>
 
           <button
@@ -272,25 +272,16 @@ export default function Sidebar({ onNavigate, upcomingEvent }) {
         </nav>
       </div>
 
-      {/* Mobile Menu Overlay */}
+      {/* Mobile Menu Overlay — no header of its own: the fixed top bar above
+          (z-[100], always on top of this z-[60] panel) already has the logo
+          and a working close toggle (same button, icon swaps hamburger/X),
+          so a second header here was pure duplication. Content just starts
+          below that fixed bar's height instead. */}
       {isOpen && (
-        <div className={`fixed inset-0 z-[60] md:hidden flex flex-col ${theme.overlayBg}`}>
-          <div className={`grid grid-cols-[3rem_1fr_3rem] items-center p-4 ${theme.overlayHeader}`}>
-            <span />
-            <button onClick={() => handleNavigation('/')} className="flex items-center justify-center">
-              <img src="/loghi-ass/gioco-in-loco-512.png" alt="Gioco In Loco" className="h-9 w-auto" />
-            </button>
-            <button
-              onClick={() => setIsOpen(false)}
-              className={`w-12 h-12 flex items-center justify-center justify-self-end ${theme.overlayCloseButton}`}
-              aria-label="Chiudi navigazione"
-            >
-              <svg className={`w-6 h-6 ${theme.overlayCloseIcon}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
-
+        <div
+          className={`fixed inset-0 z-[60] md:hidden flex flex-col ${theme.overlayBg}`}
+          style={{ paddingTop: 'calc(3.5rem + env(safe-area-inset-top, 0px))' }}
+        >
           <nav className="flex-1 overflow-y-auto p-5">
             <div className="space-y-3">
               {navItems.map((item) => (
@@ -373,8 +364,9 @@ export default function Sidebar({ onNavigate, upcomingEvent }) {
       {/* Desktop Sidebar */}
       <aside className={`fixed top-0 left-0 h-full w-72 hidden sm:flex flex-col ${theme.wrapper}`}>
         <div className={`p-6 pb-4 flex justify-center ${theme.header}`}>
-          <button onClick={() => handleNavigation('/')} className="hover:opacity-80 transition-opacity">
-            <img src="/loghi-ass/gioco-in-loco-512.png" alt="Gioco In Loco" className="h-16 w-auto" />
+          <button onClick={() => handleNavigation('/')} className="hover:opacity-80 transition-opacity flex flex-col items-center">
+            <span className={theme.logoDesktop}>GIOCO</span>
+            <span className={theme.logoAccent}>IN LOCO</span>
           </button>
         </div>
 

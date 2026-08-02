@@ -794,7 +794,7 @@ function OneShotMapCell({ session, cartState, pendingSlotId, busy, onAdd, onRemo
 
   return (
     <div
-      className={`dicefest-slot-card ${cardVariant} flex h-full flex-col gap-1.5 cursor-pointer`}
+      className={`dicefest-slot-card ${cardVariant} flex h-full flex-col gap-2 cursor-pointer`}
       onClick={onOpenDetails}
       role="button"
       tabIndex={0}
@@ -806,14 +806,19 @@ function OneShotMapCell({ session, cartState, pendingSlotId, busy, onAdd, onRemo
       }}
       aria-label={`Dettagli: ${oneshot.title}`}
     >
-      <div className="flex flex-1 flex-col items-start gap-0.5 text-left">
+      <div className="dicefest-slot-card__top">
         <span className="dicefest-badge dicefest-badge--pink"><SwordsIcon />{oneshot.game || 'GDR'}</span>
-        <p className="font-df-display text-[12px] leading-tight text-dicefest-paper line-clamp-2">{oneshot.title}</p>
-        <p className="font-df-body text-[10px] text-dicefest-paper/50 line-clamp-1">{oneshot.master}</p>
-        {state.fewLeft && !state.confirmed && !state.inCart ? <span className="dicefest-badge dicefest-badge--pink">Ultimi</span> : null}
+        <span className="dicefest-slot-card__table">{slot.table}</span>
       </div>
-      <div className="flex items-center justify-between gap-2">
-        <span className="font-df-mono text-[10px] uppercase tracking-wide text-dicefest-paper/50">{state.remaining}/{slot.maxPlayers}</span>
+      <div className="flex-1 text-left">
+        <p className="font-df-display text-sm leading-tight text-dicefest-paper line-clamp-2">{oneshot.title}</p>
+        <p className="mt-1 font-df-body text-[11px] text-dicefest-paper/60 line-clamp-1">Master {oneshot.master}</p>
+        {state.fewLeft && !state.confirmed && !state.inCart ? (
+          <span className="dicefest-badge dicefest-badge--pink mt-1.5">Ultimi posti</span>
+        ) : null}
+      </div>
+      <div className="dicefest-slot-card__footer">
+        <span className="dicefest-slot-card__seats">{state.remaining}/{slot.maxPlayers} posti</span>
         <button
           type="button"
           onClick={handleAction}
@@ -908,7 +913,7 @@ function MainEventMapCell({ session, sessionKey, reservation, inCart, hasReserve
 
   return (
     <div
-      className={`dicefest-slot-card ${cardVariant} flex h-full flex-col gap-1.5 cursor-pointer`}
+      className={`dicefest-slot-card ${cardVariant} flex h-full flex-col gap-2 cursor-pointer`}
       onClick={onOpenDetails}
       role="button"
       tabIndex={0}
@@ -920,17 +925,22 @@ function MainEventMapCell({ session, sessionKey, reservation, inCart, hasReserve
       }}
       aria-label={`Dettagli: ${mainEvent.title}`}
     >
-      <div className="flex flex-1 flex-col items-start gap-0.5 text-left">
+      <div className="dicefest-slot-card__top">
         <span className="dicefest-badge dicefest-badge--green"><CrownIcon />Main Event</span>
-        <p className="font-df-display text-[12px] leading-tight text-dicefest-paper line-clamp-2">{mainEvent.title}</p>
-        {mainEvent.game ? <p className="font-df-body text-[10px] text-dicefest-paper/50 line-clamp-1">{mainEvent.game}</p> : null}
-        {state.fewLeft && !reservation && !inCart ? <span className="dicefest-badge dicefest-badge--pink">Ultimi</span> : null}
-        {!reservation && hasOneshotConflict ? (
-          <span className="dicefest-badge dicefest-badge--pink" title="Hai una one-shot in questa fascia">Conflitto</span>
-        ) : null}
+        <span className="dicefest-slot-card__table">{slot.table}</span>
       </div>
-      <div className="flex items-center justify-between gap-2">
-        <span className="font-df-mono text-[10px] uppercase tracking-wide text-dicefest-paper/50">{state.remaining}/{slot.maxPlayers}</span>
+      <div className="flex-1 text-left">
+        <p className="font-df-display text-sm leading-tight text-dicefest-paper line-clamp-2">{mainEvent.title}</p>
+        {mainEvent.game ? <p className="mt-1 font-df-body text-[11px] text-dicefest-paper/60 line-clamp-1">{mainEvent.game}</p> : null}
+        <div className="mt-1.5 flex flex-wrap gap-1.5">
+          {state.fewLeft && !reservation && !inCart ? <span className="dicefest-badge dicefest-badge--pink">Ultimi posti</span> : null}
+          {!reservation && hasOneshotConflict ? (
+            <span className="dicefest-badge dicefest-badge--pink" title="Hai una one-shot in questa fascia">Conflitto</span>
+          ) : null}
+        </div>
+      </div>
+      <div className="dicefest-slot-card__footer">
+        <span className="dicefest-slot-card__seats">{state.remaining}/{slot.maxPlayers} posti</span>
         <button
           type="button"
           onClick={handleAction}
@@ -1000,8 +1010,10 @@ function ModalShell({ children, onClose }) {
             <path d="M2 2 L12 12 M12 2 L2 12" />
           </svg>
         </button>
-        <div className="dicefest-surface">
-          {children}
+        <div className="dicefest-modal__scroll">
+          <div className="dicefest-surface">
+            {children}
+          </div>
         </div>
       </div>
     </div>

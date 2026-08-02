@@ -2502,16 +2502,53 @@ select.form-input {
 /* Slot cards (table map cells) */
 .dicefest-slot-card {
   position: relative;
-  padding: 0.65rem 0.75rem;
-  background: var(--df-surface);
-  border: 1px solid var(--df-border);
+  padding: 0.75rem 0.85rem;
+  background: var(--df-surface-2);
+  border: 2px solid var(--df-border);
   border-radius: 0;
-  transition: border-color 0.2s ease, transform 0.2s ease, background 0.2s ease;
+  transition: border-color 0.2s ease, transform 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+}
+
+.dicefest-slot-card__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.dicefest-slot-card__table {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--df-paper);
+  opacity: 0.55;
+}
+
+.dicefest-slot-card__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  border-top: 1px solid var(--df-border);
+  padding-top: 0.5rem;
+}
+
+.dicefest-slot-card__seats {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--df-paper);
+  opacity: 0.75;
 }
 
 @media (min-width: 1024px) {
   .dicefest-slot-card {
-    padding: 0.5rem 0.6rem;
+    padding: 0.55rem 0.65rem;
+    gap: 0.4rem !important;
   }
 
   .dicefest-slot-card .dicefest-badge {
@@ -2525,20 +2562,25 @@ select.form-input {
     padding: 0.25rem 0.55rem;
     font-size: 0.65rem;
   }
+
+  .dicefest-slot-card__footer {
+    padding-top: 0.4rem;
+  }
 }
 
 .dicefest-slot-card:hover {
   border-color: var(--df-green);
   transform: translateY(-1px);
+  box-shadow: var(--df-shadow-hard-sm);
 }
 
 .dicefest-slot-card--in-cart {
-  background: rgba(255, 47, 143, 0.08);
+  background: rgba(255, 47, 143, 0.1);
   border-color: var(--df-pink);
 }
 
 .dicefest-slot-card--confirmed {
-  background: rgba(57, 255, 138, 0.08);
+  background: rgba(57, 255, 138, 0.1);
   border-color: var(--df-green);
 }
 
@@ -2547,7 +2589,7 @@ select.form-input {
 }
 
 .dicefest-slot-card--full {
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--df-surface);
   border-color: var(--df-border);
   opacity: 0.6;
   filter: grayscale(0.5);
@@ -2695,7 +2737,11 @@ select.dicefest-input {
 .dicefest-modal-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 60;
+  /* Must clear the site's mobile top navbar (Sidebar.jsx, z-[100]) — at
+     z-index 60 the navbar rendered on top of the modal, hiding its top
+     portion (including the close button) on mobile. 200 matches the other
+     full-screen modals in the app (AccountPage, PrivacyModal). */
+  z-index: 200;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2710,20 +2756,29 @@ select.dicefest-input {
   width: 100%;
   max-width: 38rem;
   max-height: calc(100vh - 2rem);
-  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
   animation: editorialSlideUp 0.35s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+/* The scroll happens in here, not on .dicefest-modal itself, so the close
+   button (positioned absolute against .dicefest-modal) stays pinned to the
+   card corner instead of scrolling out of reach on long content — this was
+   the "can't close on mobile" bug. */
+.dicefest-modal__scroll {
+  overflow-y: auto;
 }
 
 .dicefest-modal__close {
   position: absolute;
-  top: 12px;
-  right: 12px;
+  top: 8px;
+  right: 8px;
   z-index: 2;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
+  width: 44px;
+  height: 44px;
   border-radius: 0;
   border: 1px solid var(--df-border);
   background: var(--df-surface-2);

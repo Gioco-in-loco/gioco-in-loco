@@ -4,6 +4,10 @@ import { createSupabaseServiceClient, isServiceRoleConfigured } from './supabase
 export const DEFAULT_ONESHOT_PAGE_SIZE = 20
 const ACTIVE_RESERVATION_STATUSES = ['PENDING', 'CONFIRMED', 'ATTENDED']
 const MANAGEABLE_RESERVATION_STATUSES = new Set(['CONFIRMED', 'ATTENDED', 'CANCELLED'])
+// Mirrors the WEEK_DAYS list in src/components/management/EventForm.jsx —
+// that's the only place that ever sends `days` on an event save.
+const WEEK_DAYS = new Set(['Lunedi', 'Martedi', 'Mercoledi', 'Giovedi', 'Venerdi', 'Sabato', 'Domenica'])
+const TIME_SLOT_REGEX = /^([01]\d|2[0-3]):[0-5]\d-([01]\d|2[0-3]):[0-5]\d$/
 
 function createHttpError(status, message) {
   const error = new Error(message)

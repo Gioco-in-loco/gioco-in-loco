@@ -123,6 +123,7 @@ export default function DiceFestPage({ event }) {
                     startDate={event.startDate}
                     endDate={event.endDate}
                     location={event.location}
+                    mapsUrl={event.mapsUrl}
                     price={event.price}
                   />
                 </div>
