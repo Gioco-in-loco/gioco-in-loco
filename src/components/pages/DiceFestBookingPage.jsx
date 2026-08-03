@@ -1356,7 +1356,7 @@ const BookingOrderSummary = memo(function BookingOrderSummary({ cartState, mainC
         ) : null}
 
         <Link href="/dice-fest/carrello" className="dicefest-btn-primary mt-5 w-full">
-          Vai alle Prenotazioni
+          Conferma le tue sessioni
         </Link>
 
         <p className="mt-3 text-center font-df-body text-[11px] leading-relaxed text-dicefest-paper/50">

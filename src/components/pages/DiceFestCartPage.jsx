@@ -327,12 +327,12 @@ export default function DiceFestCartPage({ event }) {
         {!justConfirmed && isEmpty ? (
           <ParchmentCard className="mt-8">
             <div className="px-7 py-12 text-center sm:px-10">
-              <h2 className="font-df-display text-2xl uppercase text-dicefest-paper">Nessuna prenotazione</h2>
+              <h2 className="font-df-display text-2xl uppercase text-dicefest-paper">Nessuna sessione prenotata</h2>
               <p className="mx-auto mt-3 max-w-md font-df-body text-[15px] leading-relaxed text-dicefest-paper/75">
-                Torna alle prenotazioni e scegli a cosa giocare!
+                Torna alle sessioni e scegli a cosa giocare!
               </p>
               <Link href="/dice-fest/sessioni" className="dicefest-btn-primary mt-7">
-                Vai alle prenotazioni
+                Vai alle sessioni
               </Link>
             </div>
           </ParchmentCard>
@@ -414,14 +414,10 @@ const PendingOrderLayout = memo(function PendingOrderLayout({
           </div>
         </ParchmentCard>
 
-        <ParchmentCard>
-          <div className="px-6 py-5 sm:px-7">
-            <p className="dicefest-eyebrow">Evento principale nelle tue Prenotazioni</p>
-            {filteredMainCartSlots.length === 0 ? (
-              <p className="mt-4 font-df-body text-sm leading-relaxed text-dicefest-paper/75">
-                Nessun Main Event nelle Prenotazioni.
-              </p>
-            ) : (
+        {filteredMainCartSlots.length > 0 ? (
+          <ParchmentCard>
+            <div className="px-6 py-5 sm:px-7">
+              <p className="dicefest-eyebrow">Evento principale nelle tue Prenotazioni</p>
               <ul className="mt-4 space-y-3">
                 {filteredMainCartSlots.map((slot) => (
                   <li key={`${slot.mainEventId}-${slot.day}-${slot.slot}`} className="dicefest-slot-card dicefest-slot-card--in-cart">
@@ -448,9 +444,9 @@ const PendingOrderLayout = memo(function PendingOrderLayout({
                   </li>
                 ))}
               </ul>
-            )}
-          </div>
-        </ParchmentCard>
+            </div>
+          </ParchmentCard>
+        ) : null}
 
         <ParchmentCard>
           <div className="px-6 py-5 sm:px-7">

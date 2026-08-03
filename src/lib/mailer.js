@@ -3,14 +3,24 @@ import nodemailer from 'nodemailer'
 const globalForMailer = globalThis
 
 function getMailerConfig() {
-  const host = process.env.SMTP_HOST
+  // .trim() guards against a common Vercel dashboard mistake: pasting an env
+  // var with a trailing space or newline, which silently breaks SMTP auth
+  // (the value looks correct at a glance but never matches).
+  const host = process.env.SMTP_HOST?.trim()
   const port = Number(process.env.SMTP_PORT || 587)
-  const user = process.env.SMTP_USER
-  const pass = process.env.SMTP_PASS
-  const fromEmail = process.env.SMTP_FROM_EMAIL
+  const user = process.env.SMTP_USER?.trim()
+  const pass = process.env.SMTP_PASS?.trim()
+  const fromEmail = process.env.SMTP_FROM_EMAIL?.trim()
   const fromName = process.env.SMTP_FROM_NAME || 'Gioco In Loco'
 
   if (!host || !port || !user || !pass || !fromEmail) {
+    console.warn('[mailer] Config incompleta:', {
+      host: Boolean(host),
+      port: Boolean(port),
+      user: Boolean(user),
+      pass: Boolean(pass),
+      fromEmail: Boolean(fromEmail),
+    })
     return null
   }
 
@@ -20,6 +30,8 @@ function getMailerConfig() {
     secure: process.env.SMTP_SECURE === 'true' || port === 465,
     auth: { user, pass },
     from: fromName ? `${fromName} <${fromEmail}>` : fromEmail,
+    // Solo per diagnostica nei log: mai loggare `pass` per intero.
+    debugMeta: { host, port, user, passLength: pass.length },
   }
 }
 
@@ -57,13 +69,29 @@ export async function sendMail({ to, subject, text, html }) {
     return { skipped: true }
   }
 
+  console.log('[mailer] Invio email in corso', { ...config.debugMeta, to, subject })
+
   const transporter = getTransporter(config)
 
-  return transporter.sendMail({
-    from: config.from,
-    to,
-    subject,
-    text,
-    html,
-  })
+  try {
+    const info = await transporter.sendMail({
+      from: config.from,
+      to,
+      subject,
+      text,
+      html,
+    })
+    console.log('[mailer] Email inviata', { to, messageId: info?.messageId, response: info?.response })
+    return info
+  } catch (error) {
+    console.error('[mailer] Invio fallito', {
+      ...config.debugMeta,
+      to,
+      code: error?.code,
+      responseCode: error?.responseCode,
+      response: error?.response,
+      message: error?.message,
+    })
+    throw error
+  }
 }
