@@ -152,6 +152,7 @@ model EventAdmission {
 
   user         User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   event        Event             @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  feedbackEntries UserFeedback[]
 
   @@unique([userId, eventId, day])
   @@index([eventId])
@@ -249,6 +250,7 @@ model MainEventReservation {
   user          User         @relation(fields: [userId], references: [id])
   mainEvent     MainEvent    @relation(fields: [mainEventId], references: [id], onDelete: Cascade)
   event         Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  feedbackEntries UserFeedback[]
 
   @@unique([userId, mainEventId, eventId, day, slot])
   @@index([mainEventId, eventId, day, slot, status, holdExpiresAt])
@@ -342,6 +344,8 @@ model UserFeedback {
   id           String           @id @default(cuid())
   userId       String
   reservationId String?
+  mainEventReservationId String?
+  eventAdmissionId String?
   authorUserId String?
   type         UserFeedbackType
   message      String
@@ -350,10 +354,14 @@ model UserFeedback {
 
   user         User             @relation("UserFeedbackTarget", fields: [userId], references: [id])
   reservation  Reservation?     @relation(fields: [reservationId], references: [id], onDelete: SetNull)
+  mainEventReservation MainEventReservation? @relation(fields: [mainEventReservationId], references: [id], onDelete: SetNull)
+  eventAdmission EventAdmission? @relation(fields: [eventAdmissionId], references: [id], onDelete: SetNull)
   authorUser   User?            @relation("UserFeedbackAuthor", fields: [authorUserId], references: [id], onDelete: SetNull)
 
   @@index([userId, createdAt])
   @@index([reservationId])
+  @@index([mainEventReservationId])
+  @@index([eventAdmissionId])
   @@index([authorUserId])
   @@map("user_feedback")
 }

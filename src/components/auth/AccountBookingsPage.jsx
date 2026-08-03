@@ -190,6 +190,10 @@ function BookingItemCard({ booking, pendingCancellationKey, onCancel }) {
             >
               {isPending ? 'Cancello…' : 'Cancella'}
             </button>
+          ) : booking.status === 'CANCELLED' && booking.cancellationReason ? (
+            <span className="max-w-[220px] whitespace-pre-line font-body text-[10px] leading-relaxed text-editorial-text-muted sm:text-right">
+              {booking.cancellationReason}
+            </span>
           ) : (
             <span className="max-w-[220px] font-body text-[10px] leading-relaxed text-editorial-text-muted sm:text-right">
               {booking.cancellationBlockedReason || 'Non modificabile.'}

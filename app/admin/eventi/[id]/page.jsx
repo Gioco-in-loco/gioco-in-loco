@@ -7,6 +7,7 @@ import ManagementPageHeader from '../../../../src/components/management/Manageme
 import EventForm, { toInputDate } from '../../../../src/components/management/EventForm'
 import EventTableMapPanel from '../../../../src/components/management/EventTableMapPanel'
 import EventWaitlistPanel from '../../../../src/components/management/EventWaitlistPanel'
+import EventReservationsPanel from '../../../../src/components/management/EventReservationsPanel'
 
 function formatDate(dateStr) {
   if (!dateStr) return '—'
@@ -135,6 +136,17 @@ export default function AdminEventDetailPage({ params }) {
             >
               Lista d&apos;attesa
             </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('prenotazioni')}
+              className={`rounded-lg px-4 py-2 font-body text-sm font-semibold transition-colors ${
+                activeTab === 'prenotazioni'
+                  ? 'bg-editorial-terra text-white shadow-soft'
+                  : 'border border-editorial-border text-editorial-text hover:border-editorial-terra'
+              }`}
+            >
+              Prenotazioni
+            </button>
           </div>
 
           {activeTab === 'dettaglio' ? (
@@ -229,8 +241,10 @@ export default function AdminEventDetailPage({ params }) {
 
           ) : activeTab === 'mappa' ? (
             <EventTableMapPanel eventId={event.id} eventDays={event.days || []} eventTimeSlots={event.timeSlots || []} />
-          ) : (
+          ) : activeTab === 'attesa' ? (
             <EventWaitlistPanel eventId={event.id} waitlistEndpointBase="/api/admin/eventi" />
+          ) : (
+            <EventReservationsPanel eventId={event.id} />
           )}
         </div>
       )}

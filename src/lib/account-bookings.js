@@ -122,7 +122,7 @@ function getUpcomingLinkedEvent(eventLinks) {
     }) || null
 }
 
-function serializeOneShotBooking(reservation) {
+function serializeOneShotBooking(reservation, { cancellationReason = null } = {}) {
   const event = getUpcomingLinkedEvent(reservation.slot.oneshot.eventLinks)
 
   return {
@@ -131,6 +131,7 @@ function serializeOneShotBooking(reservation) {
     bookingTypeLabel: 'One shot',
     status: reservation.status,
     canCancel: getCanCancelStatus(reservation.status),
+    cancellationReason: reservation.status === 'CANCELLED' ? cancellationReason : null,
     createdAt: normalizeDate(reservation.createdAt),
     updatedAt: normalizeDate(reservation.updatedAt),
     event: getEventSummary(event),
@@ -149,13 +150,14 @@ function serializeOneShotBooking(reservation) {
   }
 }
 
-function serializeMainEventBooking(reservation) {
+function serializeMainEventBooking(reservation, { cancellationReason = null } = {}) {
   return {
     id: reservation.id,
     bookingType: 'main-event',
     bookingTypeLabel: 'Main event',
     status: reservation.status,
     canCancel: getCanCancelStatus(reservation.status),
+    cancellationReason: reservation.status === 'CANCELLED' ? cancellationReason : null,
     createdAt: normalizeDate(reservation.createdAt),
     updatedAt: normalizeDate(reservation.updatedAt),
     event: getEventSummary(reservation.event),
@@ -174,7 +176,7 @@ function serializeMainEventBooking(reservation) {
   }
 }
 
-function serializeEventAdmissionBooking(admission, { hasOtherActiveBookings }) {
+function serializeEventAdmissionBooking(admission, { hasOtherActiveBookings, cancellationReason = null }) {
   const eventSummary = getEventSummary(admission.event)
   const canCancel = getCanCancelStatus(admission.status) && !hasOtherActiveBookings
 
@@ -187,6 +189,7 @@ function serializeEventAdmissionBooking(admission, { hasOtherActiveBookings }) {
     cancellationBlockedReason: !canCancel && getCanCancelStatus(admission.status) && hasOtherActiveBookings
       ? 'Non puoi cancellare il pass finché hai altre prenotazioni attive per questo evento.'
       : null,
+    cancellationReason: admission.status === 'CANCELLED' ? cancellationReason : null,
     createdAt: normalizeDate(admission.createdAt),
     updatedAt: normalizeDate(admission.updatedAt),
     event: eventSummary,
@@ -341,13 +344,57 @@ export async function getUserAccountBookings({ userId, db = prisma }) {
     activeBookingsByEventDay.set(dayKey, (activeBookingsByEventDay.get(dayKey) || 0) + 1)
   }
 
+  // Cancellation reasons live in UserFeedback (written by the admin panel),
+  // not on the reservation rows themselves — only fetched for bookings that
+  // are actually CANCELLED, to avoid a needless query otherwise.
+  const cancelledOneShotIds = oneShotReservations.filter((r) => r.status === 'CANCELLED').map((r) => r.id)
+  const cancelledMainEventIds = mainEventReservations.filter((r) => r.status === 'CANCELLED').map((r) => r.id)
+  const cancelledAdmissionIds = eventAdmissions.filter((a) => a.status === 'CANCELLED').map((a) => a.id)
+
+  const cancellationReasonByReservationId = new Map()
+  const cancellationReasonByMainEventReservationId = new Map()
+  const cancellationReasonByAdmissionId = new Map()
+
+  if (cancelledOneShotIds.length + cancelledMainEventIds.length + cancelledAdmissionIds.length > 0) {
+    const feedbackEntries = await db.userFeedback.findMany({
+      where: {
+        type: 'ADMIN_RESERVATION_CANCELLATION',
+        OR: [
+          ...(cancelledOneShotIds.length > 0 ? [{ reservationId: { in: cancelledOneShotIds } }] : []),
+          ...(cancelledMainEventIds.length > 0 ? [{ mainEventReservationId: { in: cancelledMainEventIds } }] : []),
+          ...(cancelledAdmissionIds.length > 0 ? [{ eventAdmissionId: { in: cancelledAdmissionIds } }] : []),
+        ],
+      },
+      orderBy: { createdAt: 'desc' },
+      select: { reservationId: true, mainEventReservationId: true, eventAdmissionId: true, message: true },
+    })
+
+    // Ordered desc, so the first entry seen per id is the most recent one.
+    for (const entry of feedbackEntries) {
+      if (entry.reservationId && !cancellationReasonByReservationId.has(entry.reservationId)) {
+        cancellationReasonByReservationId.set(entry.reservationId, entry.message)
+      }
+      if (entry.mainEventReservationId && !cancellationReasonByMainEventReservationId.has(entry.mainEventReservationId)) {
+        cancellationReasonByMainEventReservationId.set(entry.mainEventReservationId, entry.message)
+      }
+      if (entry.eventAdmissionId && !cancellationReasonByAdmissionId.has(entry.eventAdmissionId)) {
+        cancellationReasonByAdmissionId.set(entry.eventAdmissionId, entry.message)
+      }
+    }
+  }
+
   return [
-    ...oneShotReservations.map(serializeOneShotBooking),
-    ...mainEventReservations.map(serializeMainEventBooking),
+    ...oneShotReservations.map((reservation) => serializeOneShotBooking(reservation, {
+      cancellationReason: cancellationReasonByReservationId.get(reservation.id) || null,
+    })),
+    ...mainEventReservations.map((reservation) => serializeMainEventBooking(reservation, {
+      cancellationReason: cancellationReasonByMainEventReservationId.get(reservation.id) || null,
+    })),
     ...eventAdmissions.map((admission) => serializeEventAdmissionBooking(admission, {
       hasOtherActiveBookings: admission.day
         ? (activeBookingsByEventDay.get(`${admission.event.id}__${admission.day}`) || 0) > 0
         : (activeBookingsByEventId.get(admission.event.id) || 0) > 0,
+      cancellationReason: cancellationReasonByAdmissionId.get(admission.id) || null,
     })),
   ].sort(sortBookings)
 }
