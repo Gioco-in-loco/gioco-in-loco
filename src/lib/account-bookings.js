@@ -47,7 +47,7 @@ function sortSchedules(left, right) {
   }
 
   if (left.slot !== right.slot) {
-    return left.slot.localeCompare(right.slot)
+    return String(left.slot || '').localeCompare(String(right.slot || ''))
   }
 
   return String(left.table || '').localeCompare(String(right.table || ''), undefined, { numeric: true })
