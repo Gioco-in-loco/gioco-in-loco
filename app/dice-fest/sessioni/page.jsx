@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import DiceFestBookingPage from '../../../src/components/pages/DiceFestBookingPage'
 import { getDiceFestBookableData } from '../../../src/lib/dice-fest'
-import { requireAdmin } from '../../../src/lib/admin-guard'
+import { requireAdminOrResponsabile } from '../../../src/lib/admin-guard'
 
 export const dynamic = 'force-dynamic'
 
@@ -13,8 +13,8 @@ export const metadata = {
 }
 
 export default async function DiceFestBookingRoute() {
-  const admin = await requireAdmin()
-  if (!admin) redirect('/dice-fest/coming-soon')
+  const staff = await requireAdminOrResponsabile()
+  if (!staff) redirect('/dice-fest/coming-soon')
 
   const event = await getDiceFestBookableData()
 

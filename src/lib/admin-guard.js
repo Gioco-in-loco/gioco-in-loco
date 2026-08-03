@@ -139,3 +139,16 @@ export async function requireResponsabile() {
 export async function requireResponsabileApi() {
   return requireRolesApi(['RESPONSABILE'])
 }
+
+// isAdmin è un flag booleano separato dal campo role (vedi requireAdmin), quindi
+// non basta passare ['ADMIN', 'RESPONSABILE'] a requireRoles: va controllato
+// esplicitamente insieme al ruolo RESPONSABILE.
+export async function requireAdminOrResponsabile() {
+  if (!isSupabaseConfigured()) return null
+
+  const { authUser, dbUser } = await getAuthenticatedDbUser()
+  if (!authUser?.id) return null
+  if (!dbUser?.isAdmin && dbUser?.role !== 'RESPONSABILE') return null
+
+  return toSessionUser(authUser, dbUser)
+}
