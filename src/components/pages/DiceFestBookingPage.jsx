@@ -38,6 +38,7 @@ export default function DiceFestBookingPage({ event }) {
   const [pendingMainSessionKey, setPendingMainSessionKey] = useState(null)
   const [pendingWaitlistDay, setPendingWaitlistDay] = useState(null)
   const [showSummary, setShowSummary] = useState(false)
+  const [showTutorial, setShowTutorial] = useState(false)
 
   const hasMainEvents = mainEventItems.length > 0
 
@@ -374,9 +375,20 @@ export default function DiceFestBookingPage({ event }) {
         {/* HEADER */}
         <header className="fade-stagger">
           <p className="dicefest-eyebrow">Sessioni</p>
-          <h1 className="mt-3 font-df-display text-4xl uppercase text-dicefest-paper sm:text-5xl">
-            La mappa dei tavoli
-          </h1>
+          <div className="mt-3 flex flex-wrap items-center gap-3">
+            <h1 className="font-df-display text-4xl uppercase text-dicefest-paper sm:text-5xl">
+              La mappa dei tavoli
+            </h1>
+            <button
+              type="button"
+              onClick={() => setShowTutorial(true)}
+              title="Come funziona la prenotazione"
+              aria-label="Come funziona la prenotazione"
+              className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 border-dicefest-green bg-dicefest-green/10 font-df-display text-base text-dicefest-green transition-colors hover:bg-dicefest-green/20"
+            >
+              ?
+            </button>
+          </div>
           <p className="mt-3 max-w-2xl font-df-body text-[15px] leading-relaxed text-dicefest-paper/75">
             {hasMainEvents ? (
               <>
@@ -517,6 +529,12 @@ export default function DiceFestBookingPage({ event }) {
             isLoggedIn={Boolean(user)}
             bare
           />
+        </ModalShell>
+      ) : null}
+
+      {showTutorial ? (
+        <ModalShell onClose={() => setShowTutorial(false)}>
+          <BookingTutorial />
         </ModalShell>
       ) : null}
 
@@ -1016,6 +1034,75 @@ function ModalShell({ children, onClose }) {
           </div>
         </div>
       </div>
+    </div>
+  )
+}
+
+/* ============ TUTORIAL ============ */
+
+const TUTORIAL_STEPS = [
+  {
+    title: 'Scegli il giorno',
+    description: 'Usa le linguette in alto per passare da un giorno all\'altro. Su schermi grandi puoi anche cambiare vista, da Tabella a Lista.',
+  },
+  {
+    title: 'Leggi i colori dei tavoli',
+    description: 'Ogni riquadro è un tavolo in una fascia oraria: il colore ti dice a che punto sei con quella sessione.',
+    legend: [
+      { swatch: 'bg-dicefest-surface-2 border-dicefest-border', label: 'Libero — puoi prenotarlo' },
+      { swatch: 'bg-dicefest-pink/10 border-dicefest-pink', label: 'Nel carrello — bloccato per te per 10 minuti' },
+      { swatch: 'bg-dicefest-green/10 border-dicefest-green', label: 'Confermato' },
+      { swatch: 'bg-dicefest-surface border-dicefest-border opacity-60 grayscale', label: 'Pieno' },
+    ],
+  },
+  {
+    title: 'Clicca un tavolo per i dettagli',
+    description: 'Apri la scheda della one-shot o del Main Event: descrizione, master, sistema di gioco e posti rimasti.',
+  },
+  {
+    title: 'Prenota',
+    description: 'Il tavolo entra nel tuo carrello e resta bloccato per 10 minuti: il countdown è visibile nel pulsante "Riepilogo sessioni" in basso.',
+  },
+  {
+    title: 'Conferma nelle Prenotazioni',
+    description: 'Apri il riepilogo e vai a "Prenotazioni" prima che scada il tempo: se i 10 minuti passano senza conferma, il tavolo si libera automaticamente per gli altri.',
+  },
+]
+
+function BookingTutorial() {
+  return (
+    <div className="px-6 py-7 sm:px-8 sm:py-8">
+      <p className="dicefest-eyebrow">Come funziona</p>
+      <h2 className="mt-3 font-df-display text-2xl uppercase leading-tight text-dicefest-paper sm:text-3xl">
+        Prenotare un tavolo
+      </h2>
+      <p className="mt-3 font-df-body text-sm leading-relaxed text-dicefest-paper/75">
+        Dalla mappa alla conferma, ecco tutto il percorso in {TUTORIAL_STEPS.length} passi.
+      </p>
+
+      <ol className="mt-6 space-y-5">
+        {TUTORIAL_STEPS.map((step, idx) => (
+          <li key={step.title} className="flex gap-4">
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center border-2 border-dicefest-pink bg-dicefest-pink/10 font-df-display text-sm text-dicefest-pink">
+              {idx + 1}
+            </span>
+            <div className="min-w-0">
+              <p className="font-df-display text-base uppercase text-dicefest-paper">{step.title}</p>
+              <p className="mt-1 font-df-body text-sm leading-relaxed text-dicefest-paper/75">{step.description}</p>
+              {step.legend ? (
+                <ul className="mt-3 space-y-1.5">
+                  {step.legend.map((item) => (
+                    <li key={item.label} className="flex items-center gap-2.5">
+                      <span className={`h-4 w-6 shrink-0 border-2 ${item.swatch}`} aria-hidden="true" />
+                      <span className="font-df-body text-xs text-dicefest-paper/75">{item.label}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+            </div>
+          </li>
+        ))}
+      </ol>
     </div>
   )
 }

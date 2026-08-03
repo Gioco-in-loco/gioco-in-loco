@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { ParchmentCard, SigilDivider, EventMeta } from '../dice-fest/decorations'
 import RsvpButton from '../dice-fest/RsvpButton'
+import Countdown from '../dice-fest/Countdown'
 
 const EYEBROW_DATE_FORMATTER = new Intl.DateTimeFormat('it-IT', { day: 'numeric', month: 'long' })
 
@@ -130,12 +131,15 @@ export default function DiceFestPage({ event }) {
               </div>
 
               {/* Poster */}
-              <div className="relative mx-auto w-full max-w-[220px] sm:max-w-[260px] lg:max-w-none">
-                <img
-                  src="/images/events/dice-fest/locandina.jpg"
-                  alt="Locandina ufficiale del Dice Fest"
-                  className="relative w-full border-2 border-dicefest-paper shadow-df-hard-pink"
-                />
+              <div className="flex flex-col items-center gap-6">
+                <div className="relative mx-auto w-full max-w-[220px] sm:max-w-[260px] lg:max-w-none">
+                  <img
+                    src="/images/events/dice-fest/locandina.jpg"
+                    alt="Locandina ufficiale del Dice Fest"
+                    className="relative w-full border-2 border-dicefest-paper shadow-df-hard-pink"
+                  />
+                </div>
+                <Countdown startDate={event.startDate} className="w-full max-w-[260px] lg:max-w-none" />
               </div>
             </div>
 
