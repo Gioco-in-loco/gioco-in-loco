@@ -371,7 +371,7 @@ export default function DiceFestBookingPage({ event }) {
 
   return (
     <div className="dicefest-bg pb-24">
-      <div className="mx-auto max-w-7xl px-5 py-10 md:px-8 lg:px-10">
+      <div className="mx-auto max-w-screen-2xl px-5 py-10 md:px-8 lg:px-10">
         {/* HEADER */}
         <header className="fade-stagger">
           <p className="dicefest-eyebrow">Sessioni</p>

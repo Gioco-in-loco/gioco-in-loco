@@ -45,7 +45,7 @@ export default async function DiceFestBookingRoute() {
 function BookingFallback() {
   return (
     <div className="dicefest-bg">
-      <div className="mx-auto max-w-7xl px-5 py-10 md:px-8 lg:px-10">
+      <div className="mx-auto max-w-screen-2xl px-5 py-10 md:px-8 lg:px-10">
         <div className="dicefest-surface px-7 py-10">
           <p className="font-df-body text-sm text-dicefest-paper/75">Apertura delle sessioni in corso…</p>
         </div>
