@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import TableScheduleMap from './TableScheduleMap'
 import AddSlotDialog from './AddSlotDialog'
 import OneShotFormDialog from './OneShotFormDialog'
@@ -8,6 +8,29 @@ import EditOneShotDialog from './EditOneShotDialog'
 import MainEventFormDialog from './MainEventFormDialog'
 import EditMainEventDialog from './EditMainEventDialog'
 import SlotCellDialog from './SlotCellDialog'
+import { useToast } from '../../context/ToastContext'
+
+const EMPTY_FILTERS = { association: '', game: '', master: '' }
+
+function normalizeFilterValue(value) {
+  return String(value || '').trim().toLocaleLowerCase('it-IT')
+}
+
+function buildFilterOptions(values) {
+  const unique = new Map()
+
+  for (const value of values) {
+    const label = String(value || '').trim()
+    if (!label) continue
+
+    const key = normalizeFilterValue(label)
+    if (!unique.has(key)) {
+      unique.set(key, { value: key, label })
+    }
+  }
+
+  return Array.from(unique.values()).sort((left, right) => left.label.localeCompare(right.label, 'it'))
+}
 
 export default function EventTableMapPanel({
   eventId,
@@ -27,6 +50,7 @@ export default function EventTableMapPanel({
   mainEventsEndpointBase = '/api/admin/main-events',
   mainEventUploadEndpoint = '/api/admin/main-events/upload-image',
 }) {
+  const toast = useToast()
   const [slots, setSlots] = useState([])
   const [loadingSlots, setLoadingSlots] = useState(false)
   const [associations, setAssociations] = useState([])
@@ -37,16 +61,44 @@ export default function EventTableMapPanel({
   const [showCreateMainEvent, setShowCreateMainEvent] = useState(false)
   const [showEditMainEvent, setShowEditMainEvent] = useState(false)
   const [selectedSlot, setSelectedSlot] = useState(null)
+  const [filters, setFilters] = useState(EMPTY_FILTERS)
 
   const loadSlots = useCallback(async () => {
-    if (!eventId) { setSlots([]); return }
+    if (!eventId) { setSlots([]); return [] }
     setLoadingSlots(true)
     const res = await fetch(`${slotsEndpointBase}/${eventId}/slots`)
-    setSlots(res.ok ? await res.json() : [])
+    const data = res.ok ? await res.json() : []
+    setSlots(data)
     setLoadingSlots(false)
+    return data
   }, [eventId, slotsEndpointBase])
 
   useEffect(() => { loadSlots() }, [loadSlots])
+
+  // Rinfresca i dati dello slot mostrati dietro la dialog (mappa tavoli,
+  // conteggio prenotati) senza chiuderla — a differenza di onChanged, usato
+  // dopo assegnazioni/modifiche che concludono l'interazione con lo slot.
+  const refreshSlotsKeepingSelection = useCallback(async () => {
+    const data = await loadSlots()
+    setSelectedSlot((current) => (current ? data.find((s) => s.id === current.id) || current : current))
+  }, [loadSlots])
+
+  const handleMoveSlot = useCallback(async (sourceSlotId, targetSlotId) => {
+    const res = await fetch(`${slotsEndpointBase}/${eventId}/slots/move`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sourceSlotId, targetSlotId }),
+    })
+    const data = await res.json().catch(() => ({}))
+
+    if (!res.ok) {
+      toast.error(data.error || 'Spostamento non riuscito.')
+      return
+    }
+
+    toast.success(data.swapped ? 'Sessioni scambiate.' : 'Sessione spostata.')
+    loadSlots()
+  }, [eventId, slotsEndpointBase, toast, loadSlots])
 
   useEffect(() => {
     if (!associationsEndpoint) return undefined
@@ -72,6 +124,32 @@ export default function EventTableMapPanel({
     if (!cell.oneshotId) return true
     return cell.associationId === fixedAssociation.id
   }, [fixedAssociation, canManageSlot, canManageMainEvents])
+
+  const filterOptions = useMemo(() => ({
+    associations: buildFilterOptions(slots.filter((s) => s.oneshotId).map((s) => s.associationName)),
+    games: buildFilterOptions(slots.map((s) => s.oneshotGame || s.mainEventGame)),
+    masters: buildFilterOptions(slots.filter((s) => s.oneshotId).map((s) => s.oneshotMaster)),
+  }), [slots])
+
+  const hasActiveFilters = Object.values(filters).some(Boolean)
+
+  // Le sessioni che non corrispondono ai filtri si oscurano ma restano al
+  // loro posto in griglia (come nella mappa pubblica): admin/responsabile
+  // devono poter continuare a vedere e gestire la struttura completa della
+  // sala, i filtri servono solo a far risaltare quello che stanno cercando.
+  const isSlotDimmed = useCallback((cell) => {
+    if (!hasActiveFilters) return false
+
+    const game = cell.oneshotId ? cell.oneshotGame : cell.mainEventGame
+    const association = cell.oneshotId ? cell.associationName : null
+    const master = cell.oneshotId ? cell.oneshotMaster : null
+
+    if (filters.association && normalizeFilterValue(association) !== filters.association) return true
+    if (filters.game && normalizeFilterValue(game) !== filters.game) return true
+    if (filters.master && normalizeFilterValue(master) !== filters.master) return true
+
+    return false
+  }, [filters, hasActiveFilters])
 
   return (
     <div className="space-y-4 rounded-xl border border-editorial-border bg-white p-6 shadow-soft">
@@ -124,10 +202,70 @@ export default function EventTableMapPanel({
               </button>
             </>
           ) : null}
+          {canManageSlot ? (
+            <a
+              href={`${slotsEndpointBase}/${eventId}/slots/export`}
+              className="rounded-lg border border-editorial-forest px-3 py-2 font-body text-xs font-semibold text-editorial-forest transition-colors hover:bg-editorial-forest/10"
+            >
+              Esporta Excel
+            </a>
+          ) : null}
         </div>
       </div>
 
-      <TableScheduleMap slots={slots} loading={loadingSlots} onCellClick={setSelectedSlot} isCellClickable={isCellClickable} />
+      <div className="flex flex-wrap items-end gap-3 rounded-lg border border-editorial-border bg-editorial-bg/30 p-3">
+        <div>
+          <label className="mb-1 block font-body text-[11px] font-semibold uppercase tracking-wider text-editorial-text-muted">Associazione</label>
+          <select
+            value={filters.association}
+            onChange={(e) => setFilters((current) => ({ ...current, association: e.target.value }))}
+            className="rounded-lg border border-editorial-border px-3 py-1.5 font-body text-sm text-editorial-text outline-none focus:border-editorial-terra"
+          >
+            <option value="">Tutte</option>
+            {filterOptions.associations.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+          </select>
+        </div>
+        <div>
+          <label className="mb-1 block font-body text-[11px] font-semibold uppercase tracking-wider text-editorial-text-muted">Gioco</label>
+          <select
+            value={filters.game}
+            onChange={(e) => setFilters((current) => ({ ...current, game: e.target.value }))}
+            className="rounded-lg border border-editorial-border px-3 py-1.5 font-body text-sm text-editorial-text outline-none focus:border-editorial-terra"
+          >
+            <option value="">Tutti</option>
+            {filterOptions.games.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+          </select>
+        </div>
+        <div>
+          <label className="mb-1 block font-body text-[11px] font-semibold uppercase tracking-wider text-editorial-text-muted">Master</label>
+          <select
+            value={filters.master}
+            onChange={(e) => setFilters((current) => ({ ...current, master: e.target.value }))}
+            className="rounded-lg border border-editorial-border px-3 py-1.5 font-body text-sm text-editorial-text outline-none focus:border-editorial-terra"
+          >
+            <option value="">Tutti</option>
+            {filterOptions.masters.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+          </select>
+        </div>
+        <button
+          type="button"
+          onClick={() => setFilters(EMPTY_FILTERS)}
+          disabled={!hasActiveFilters}
+          className="rounded-lg border border-editorial-border px-3 py-1.5 font-body text-xs font-semibold text-editorial-text transition-colors hover:border-editorial-terra disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          Reset filtri
+        </button>
+      </div>
+
+      <TableScheduleMap
+        slots={slots}
+        loading={loadingSlots}
+        onCellClick={setSelectedSlot}
+        isCellClickable={isCellClickable}
+        onMoveSlot={handleMoveSlot}
+        canDragAssignments={canManageSlot}
+        isDimmed={isSlotDimmed}
+      />
 
       {canAddSlot ? (
         <AddSlotDialog
@@ -205,6 +343,7 @@ export default function EventTableMapPanel({
         mainEventsEndpointBase={mainEventsEndpointBase}
         mainEventUploadEndpoint={mainEventUploadEndpoint}
         onChanged={() => { setSelectedSlot(null); loadSlots() }}
+        onReservationsChanged={refreshSlotsKeepingSelection}
       />
     </div>
   )

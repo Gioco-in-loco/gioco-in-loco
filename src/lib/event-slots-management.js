@@ -1,7 +1,8 @@
 import { prisma } from './prisma'
 import { createSupabaseServiceClient, isServiceRoleConfigured } from './supabase/service'
 
-export const WEEK_DAYS = new Set(['Lunedi', 'Martedi', 'Mercoledi', 'Giovedi', 'Venerdi', 'Sabato', 'Domenica'])
+const WEEK_DAY_ORDER = ['Lunedi', 'Martedi', 'Mercoledi', 'Giovedi', 'Venerdi', 'Sabato', 'Domenica']
+export const WEEK_DAYS = new Set(WEEK_DAY_ORDER)
 export const TIME_SLOT_REGEX = /^([01]\d|2[0-3]):[0-5]\d-([01]\d|2[0-3]):[0-5]\d$/
 const ACTIVE_RESERVATION_STATUSES = ['PENDING', 'CONFIRMED', 'ATTENDED']
 const ACTIVE_MAIN_EVENT_RESERVATION_STATUSES = ['PENDING', 'CONFIRMED', 'ATTENDED']
@@ -96,9 +97,9 @@ export async function listEventSlots({ eventId }) {
       adminOnly: true,
       isVisible: true,
       oneshotId: true,
-      oneshot: { select: { title: true, master: true, association: { select: { id: true, name: true } } } },
+      oneshot: { select: { title: true, master: true, game: true, association: { select: { id: true, name: true } } } },
       mainEventId: true,
-      mainEvent: { select: { title: true } },
+      mainEvent: { select: { title: true, game: true } },
       reservations: { where: { status: { in: ACTIVE_RESERVATION_STATUSES } }, select: { id: true } },
     },
   })
@@ -138,10 +139,12 @@ export async function listEventSlots({ eventId }) {
       oneshotId: slot.oneshotId,
       oneshotTitle: slot.oneshot?.title || null,
       oneshotMaster: slot.oneshot?.master || null,
+      oneshotGame: slot.oneshot?.game || null,
       associationId: slot.oneshot?.association?.id || null,
       associationName: slot.oneshot?.association?.name || null,
       mainEventId: slot.mainEventId,
       mainEventTitle: slot.mainEvent?.title || null,
+      mainEventGame: slot.mainEvent?.game || null,
       groupMaxPlayers: mainEventGroupKey ? groupCapacity.get(mainEventGroupKey) : null,
       reservationsCount: slot.oneshotId
         ? (slot.reservations?.length || 0)
@@ -349,4 +352,171 @@ export async function deleteEventSlot({ eventId, slotId }) {
   }
 
   await prisma.eventSlot.delete({ where: { id: slotId } })
+}
+
+// Un main event mette in comune più tavoli nella stessa fascia (la capienza è
+// la somma dei posti dei tavoli assegnati): spostare un tavolo fuori dal
+// gruppo riduce quella somma, quindi va bloccato se scenderebbe sotto le
+// prenotazioni già confermate sul gruppo (le prenotazioni main event non sono
+// legate a un tavolo preciso, ma al gruppo mainEvent+giorno+fascia).
+async function assertMainEventCapacityAfterRemoval(tx, { mainEventId, eventId, day, slotTime, removedSlotId }) {
+  const [groupSlots, reservationCount] = await Promise.all([
+    tx.eventSlot.findMany({
+      where: { mainEventId, eventId, day, slot: slotTime },
+      select: { id: true, maxPlayers: true },
+    }),
+    tx.mainEventReservation.count({
+      where: { mainEventId, eventId, day, slot: slotTime, status: { in: ACTIVE_MAIN_EVENT_RESERVATION_STATUSES } },
+    }),
+  ])
+
+  const remainingCapacity = groupSlots
+    .filter((groupSlot) => groupSlot.id !== removedSlotId)
+    .reduce((sum, groupSlot) => sum + groupSlot.maxPlayers, 0)
+
+  if (remainingCapacity < reservationCount) {
+    throw createHttpError(409, 'Non puoi spostare questo tavolo: la capienza rimanente del main event scenderebbe sotto le prenotazioni già confermate.')
+  }
+}
+
+// Una one-shot non può avere due tavoli nello stesso giorno+fascia (stessa
+// regola applicata in oneshots-management.js quando si assegnano gli slot a
+// mano): spostare un tavolo su un giorno/fascia dove quella one-shot è già
+// presente altrove va bloccato.
+async function assertNoOneshotDayTimeConflict(tx, { oneshotId, day, slotTime, excludeSlotId }) {
+  const conflict = await tx.eventSlot.findFirst({
+    where: { oneshotId, day, slot: slotTime, id: { not: excludeSlotId } },
+    select: { id: true },
+  })
+  if (conflict) {
+    throw createHttpError(409, 'Questa one-shot ha già un tavolo nello stesso giorno e fascia oraria.')
+  }
+}
+
+// Drag & drop nella mappa tavoli: sposta l'assegnazione (one-shot o main
+// event) da un tavolo a un altro dello STESSO giorno (la griglia mostra un
+// giorno alla volta) — anche tra fasce orarie diverse. Se il tavolo di
+// destinazione è libero la sessione si sposta; se è occupato le due sessioni
+// si scambiano di tavolo.
+export async function moveEventSlotAssignment({ eventId, sourceSlotId, targetSlotId }) {
+  if (!eventId || !sourceSlotId || !targetSlotId) {
+    throw createHttpError(400, 'Richiesta non valida.')
+  }
+  if (sourceSlotId === targetSlotId) {
+    throw createHttpError(400, 'Seleziona due tavoli diversi.')
+  }
+
+  const selectSlot = {
+    id: true,
+    day: true,
+    slot: true,
+    maxPlayers: true,
+    oneshotId: true,
+    mainEventId: true,
+    reservations: { where: { status: { in: ACTIVE_RESERVATION_STATUSES } }, select: { id: true } },
+  }
+
+  return prisma.$transaction(async (tx) => {
+    const [source, target] = await Promise.all([
+      tx.eventSlot.findFirst({ where: { id: sourceSlotId, eventId }, select: selectSlot }),
+      tx.eventSlot.findFirst({ where: { id: targetSlotId, eventId }, select: selectSlot }),
+    ])
+
+    if (!source || !target) {
+      throw createHttpError(404, 'Tavolo non trovato.')
+    }
+
+    if (!source.oneshotId && !source.mainEventId) {
+      throw createHttpError(400, 'Questo tavolo non ha una sessione da spostare.')
+    }
+
+    if (source.day !== target.day) {
+      throw createHttpError(400, 'Puoi spostare una sessione solo tra tavoli dello stesso giorno.')
+    }
+
+    if (source.reservations.length > 0 || target.reservations.length > 0) {
+      throw createHttpError(409, 'Non puoi spostare una sessione: uno dei due tavoli ha prenotazioni attive.')
+    }
+
+    const isSwap = Boolean(target.oneshotId || target.mainEventId)
+
+    if (source.oneshotId) {
+      await assertNoOneshotDayTimeConflict(tx, {
+        oneshotId: source.oneshotId, day: target.day, slotTime: target.slot, excludeSlotId: source.id,
+      })
+    }
+    if (isSwap && target.oneshotId) {
+      await assertNoOneshotDayTimeConflict(tx, {
+        oneshotId: target.oneshotId, day: source.day, slotTime: source.slot, excludeSlotId: target.id,
+      })
+    }
+
+    if (source.mainEventId && source.mainEventId !== target.mainEventId) {
+      await assertMainEventCapacityAfterRemoval(tx, {
+        mainEventId: source.mainEventId, eventId, day: source.day, slotTime: source.slot, removedSlotId: source.id,
+      })
+    }
+    if (isSwap && target.mainEventId && target.mainEventId !== source.mainEventId) {
+      await assertMainEventCapacityAfterRemoval(tx, {
+        mainEventId: target.mainEventId, eventId, day: target.day, slotTime: target.slot, removedSlotId: target.id,
+      })
+    }
+
+    await tx.eventSlot.update({
+      where: { id: targetSlotId },
+      data: { oneshotId: source.oneshotId, mainEventId: source.mainEventId },
+    })
+    await tx.eventSlot.update({
+      where: { id: sourceSlotId },
+      data: { oneshotId: isSwap ? target.oneshotId : null, mainEventId: isSwap ? target.mainEventId : null },
+    })
+
+    return { swapped: isSwap }
+  })
+}
+
+function weekDayIndex(day) {
+  const idx = WEEK_DAY_ORDER.indexOf(day)
+  return idx === -1 ? 999 : idx
+}
+
+// Righe per l'export Excel delle sessioni GDR (one-shot) di un evento: una
+// riga per tavolo/fascia assegnati, con i giocatori attivi in ordine di
+// prenotazione. I main event non hanno un master/giocatori per tavolo (la
+// capienza è aggregata sul gruppo, non sul singolo posto), quindi restano
+// fuori da questo export.
+export async function listSessionsForExport({ eventId }) {
+  if (!eventId) return []
+
+  const slots = await prisma.eventSlot.findMany({
+    where: { eventId, oneshotId: { not: null } },
+    select: {
+      day: true,
+      slot: true,
+      table: true,
+      oneshot: { select: { title: true, master: true } },
+      reservations: {
+        where: { status: { in: ACTIVE_RESERVATION_STATUSES } },
+        orderBy: { createdAt: 'asc' },
+        select: { playerName: true, playerEmail: true },
+      },
+    },
+  })
+
+  return slots
+    .map((slot) => ({
+      day: slot.day,
+      slot: slot.slot,
+      table: slot.table,
+      title: slot.oneshot?.title || '',
+      master: slot.oneshot?.master || '',
+      players: slot.reservations.map((reservation) => reservation.playerName || reservation.playerEmail || ''),
+    }))
+    .sort((left, right) => {
+      const dayDiff = weekDayIndex(left.day) - weekDayIndex(right.day)
+      if (dayDiff !== 0) return dayDiff
+      const slotDiff = left.slot.localeCompare(right.slot, undefined, { numeric: true })
+      if (slotDiff !== 0) return slotDiff
+      return left.table.localeCompare(right.table, undefined, { numeric: true })
+    })
 }

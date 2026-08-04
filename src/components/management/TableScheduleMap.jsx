@@ -9,7 +9,9 @@ function dayIndex(day) {
   return idx === -1 ? 999 : idx
 }
 
-export default function TableScheduleMap({ slots, loading, onCellClick, isCellClickable }) {
+export default function TableScheduleMap({ slots, loading, onCellClick, isCellClickable, onMoveSlot, canDragAssignments = false, isDimmed }) {
+  const [dragSource, setDragSource] = useState(null)
+  const [dropTargetId, setDropTargetId] = useState(null)
   const days = useMemo(() => {
     const unique = Array.from(new Set(slots.map((slot) => slot.day)))
     return unique.sort((left, right) => dayIndex(left) - dayIndex(right))
@@ -85,6 +87,12 @@ export default function TableScheduleMap({ slots, loading, onCellClick, isCellCl
         </span>
       </div>
 
+      {canDragAssignments ? (
+        <p className="font-body text-xs text-editorial-text-muted">
+          Trascina una sessione su un altro tavolo dello stesso giorno (anche in una fascia oraria diversa) per spostarla; se il tavolo di destinazione è occupato, le due sessioni si scambiano.
+        </p>
+      ) : null}
+
       {tables.length === 0 || timeSlots.length === 0 ? (
         <p className="rounded-xl border border-editorial-border bg-white px-4 py-6 text-center font-body text-sm text-editorial-text-muted">
           Nessuno slot per questo giorno.
@@ -129,15 +137,50 @@ export default function TableScheduleMap({ slots, loading, onCellClick, isCellCl
                   const clickable = Boolean(onCellClick) && (!isCellClickable || isCellClickable(cell))
                   const capacity = isMainEvent ? (cell.groupMaxPlayers ?? cell.maxPlayers) : cell.maxPlayers
 
+                  const draggable = canDragAssignments && isAssigned
+                  const isDragSource = dragSource?.id === cell.id
+                  // Il componente mostra sempre e solo il giorno attivo, quindi
+                  // qualunque altra cella con uno slot è un bersaglio valido —
+                  // anche in una fascia oraria diversa da quella di partenza.
+                  const isDropCandidate = Boolean(canDragAssignments && dragSource && dragSource.id !== cell.id)
+                  const isDropTarget = isDropCandidate && dropTargetId === cell.id
+                  const dimmed = isAssigned && Boolean(isDimmed?.(cell))
+
                   return (
                     <button
                       key={`${table}-${slotTime}`}
                       type="button"
                       onClick={() => { if (clickable) onCellClick(cell) }}
                       disabled={!clickable}
-                      className={`w-full border-t border-editorial-border px-3 py-2 text-left transition-shadow disabled:cursor-default ${
+                      draggable={draggable}
+                      onDragStart={(e) => {
+                        e.dataTransfer.effectAllowed = 'move'
+                        e.dataTransfer.setData('text/plain', cell.id)
+                        setDragSource({ id: cell.id, slotTime })
+                      }}
+                      onDragEnd={() => { setDragSource(null); setDropTargetId(null) }}
+                      onDragOver={(e) => {
+                        if (!isDropCandidate) return
+                        e.preventDefault()
+                        e.dataTransfer.dropEffect = 'move'
+                        setDropTargetId(cell.id)
+                      }}
+                      onDragLeave={() => setDropTargetId((current) => (current === cell.id ? null : current))}
+                      onDrop={(e) => {
+                        e.preventDefault()
+                        const sourceId = dragSource?.id || e.dataTransfer.getData('text/plain')
+                        setDropTargetId(null)
+                        setDragSource(null)
+                        if (!sourceId || sourceId === cell.id || !isDropCandidate) return
+                        onMoveSlot?.(sourceId, cell.id)
+                      }}
+                      className={`w-full border-t border-editorial-border px-3 py-2 text-left transition-all disabled:cursor-default ${
                         isAssigned ? 'bg-editorial-forest/5' : 'bg-editorial-bg/40'
-                      } ${cell.isVisible === false ? 'opacity-60' : ''} ${clickable ? 'cursor-pointer hover:ring-2 hover:ring-inset hover:ring-editorial-terra' : ''}`}
+                      } ${cell.isVisible === false ? 'opacity-60' : ''} ${dimmed ? 'opacity-30 grayscale' : ''} ${clickable ? 'cursor-pointer hover:ring-2 hover:ring-inset hover:ring-editorial-terra' : ''} ${
+                        draggable ? 'cursor-grab active:cursor-grabbing' : ''
+                      } ${isDragSource ? 'opacity-40' : ''} ${isDropCandidate ? 'ring-1 ring-dashed ring-editorial-terra/40' : ''} ${
+                        isDropTarget ? 'ring-2 ring-editorial-terra bg-editorial-terra/10' : ''
+                      }`}
                     >
                       {isAssigned ? (
                         <>

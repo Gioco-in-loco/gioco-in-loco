@@ -27,6 +27,7 @@ export default function SlotCellDialog({
   mainEventsEndpointBase = '/api/admin/main-events',
   mainEventUploadEndpoint = '/api/admin/main-events/upload-image',
   onChanged,
+  onReservationsChanged,
 }) {
   const toast = useToast()
   const defaultTab = (slotArg) => {
@@ -617,6 +618,13 @@ export default function SlotCellDialog({
               onRefresh={async () => {
                 const res = await fetch(`${slotsEndpointBase}/${eventId}/slots/${slot.id}`, { cache: 'no-store' })
                 if (res.ok) setSlotReservations(await res.json())
+                // La lista prenotati qui sopra si aggiorna da sola, ma il
+                // conteggio "Prenotati (N)" nella tab, il blocco "elimina
+                // slot" e il badge nella mappa tavoli sotto la dialog usano
+                // tutti lo snapshot dello slot passato dal pannello padre:
+                // senza questo, restano coi vecchi numeri finché non si
+                // chiude e riapre la dialog (o si ricarica la pagina).
+                onReservationsChanged?.()
               }}
             />
           ) : (
