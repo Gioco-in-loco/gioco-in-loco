@@ -180,10 +180,10 @@ export async function getPublicMainEvents({ eventId, db = prisma } = {}) {
   await releaseExpiredMainEventHolds({ db, eventId })
 
   const mainEvents = await db.mainEvent.findMany({
-    where: { slots: { some: eventId ? { eventId } : {} } },
+    where: { slots: { some: { isVisible: true, ...(eventId ? { eventId } : {}) } } },
     include: {
       slots: {
-        where: eventId ? { eventId } : {},
+        where: { isVisible: true, ...(eventId ? { eventId } : {}) },
         select: { day: true, slot: true, table: true, maxPlayers: true, eventId: true },
       },
     },
@@ -237,7 +237,7 @@ export async function getPublicMainEvent(mainEventId, { eventId, db = prisma } =
     where: { id: mainEventId },
     include: {
       slots: {
-        where: eventId ? { eventId } : {},
+        where: { isVisible: true, ...(eventId ? { eventId } : {}) },
         select: { day: true, slot: true, maxPlayers: true, eventId: true },
       },
     },

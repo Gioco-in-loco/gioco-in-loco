@@ -280,6 +280,7 @@ export async function handleAddEventCartSlot(request, { eventId, displayName }) 
       const selectedSlot = await tx.eventSlot.findFirst({
         where: {
           id: slotId,
+          isVisible: true,
           oneshot: {
             eventLinks: {
               some: { eventId: event.id },
@@ -495,7 +496,7 @@ export async function handleAddEventCartMainEventSlot(request, { eventId, displa
       }
 
       const sessionSlots = await tx.eventSlot.findMany({
-        where: { mainEventId, eventId: event.id, day, slot },
+        where: { mainEventId, eventId: event.id, day, slot, isVisible: true },
         select: { maxPlayers: true },
       })
       const sessionCapacity = sessionSlots.reduce((sum, s) => sum + s.maxPlayers, 0)

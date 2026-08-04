@@ -79,6 +79,10 @@ export default function TableScheduleMap({ slots, loading, onCellClick, isCellCl
           <span className="inline-block h-3 w-3 rounded-sm border border-dashed border-editorial-border bg-editorial-bg" />
           Libero
         </span>
+        <span className="flex items-center gap-1.5">
+          <span className="inline-block h-3 w-3 rounded-sm border border-editorial-border bg-editorial-text-muted/20 opacity-60" />
+          Nascosto agli utenti
+        </span>
       </div>
 
       {tables.length === 0 || timeSlots.length === 0 ? (
@@ -133,12 +137,15 @@ export default function TableScheduleMap({ slots, loading, onCellClick, isCellCl
                       disabled={!clickable}
                       className={`w-full border-t border-editorial-border px-3 py-2 text-left transition-shadow disabled:cursor-default ${
                         isAssigned ? 'bg-editorial-forest/5' : 'bg-editorial-bg/40'
-                      } ${clickable ? 'cursor-pointer hover:ring-2 hover:ring-inset hover:ring-editorial-terra' : ''}`}
+                      } ${cell.isVisible === false ? 'opacity-60' : ''} ${clickable ? 'cursor-pointer hover:ring-2 hover:ring-inset hover:ring-editorial-terra' : ''}`}
                     >
                       {isAssigned ? (
                         <>
-                          <p className="font-body text-[10px] font-semibold uppercase tracking-wider text-editorial-terra">
+                          <p className="flex items-center gap-1.5 font-body text-[10px] font-semibold uppercase tracking-wider text-editorial-terra">
                             {isOneShot ? 'One shot' : 'Main event'}
+                            {cell.isVisible === false ? (
+                              <span className="rounded bg-editorial-text-muted/20 px-1.5 py-0.5 text-editorial-text-muted normal-case tracking-normal">Nascosto</span>
+                            ) : null}
                           </p>
                           <p className="font-body text-sm font-semibold text-editorial-text">{isOneShot ? (cell.oneshotTitle || 'One shot') : (cell.mainEventTitle || 'Main event')}</p>
                           {isOneShot && cell.oneshotMaster ? (
@@ -153,7 +160,7 @@ export default function TableScheduleMap({ slots, loading, onCellClick, isCellCl
                         </>
                       ) : (
                         <p className="font-body text-xs text-editorial-text-muted">
-                          Libero · {cell.maxPlayers} posti{cell.adminOnly ? ' · Riservato admin' : ''}
+                          Libero · {cell.maxPlayers} posti{cell.adminOnly ? ' · Riservato admin' : ''}{cell.isVisible === false ? ' · Nascosto' : ''}
                         </p>
                       )}
                     </button>

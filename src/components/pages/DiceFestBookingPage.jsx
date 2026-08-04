@@ -1272,7 +1272,7 @@ const BookingOrderSummary = memo(function BookingOrderSummary({ cartState, mainC
     return (
       <Wrapper {...wrapperProps}>
         <div className="px-6 py-6 text-center">
-          <h3 className="font-df-display text-lg uppercase text-dicefest-paper">Le tue sessioni</h3>
+          <h3 className="font-df-display text-lg uppercase text-dicefest-paper">Le tue prenotazioni</h3>
           <p className="mt-2 font-df-body text-sm leading-relaxed text-dicefest-paper/75">
             Accedi per prenotare il tuo posto al tavolo.
           </p>
@@ -1319,7 +1319,7 @@ const BookingOrderSummary = memo(function BookingOrderSummary({ cartState, mainC
     <Wrapper {...wrapperProps}>
       <div className="px-6 py-6">
         <div className="flex items-center justify-between gap-3">
-          <h3 className="font-df-display text-lg uppercase text-dicefest-paper">Le tue sessioni</h3>
+          <h3 className="font-df-display text-lg uppercase text-dicefest-paper">Le tue prenotazioni</h3>
           {timeRemaining ? (
             <span className={`font-df-display text-base ${lowTime ? 'text-dicefest-pink' : 'text-dicefest-green'}`}>
               {timeRemaining}
@@ -1354,7 +1354,7 @@ const BookingOrderSummary = memo(function BookingOrderSummary({ cartState, mainC
         ) : null}
 
         <Link href="/dice-fest/carrello" className="dicefest-btn-primary mt-5 w-full">
-          Conferma le tue sessioni
+          Conferma la tua prenotazione
         </Link>
 
         <p className="mt-3 text-center font-df-body text-[11px] leading-relaxed text-dicefest-paper/50">

@@ -1,0 +1,1 @@
+ALTER TABLE "event_slots" ADD COLUMN "isVisible" BOOLEAN NOT NULL DEFAULT true;

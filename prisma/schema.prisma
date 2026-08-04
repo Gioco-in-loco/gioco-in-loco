@@ -295,6 +295,7 @@ model EventSlot {
   table       String    // "Tavolo 7"
   maxPlayers  Int       @default(5)
   adminOnly   Boolean   @default(false)
+  isVisible   Boolean   @default(true)
   eventId     String
   oneshotId   String?
   mainEventId String?

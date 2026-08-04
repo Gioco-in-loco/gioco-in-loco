@@ -4,7 +4,7 @@ import { useState } from 'react'
 import Modal from './Modal'
 import { useToast } from '../../context/ToastContext'
 
-const EMPTY_FORM = { day: '', slot: '', table: '', maxPlayers: 5, quantity: 1, tableStart: 1, adminOnly: false }
+const EMPTY_FORM = { day: '', slot: '', table: '', maxPlayers: 5, quantity: 1, tableStart: 1, adminOnly: false, isVisible: true }
 
 export default function AddSlotDialog({ open, onClose, eventId, eventDays, eventTimeSlots, slotsEndpointBase, onCreated }) {
   const toast = useToast()
@@ -34,6 +34,7 @@ export default function AddSlotDialog({ open, onClose, eventId, eventDays, event
         quantity: Number(form.quantity) || 1,
         tableStart: Number(form.tableStart) || 1,
         adminOnly: Boolean(form.adminOnly),
+        isVisible: Boolean(form.isVisible),
       }),
     })
     const data = await res.json().catch(() => ({}))
@@ -116,6 +117,15 @@ export default function AddSlotDialog({ open, onClose, eventId, eventDays, event
             onChange={(e) => setForm((current) => ({ ...current, adminOnly: e.target.checked }))}
           />
           Riservato all&apos;amministratore (il responsabile non potrà assegnarlo)
+        </label>
+
+        <label className="flex items-center gap-2 font-body text-sm text-editorial-text">
+          <input
+            type="checkbox"
+            checked={form.isVisible}
+            onChange={(e) => setForm((current) => ({ ...current, isVisible: e.target.checked }))}
+          />
+          Visibile agli utenti per la prenotazione
         </label>
 
         <div className="flex gap-2 pt-2">

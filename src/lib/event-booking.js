@@ -567,6 +567,7 @@ export const getBookableEventData = cache(async function getBookableEventData(ev
                 },
               },
               slots: {
+                where: { isVisible: true },
                 select: {
                   id: true,
                   day: true,
@@ -647,6 +648,7 @@ export async function isDayFullyBooked(eventId, day) {
       eventId,
       day,
       oneshotId: { not: null },
+      isVisible: true,
     },
     select: { id: true, maxPlayers: true },
   })
