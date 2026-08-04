@@ -121,7 +121,6 @@ export default function DiceFestBookingPage({ event }) {
       const payload = await response.json().catch(() => ({}))
       if (!response.ok) throw new Error(payload.error || 'Impossibile prenotare il tavolo.')
       setCartState({ loading: false, ...payload })
-      toast.success(`Tavolo prenotato per 10 minuti: ${slot.day} · ${slot.slot}.`)
     } catch (err) {
       const msg = err.message || 'Impossibile prenotare il tavolo.'
       setRequestError(msg)
@@ -221,7 +220,6 @@ export default function DiceFestBookingPage({ event }) {
       if (!response.ok) throw new Error(payload.error || 'Impossibile prenotare il posto.')
       setCartState({ loading: false, ...payload })
       updateMainEventSessionCount(session, 1)
-      toast.success('Posto prenotato per 10 minuti.')
     } catch (err) {
       const msg = err.message || 'Impossibile prenotare il posto.'
       setRequestError(msg)
