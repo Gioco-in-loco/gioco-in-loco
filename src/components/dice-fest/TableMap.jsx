@@ -164,7 +164,7 @@ export default function TableMap({ entries, activeDay, onChangeDay, renderCell, 
           <div className={`dicefest-table-scroll hidden ${viewMode === 'table' ? 'lg:block' : ''}`}>
             <div
               className="grid min-w-max"
-              style={{ gridTemplateColumns: `104px repeat(${timeSlots.length}, minmax(148px, 1fr))` }}
+              style={{ gridTemplateColumns: `84px repeat(${timeSlots.length}, minmax(132px, 1fr))` }}
             >
               <div className="dicefest-table__corner">Tavolo</div>
               {timeSlots.map((slotTime) => (

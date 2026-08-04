@@ -2610,7 +2610,7 @@ select.form-input {
   z-index: 20;
   display: flex;
   align-items: center;
-  padding: 0.45rem 0.6rem;
+  padding: 0.45rem 0.4rem;
   background: var(--df-ink);
   border-bottom: 1px solid var(--df-border);
   border-right: 1px solid var(--df-border);
@@ -2644,12 +2644,12 @@ select.form-input {
   z-index: 10;
   display: flex;
   align-items: center;
-  padding: 0.5rem 0.6rem;
+  padding: 0.5rem 0.4rem;
   background: var(--df-surface);
   border-top: 1px solid var(--df-border);
   border-right: 1px solid var(--df-border);
   font-family: 'Anton', sans-serif;
-  font-size: 0.85rem;
+  font-size: 0.78rem;
   color: var(--df-paper);
   white-space: nowrap;
 }

@@ -362,7 +362,7 @@ export default function Sidebar({ onNavigate, upcomingEvent }) {
       )}
 
       {/* Desktop Sidebar */}
-      <aside className={`fixed top-0 left-0 h-full w-72 hidden sm:flex flex-col ${theme.wrapper}`}>
+      <aside className={`fixed top-0 left-0 h-full w-72 hidden sm:flex flex-col overflow-y-auto ${theme.wrapper}`}>
         <div className={`p-6 pb-4 flex justify-center ${theme.header}`}>
           <button onClick={() => handleNavigation('/')} className="hover:opacity-80 transition-opacity flex flex-col items-center">
             <span className={theme.logoDesktop}>GIOCO</span>

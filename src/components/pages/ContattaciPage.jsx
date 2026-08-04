@@ -112,7 +112,7 @@ export default function ContattaciPage() {
             <div className="rounded-2xl border border-editorial-gold/40 bg-editorial-gold/10 p-5">
               <p className="font-body text-[10px] font-bold uppercase tracking-[0.22em] text-editorial-text-muted">Cosa non scrivere qui</p>
               <p className="mt-1.5 font-body text-xs leading-relaxed text-editorial-text-secondary">
-                Per cancellare una prenotazione usa l&apos;area <Link href="/account/bookings" className="font-semibold text-editorial-terra hover:underline">Le mie prenotazioni</Link>. Questo modulo è solo per comunicazioni al collettivo.
+                Per cancellare una prenotazione usa l&apos;area <Link href="/account/prenotazioni" className="font-semibold text-editorial-terra hover:underline">Le mie prenotazioni</Link>. Questo modulo è solo per comunicazioni al collettivo.
               </p>
             </div>
           </aside>
