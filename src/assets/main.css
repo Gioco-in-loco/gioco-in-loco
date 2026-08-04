@@ -2683,18 +2683,6 @@ select.form-input {
   filter: grayscale(0.4);
 }
 
-.dicefest-table__empty {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  min-height: 3.25rem;
-  font-family: 'Space Mono', monospace;
-  font-size: 0.7rem;
-  color: var(--df-paper);
-  opacity: 0.35;
-}
-
 .dicefest-timeslot {
   display: inline-flex;
   align-items: baseline;

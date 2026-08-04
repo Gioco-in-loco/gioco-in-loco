@@ -1050,7 +1050,6 @@ const TUTORIAL_STEPS = [
     title: 'Leggi i colori dei tavoli',
     description: 'Ogni riquadro è un tavolo in una fascia oraria: il colore ti dice a che punto sei con quella sessione.',
     legend: [
-      { swatch: 'bg-dicefest-surface-2 border-dicefest-border', label: 'Libero — puoi prenotarlo' },
       { swatch: 'bg-dicefest-pink/10 border-dicefest-pink', label: 'Nel carrello — bloccato per te per 10 minuti' },
       { swatch: 'bg-dicefest-green/10 border-dicefest-green', label: 'Confermato' },
       { swatch: 'bg-dicefest-surface border-dicefest-border opacity-60 grayscale', label: 'Pieno' },

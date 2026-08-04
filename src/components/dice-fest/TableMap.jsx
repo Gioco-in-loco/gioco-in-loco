@@ -56,7 +56,7 @@ function dayIndex(day) {
 // fantasy/parchment booking page. Callers own all business logic: each entry
 // in `entries` is `{ slot: { day, slot, table, ... }, ... }` and `renderCell`
 // decides what a cell looks like and does when clicked.
-export default function TableMap({ entries, hiddenSlots = [], activeDay, onChangeDay, renderCell, isDimmed, emptyLabel = 'Libero' }) {
+export default function TableMap({ entries, hiddenSlots = [], activeDay, onChangeDay, renderCell, isDimmed }) {
   // Below `lg` there's never room for the grid (see the comment on the
   // desktop block below), so the toggle only matters — and is only shown —
   // from `lg` up. Defaults to the grid to keep current desktop behaviour.
@@ -214,17 +214,16 @@ export default function TableMap({ entries, hiddenSlots = [], activeDay, onChang
                   {timeSlots.map((slotTime) => {
                     const entry = cellMap.get(`${table}__${slotTime}`)
                     const dimmed = entry && isDimmed ? isDimmed(entry) : false
-                    const isHidden = !entry && hiddenCellSet.has(`${table}__${slotTime}`)
 
+                    // Un utente non può prenotare un tavolo "a vuoto": qui non
+                    // esiste una vera azione su una cella libera, quindi anche
+                    // le celle senza sessione annunciata mostrano "Presto in
+                    // arrivo" invece di "Libero" — non solo quelle esplicitamente
+                    // nascoste, dato che dal punto di vista dell'utente sono
+                    // indistinguibili (in entrambi i casi non c'è nulla da fare).
                     return (
                       <div key={`${table}__${slotTime}`} className={`dicefest-table__cell ${dimmed ? 'dicefest-table__cell--dimmed' : ''}`}>
-                        {entry ? (
-                          renderCell(entry)
-                        ) : isHidden ? (
-                          <ComingSoonCard table={table} />
-                        ) : (
-                          <span className="dicefest-table__empty">{emptyLabel}</span>
-                        )}
+                        {entry ? renderCell(entry) : <ComingSoonCard table={table} />}
                       </div>
                     )
                   })}
