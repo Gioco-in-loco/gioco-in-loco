@@ -11,7 +11,7 @@ import {
   formatCartPrice,
   removeConfirmedMainEventReservation,
 } from '../../lib/cart-ui'
-import { getSlotKey } from '../../lib/event-booking'
+import { getSlotKey, isBookingWindowOpen } from '../../lib/event-booking'
 import { DICE_FEST_BOOKING_CONFIG } from '../../lib/bookable-events'
 import { ParchmentCard } from '../dice-fest/decorations'
 import TableMap from '../dice-fest/TableMap'
@@ -376,6 +376,7 @@ export default function DiceFestBookingPage({ event }) {
   const mainCartItemsCount = filteredMainCartSlots.length
   const hasPendingPass = cartState.hasCartAdmission && !cartState.hasConfirmedAdmission
   const pendingOrderCount = cartItemsCount + mainCartItemsCount + (hasPendingPass ? 1 : 0)
+  const bookingWindowOpen = isBookingWindowOpen(event)
 
   return (
     <div className="dicefest-bg pb-24">
@@ -383,19 +384,29 @@ export default function DiceFestBookingPage({ event }) {
         {/* HEADER */}
         <header className="fade-stagger">
           <p className="dicefest-eyebrow">Sessioni</p>
-          <div className="mt-3 flex flex-wrap items-center gap-3">
-            <h1 className="font-df-display text-4xl uppercase text-dicefest-paper sm:text-5xl">
-              La mappa dei tavoli
-            </h1>
-            <button
-              type="button"
-              onClick={() => setShowTutorial(true)}
-              title="Come funziona la prenotazione"
-              aria-label="Come funziona la prenotazione"
-              className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 border-dicefest-green bg-dicefest-green/10 font-df-display text-base text-dicefest-green transition-colors hover:bg-dicefest-green/20"
-            >
-              ?
-            </button>
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+            <div className="flex flex-wrap items-center gap-3">
+              <h1 className="font-df-display text-4xl uppercase text-dicefest-paper sm:text-5xl">
+                La mappa dei tavoli
+              </h1>
+              <button
+                type="button"
+                onClick={() => setShowTutorial(true)}
+                title="Come funziona la prenotazione"
+                aria-label="Come funziona la prenotazione"
+                className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 border-dicefest-green bg-dicefest-green/10 font-df-display text-base text-dicefest-green transition-colors hover:bg-dicefest-green/20"
+              >
+                ?
+              </button>
+            </div>
+            {!bookingWindowOpen && event.bookingOpensAt ? (
+              <Countdown
+                startDate={event.bookingOpensAt}
+                label="Prenotazioni aperte tra"
+                completedLabel="Prenotazioni aperte!"
+                className="w-full sm:ml-auto sm:w-auto sm:max-w-xs"
+              />
+            ) : null}
           </div>
           <p className="mt-3 max-w-2xl font-df-body text-[15px] leading-relaxed text-dicefest-paper/75">
             {hasMainEvents ? (

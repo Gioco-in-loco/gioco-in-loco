@@ -44,6 +44,9 @@ coverage/
 # Misc
 .cache/
 
+# Database backups (CSV exports)
+backup/
+
 # AI tool configs / skills (not part of the project)
 .agents/
 .augment/

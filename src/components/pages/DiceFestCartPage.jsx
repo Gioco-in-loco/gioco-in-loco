@@ -248,7 +248,6 @@ export default function DiceFestCartPage({ event }) {
               </p>
               <div className="mt-7 flex flex-wrap justify-center gap-3">
                 <Link href="/auth/login?next=/dice-fest/carrello" className="dicefest-btn-primary">Accedi</Link>
-                <Link href="/dice-fest/sessioni" className="dicefest-btn-secondary">Conferma ordine</Link>
               </div>
             </div>
           </ParchmentCard>

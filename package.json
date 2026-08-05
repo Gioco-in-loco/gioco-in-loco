@@ -14,7 +14,8 @@
     "db:link-comicon-2026": "tsx scripts/link-comicon-2026-content.ts",
     "db:link-main-events-to-event": "tsx scripts/link-main-events-to-event.ts",
     "db:link-oneshots-to-event": "tsx scripts/link-oneshots-to-event.ts",
-    "db:studio": "prisma studio"
+    "db:studio": "prisma studio",
+    "db:backup": "tsx scripts/backup-database.ts"
   },
   "dependencies": {
     "@prisma/client": "^5.22.0",

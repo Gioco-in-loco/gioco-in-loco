@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { ParchmentCard, SigilDivider, EventMeta } from '../dice-fest/decorations'
 import RsvpButton from '../dice-fest/RsvpButton'
 import Countdown from '../dice-fest/Countdown'
+import { isBookingWindowOpen } from '../../lib/event-booking'
 
 const EYEBROW_DATE_FORMATTER = new Intl.DateTimeFormat('it-IT', { day: 'numeric', month: 'long' })
 
@@ -76,6 +77,7 @@ export default function DiceFestPage({ event }) {
   const distinctGames = collectDistinctGames(event.oneshots, event.mainEvents)
   const partners = collectPartners(event.oneshots)
   const eyebrowDate = formatEyebrowDate(event.startDate, event.endDate)
+  const bookingWindowOpen = isBookingWindowOpen(event)
 
   const stats = [
     hasMainEvent ? { number: mainEventCount, label: 'Main Event', sublabel: 'Evento Principale', tone: 'pink' } : null,
@@ -145,8 +147,33 @@ export default function DiceFestPage({ event }) {
               </div>
             </div>
 
+            <div className="fade-stagger mt-10 flex flex-col gap-3 border-t border-dashed border-dicefest-border pt-6 sm:flex-row sm:items-center sm:justify-between" style={{ animationDelay: '0.4s' }}>
+              <div className="max-w-sm">
+                <p className="font-df-display text-sm uppercase text-dicefest-paper">
+                  {bookingWindowOpen ? 'Le prenotazioni sono aperte' : 'Le prenotazioni non sono ancora aperte'}
+                </p>
+                <p className="mt-1 font-df-body text-[13px] leading-relaxed text-dicefest-paper/70">
+                  {bookingWindowOpen
+                    ? 'Scegli i tavoli e conferma la tua presenza quando vuoi.'
+                    : 'Torna presto: qui sotto trovi il conto alla rovescia verso l\'apertura.'}
+                </p>
+              </div>
+              {bookingWindowOpen ? (
+                <span className="dicefest-badge dicefest-badge--green">Prenotazioni aperte</span>
+              ) : event.bookingOpensAt ? (
+                <Countdown
+                  startDate={event.bookingOpensAt}
+                  label="Aprono tra"
+                  completedLabel="Prenotazioni aperte!"
+                  className="w-full max-w-xs"
+                />
+              ) : (
+                <span className="dicefest-badge dicefest-badge--pink">Prenotazioni non ancora aperte</span>
+              )}
+            </div>
+
             {event.visibility === 'REVEALED' ? (
-              <div className="fade-stagger mt-10 flex flex-col gap-3 border-t border-dashed border-dicefest-border pt-6 sm:flex-row sm:items-center sm:justify-between" style={{ animationDelay: '0.4s' }}>
+              <div className="fade-stagger mt-6 flex flex-col gap-3 border-t border-dashed border-dicefest-border pt-6 sm:flex-row sm:items-center sm:justify-between" style={{ animationDelay: '0.45s' }}>
                 <div className="max-w-sm">
                   <p className="font-df-display text-sm uppercase text-dicefest-paper">Non sai ancora a quale tavolo sederti?</p>
                   <p className="mt-1 font-df-body text-[13px] leading-relaxed text-dicefest-paper/70">
@@ -296,7 +323,26 @@ export default function DiceFestPage({ event }) {
                       </li>
                     ))}
                   </ol>
-                  <Link href="/dice-fest/sessioni" className="dicefest-btn-primary mt-8 w-full">
+
+                  <div className="mt-8">
+                    {bookingWindowOpen ? (
+                      <span className="dicefest-badge dicefest-badge--green">Prenotazioni aperte</span>
+                    ) : (
+                      <>
+                        <span className="dicefest-badge dicefest-badge--pink">Prenotazioni non ancora aperte</span>
+                        {event.bookingOpensAt ? (
+                          <Countdown
+                            startDate={event.bookingOpensAt}
+                            label="Le prenotazioni aprono tra"
+                            completedLabel="Le prenotazioni sono aperte!"
+                            className="mt-4"
+                          />
+                        ) : null}
+                      </>
+                    )}
+                  </div>
+
+                  <Link href="/dice-fest/sessioni" className="dicefest-btn-primary mt-4 w-full">
                     Vai alle sessioni
                   </Link>
                 </div>
@@ -336,33 +382,6 @@ export default function DiceFestPage({ event }) {
           </>
         ) : null}
 
-        {event.visibility === 'REVEALED' ? (
-          <>
-            <SigilDivider className="my-12 sm:my-16" />
-
-            {/* FINAL CTA */}
-            <ParchmentCard className="dicefest-surface--accent">
-              <div className="px-7 py-10 text-center sm:px-12 sm:py-14">
-                <h2 className="font-df-display text-3xl uppercase text-dicefest-paper sm:text-4xl">
-                  Scegli il tuo tavolo, scegli la tua storia
-                </h2>
-                <p className="mx-auto mt-4 max-w-xl font-df-body text-[15px] leading-relaxed text-dicefest-paper/75">
-                  Le sessioni sono aperte. I posti si assegnano in ordine di arrivo: chi prenota prima, si assicura il tavolo.
-                </p>
-                <div className="mt-7 flex flex-wrap justify-center gap-3">
-                  <Link href="/dice-fest/sessioni" className="dicefest-btn-primary">
-                    Entra nella sala
-                  </Link>
-                  {hasMainEvent ? (
-                    <Link href="/dice-fest/sessioni" className="dicefest-btn-secondary">
-                      Vedi il Main Event
-                    </Link>
-                  ) : null}
-                </div>
-              </div>
-            </ParchmentCard>
-          </>
-        ) : null}
       </div>
     </div>
   )
