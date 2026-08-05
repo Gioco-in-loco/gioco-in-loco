@@ -489,6 +489,7 @@ export default function DiceFestBookingPage({ event }) {
                           onRemove={handleRemoveOneshot}
                           onOpenDetails={() => setOpenedEntry(entry)}
                           isLoggedIn={Boolean(user)}
+                          isAdmin={Boolean(user?.isAdmin)}
                         />
                       )
                     }
@@ -509,6 +510,7 @@ export default function DiceFestBookingPage({ event }) {
                         onCancel={handleCancelMain}
                         onOpenDetails={() => setOpenedEntry(entry)}
                         isLoggedIn={Boolean(user)}
+                        isAdmin={Boolean(user?.isAdmin)}
                       />
                     )
                   }}
@@ -566,6 +568,7 @@ export default function DiceFestBookingPage({ event }) {
             onRemove={handleRemoveOneshot}
             onClose={() => setOpenedEntry(null)}
             isLoggedIn={Boolean(user)}
+            isAdmin={Boolean(user?.isAdmin)}
           />
         ) : (() => {
           const key = mainSessionKey(openedEntry.mainEvent.id, openedEntry.slot.day, openedEntry.slot.slot)
@@ -585,6 +588,7 @@ export default function DiceFestBookingPage({ event }) {
               onCancel={handleCancelMain}
               onClose={() => setOpenedEntry(null)}
               isLoggedIn={Boolean(user)}
+              isAdmin={Boolean(user?.isAdmin)}
             />
           )
         })()
@@ -749,7 +753,7 @@ function WaitlistBanner({ fullyBookedDays, waitlistDays, pendingWaitlistDay, onJ
 
 /* ============ ONE-SHOT CELL ============ */
 
-function computeOneShotState({ slot, cartState, isLoggedIn, isPending, busy = false }) {
+function computeOneShotState({ slot, cartState, isLoggedIn, isAdmin = false, isPending, busy = false }) {
   const confirmed = cartState.confirmedSlotIds.includes(slot.id)
   const inCart = cartState.cartSlotIds.includes(slot.id)
   const sameSlotKey = getSlotKey(slot)
@@ -758,7 +762,8 @@ function computeOneShotState({ slot, cartState, isLoggedIn, isPending, busy = fa
   const remaining = Math.max(0, slot.maxPlayers - slot.currentReservations)
   const fewLeft = remaining > 0 && remaining <= 2
   const full = !slot.available
-  const notYetOpen = slot.bookable === false
+  // Admin can always book even while closed, to test or handle walk-ins.
+  const notYetOpen = slot.bookable === false && !isAdmin
 
   let label = 'Prenota'
   let verboseLabel = 'Prenota il posto'
@@ -813,10 +818,10 @@ function computeOneShotState({ slot, cartState, isLoggedIn, isPending, busy = fa
   return { confirmed, inCart, full, notYetOpen, fewLeft, remaining, label, verboseLabel, actionKind, disabled, variant }
 }
 
-function OneShotMapCell({ session, cartState, pendingSlotId, busy, onAdd, onRemove, onOpenDetails, isLoggedIn }) {
+function OneShotMapCell({ session, cartState, pendingSlotId, busy, onAdd, onRemove, onOpenDetails, isLoggedIn, isAdmin }) {
   const { oneshot, slot } = session
   const isPending = pendingSlotId === slot.id
-  const state = computeOneShotState({ slot, cartState, isLoggedIn, isPending, busy })
+  const state = computeOneShotState({ slot, cartState, isLoggedIn, isAdmin, isPending, busy })
 
   const handleAction = (e) => {
     e.stopPropagation()
@@ -875,11 +880,12 @@ function OneShotMapCell({ session, cartState, pendingSlotId, busy, onAdd, onRemo
 
 /* ============ MAIN EVENT CELL ============ */
 
-function computeMainEventState({ slot, reservation, inCart, hasReservedKey, hasCartKey, isLoggedIn, isPending, busy = false }) {
+function computeMainEventState({ slot, reservation, inCart, hasReservedKey, hasCartKey, isLoggedIn, isAdmin = false, isPending, busy = false }) {
   const remaining = Math.max(0, slot.maxPlayers - (slot.currentReservations || 0))
   const fewLeft = remaining > 0 && remaining <= 2
   const full = !slot.available && !reservation && !inCart
-  const notYetOpen = slot.bookable === false && !reservation && !inCart
+  // Admin can always book even while closed, to test or handle walk-ins.
+  const notYetOpen = slot.bookable === false && !reservation && !inCart && !isAdmin
   const hasConflict = hasReservedKey && !reservation
   const hasCartConflict = hasCartKey && !inCart
 
@@ -936,10 +942,10 @@ function computeMainEventState({ slot, reservation, inCart, hasReservedKey, hasC
   return { remaining, fewLeft, full, notYetOpen, hasConflict, hasCartConflict, label, verboseLabel, actionKind, disabled, variant }
 }
 
-function MainEventMapCell({ session, sessionKey, reservation, inCart, hasReservedKey, hasCartKey, hasOneshotConflict, pendingSessionKey, busy, onAdd, onRemove, onCancel, onOpenDetails, isLoggedIn }) {
+function MainEventMapCell({ session, sessionKey, reservation, inCart, hasReservedKey, hasCartKey, hasOneshotConflict, pendingSessionKey, busy, onAdd, onRemove, onCancel, onOpenDetails, isLoggedIn, isAdmin }) {
   const { mainEvent, slot } = session
   const isPending = pendingSessionKey === sessionKey
-  const state = computeMainEventState({ slot, reservation, inCart, hasReservedKey, hasCartKey, isLoggedIn, isPending, busy })
+  const state = computeMainEventState({ slot, reservation, inCart, hasReservedKey, hasCartKey, isLoggedIn, isAdmin, isPending, busy })
 
   const handleAction = (e) => {
     e.stopPropagation()
@@ -1136,10 +1142,10 @@ function BookingTutorial() {
   )
 }
 
-function OneShotDetailsModal({ session, cartState, pendingSlotId, busy, onAdd, onRemove, onClose, isLoggedIn }) {
+function OneShotDetailsModal({ session, cartState, pendingSlotId, busy, onAdd, onRemove, onClose, isLoggedIn, isAdmin }) {
   const { oneshot, slot } = session
   const isPending = pendingSlotId === slot.id
-  const state = computeOneShotState({ slot, cartState, isLoggedIn, isPending, busy })
+  const state = computeOneShotState({ slot, cartState, isLoggedIn, isAdmin, isPending, busy })
   const invite = useCompanionInvites(state.remaining - 1)
 
   const handleAction = () => {
@@ -1219,10 +1225,10 @@ function OneShotDetailsModal({ session, cartState, pendingSlotId, busy, onAdd, o
   )
 }
 
-function MainEventDetailsModal({ session, sessionKey, reservation, inCart, hasReservedKey, hasCartKey, hasOneshotConflict, pendingSessionKey, busy, onAdd, onRemove, onCancel, onClose, isLoggedIn }) {
+function MainEventDetailsModal({ session, sessionKey, reservation, inCart, hasReservedKey, hasCartKey, hasOneshotConflict, pendingSessionKey, busy, onAdd, onRemove, onCancel, onClose, isLoggedIn, isAdmin }) {
   const { mainEvent, slot } = session
   const isPending = pendingSessionKey === sessionKey
-  const state = computeMainEventState({ slot, reservation, inCart, hasReservedKey, hasCartKey, isLoggedIn, isPending, busy })
+  const state = computeMainEventState({ slot, reservation, inCart, hasReservedKey, hasCartKey, isLoggedIn, isAdmin, isPending, busy })
   const invite = useCompanionInvites(state.remaining - 1)
 
   const handleAction = () => {

@@ -34,6 +34,7 @@ export async function POST(request) {
       userName: user.name,
       userEmail: user.email,
       companions,
+      isAdmin: Boolean(user.isAdmin),
     })
 
     return NextResponse.json(cartState, { status: 201 })

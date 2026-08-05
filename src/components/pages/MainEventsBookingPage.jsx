@@ -343,7 +343,8 @@ export default function MainEventsBookingPage({ mainEvents }) {
                     const hasCartConflict = cartSlotKeys.has(getSlotKey(session)) && !inCart
                     const hasConflict = hasConfirmedConflict || hasCartConflict
                     const isPending = pendingSessionKey === key
-                    const notYetOpen = session.bookable === false && !reservation && !inCart
+                    // Admin can always book even while closed, to test or handle walk-ins.
+                    const notYetOpen = session.bookable === false && !reservation && !inCart && !user?.isAdmin
                     const disabled = requestState.loading || isPending || isUserStateLoading || notYetOpen || (!session.available && !reservation && !inCart)
                     const remainingSeats = Math.max(0, session.maxPlayers - (session.currentReservations || 0))
                     const canInviteCompanions = !reservation && !inCart && !notYetOpen && remainingSeats > 1

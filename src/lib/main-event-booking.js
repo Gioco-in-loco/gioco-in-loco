@@ -398,7 +398,7 @@ async function getSessionCapacity(db, { mainEventId, eventId, day, slot }) {
   }
 }
 
-export async function addMainEventSessionToCart({ userId, mainEventId, eventId, day, slot, userName, userEmail, companions = [], db = prisma }) {
+export async function addMainEventSessionToCart({ userId, mainEventId, eventId, day, slot, userName, userEmail, companions = [], isAdmin = false, db = prisma }) {
   // Cleanup expired holds OUTSIDE the transaction (idempotent, no atomicity needed)
   await releaseExpiredMainEventHolds({ db, userId, eventId })
 
@@ -419,7 +419,7 @@ export async function addMainEventSessionToCart({ userId, mainEventId, eventId, 
     }
 
     const bookingWindowOpen = !event.bookingOpensAt || new Date() >= new Date(event.bookingOpensAt)
-    if (!sessionBookingEnabled || !bookingWindowOpen) {
+    if (!isAdmin && (!sessionBookingEnabled || !bookingWindowOpen)) {
       throw createHttpError(400, `Le prenotazioni per il main event ${mainEvent.title} non sono ancora aperte.`)
     }
 

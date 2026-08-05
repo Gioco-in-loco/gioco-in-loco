@@ -333,7 +333,7 @@ export async function handleAddEventCartSlot(request, { eventId, displayName }) 
         throw new Error('La sessione selezionata non è disponibile per questo evento.')
       }
 
-      if (!selectedSlot.bookingEnabled || !isBookingWindowOpen(event)) {
+      if (!user.isAdmin && (!selectedSlot.bookingEnabled || !isBookingWindowOpen(event))) {
         throw new Error('Le prenotazioni per questa sessione non sono ancora aperte.')
       }
 
@@ -575,7 +575,7 @@ export async function handleAddEventCartMainEventSlot(request, { eventId, displa
       // The session spans every table assigned to this day+slot group — it's
       // only bookable once ALL of them have booking turned on.
       const sessionBookingEnabled = sessionSlots.every((s) => s.bookingEnabled)
-      if (!sessionBookingEnabled || !isBookingWindowOpen(event)) {
+      if (!user.isAdmin && (!sessionBookingEnabled || !isBookingWindowOpen(event))) {
         throw new Error(`Le prenotazioni per il main event ${mainEvent.title} non sono ancora aperte.`)
       }
 
