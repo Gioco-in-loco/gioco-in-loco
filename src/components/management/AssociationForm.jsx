@@ -16,6 +16,7 @@ const EMPTY_FORM = {
   whatsapp: '',
   tiktok: '',
   linktree: '',
+  telegram: '',
 }
 
 export default function AssociationForm({ initial = EMPTY_FORM, onSave, onCancel, submitLabel, showLogoField = true, uploadEndpoint }) {
@@ -159,7 +160,7 @@ export default function AssociationForm({ initial = EMPTY_FORM, onSave, onCancel
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-4 md:grid-cols-3">
         <div>
           <label className={labelClass}>TikTok</label>
           <input className={inputClass} value={form.tiktok} onChange={set('tiktok')} placeholder="https://tiktok.com/..." />
@@ -167,6 +168,10 @@ export default function AssociationForm({ initial = EMPTY_FORM, onSave, onCancel
         <div>
           <label className={labelClass}>Linktree</label>
           <input className={inputClass} value={form.linktree} onChange={set('linktree')} placeholder="https://linktr.ee/..." />
+        </div>
+        <div>
+          <label className={labelClass}>Telegram</label>
+          <input className={inputClass} value={form.telegram} onChange={set('telegram')} placeholder="https://t.me/..." />
         </div>
       </div>
 

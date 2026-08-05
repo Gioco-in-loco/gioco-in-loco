@@ -33,6 +33,7 @@ function normalizeAssociation(association) {
       email: association.email || undefined,
       tiktok: association.tiktok || undefined,
       linktree: association.linktree || undefined,
+      telegram: association.telegram || undefined,
     },
   }
 }
@@ -60,6 +61,7 @@ export const getAssociations = cache(async function getAssociations() {
         email: true,
         tiktok: true,
         linktree: true,
+        telegram: true,
       },
     })
 

@@ -15,6 +15,7 @@ export const associationSelect = {
   email: true,
   tiktok: true,
   linktree: true,
+  telegram: true,
   createdAt: true,
   updatedAt: true,
 }
@@ -52,6 +53,7 @@ function buildAssociationPayload(body) {
     email: normalizeOptionalString(body?.email),
     tiktok: normalizeOptionalString(body?.tiktok),
     linktree: normalizeOptionalString(body?.linktree),
+    telegram: normalizeOptionalString(body?.telegram),
   }
 }
 

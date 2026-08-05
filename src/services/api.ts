@@ -164,6 +164,7 @@ export interface Association {
   email?: string
   tiktok?: string
   linktree?: string
+  telegram?: string
 }
 
 export interface Game {
