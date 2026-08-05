@@ -555,6 +555,7 @@ export const getBookableEventData = cache(async function getBookableEventData(ev
       dailyPrice: true,
       startDate: true,
       endDate: true,
+      days: true,
       bookingOpensAt: true,
       showComingSoon: true,
       oneShotLinks: {
@@ -632,6 +633,7 @@ export const getBookableEventData = cache(async function getBookableEventData(ev
     dailyPrice: event.dailyPrice,
     startDate: normalizeDate(event.startDate),
     endDate: normalizeDate(event.endDate),
+    days: event.days || [],
     bookingOpensAt: normalizeDate(event.bookingOpensAt),
     showComingSoon: event.showComingSoon,
     hiddenSlots,

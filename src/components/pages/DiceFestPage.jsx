@@ -150,7 +150,7 @@ export default function DiceFestPage({ event }) {
                   Segnaci la tua presenza: confermiamo subito il tuo pass per la giornata. Le sessioni le scegli quando vuoi.
                 </p>
               </div>
-              <RsvpButton oneshots={event.oneshots} />
+              <RsvpButton days={event.days} />
             </div>
           </div>
         </ParchmentCard>

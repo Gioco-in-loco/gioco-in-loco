@@ -23,14 +23,12 @@ function dayIndex(day) {
   return idx === -1 ? 999 : idx
 }
 
-function getDistinctDays(oneshots) {
-  const days = new Set()
-  for (const oneshot of oneshots || []) {
-    for (const slot of oneshot.slots || []) {
-      if (slot.day) days.add(slot.day)
-    }
-  }
-  return Array.from(days).sort((left, right) => dayIndex(left) - dayIndex(right))
+// I giorni del bottone presenza seguono la configurazione dell'evento
+// (Event.days, impostata in admin), non le sessioni effettivamente
+// programmate — così restano stabili anche se per ora esistono one-shot o
+// main event solo su alcuni dei giorni dell'evento.
+function sortDays(days) {
+  return Array.from(new Set(days || [])).sort((left, right) => dayIndex(left) - dayIndex(right))
 }
 
 function mapCartPayload(payload) {
@@ -57,11 +55,11 @@ const EMPTY_STATE = {
   hasActiveSessions: false,
 }
 
-export default function RsvpButton({ oneshots }) {
+export default function RsvpButton({ days: eventDays }) {
   const { user, isLoading: isAuthLoading } = useAuth()
   const toast = useToast()
 
-  const days = useMemo(() => getDistinctDays(oneshots), [oneshots])
+  const days = useMemo(() => sortDays(eventDays), [eventDays])
   const isMultiDay = days.length > 1
 
   const [state, setState] = useState({ ...EMPTY_STATE, loading: true })
