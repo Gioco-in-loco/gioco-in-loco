@@ -149,10 +149,10 @@ export default function DiceFestPage({ event }) {
 
             <div className="fade-stagger mt-10 flex flex-col gap-3 border-t border-dashed border-dicefest-border pt-6 sm:flex-row sm:items-center sm:justify-between" style={{ animationDelay: '0.4s' }}>
               <div className="max-w-sm">
-                <p className="font-df-display text-sm uppercase text-dicefest-paper">
+                <p className="font-df-display text-xl uppercase text-dicefest-paper sm:text-2xl">
                   {bookingWindowOpen ? 'Le prenotazioni sono aperte' : 'Le prenotazioni non sono ancora aperte'}
                 </p>
-                <p className="mt-1 font-df-body text-[13px] leading-relaxed text-dicefest-paper/70">
+                <p className="mt-2 font-df-body text-base leading-relaxed text-dicefest-paper/70">
                   {bookingWindowOpen
                     ? 'Scegli i tavoli e conferma la tua presenza quando vuoi.'
                     : 'Torna presto: qui sotto trovi il conto alla rovescia verso l\'apertura.'}
@@ -298,6 +298,24 @@ export default function DiceFestPage({ event }) {
                   {event.description ? (
                     <p className="mt-4 font-df-body text-[15px] leading-[1.85] text-dicefest-paper/75">{event.description}</p>
                   ) : null}
+
+                  <div className="mt-6">
+                    {bookingWindowOpen ? (
+                      <span className="dicefest-badge dicefest-badge--green">Prenotazioni aperte</span>
+                    ) : (
+                      <>
+                        <span className="dicefest-badge dicefest-badge--pink">Prenotazioni non ancora aperte</span>
+                        {event.bookingOpensAt ? (
+                          <Countdown
+                            startDate={event.bookingOpensAt}
+                            label="Le prenotazioni aprono tra"
+                            completedLabel="Le prenotazioni sono aperte!"
+                            className="mt-4 max-w-xs"
+                          />
+                        ) : null}
+                      </>
+                    )}
+                  </div>
                 </div>
               </ParchmentCard>
 
@@ -324,25 +342,7 @@ export default function DiceFestPage({ event }) {
                     ))}
                   </ol>
 
-                  <div className="mt-8">
-                    {bookingWindowOpen ? (
-                      <span className="dicefest-badge dicefest-badge--green">Prenotazioni aperte</span>
-                    ) : (
-                      <>
-                        <span className="dicefest-badge dicefest-badge--pink">Prenotazioni non ancora aperte</span>
-                        {event.bookingOpensAt ? (
-                          <Countdown
-                            startDate={event.bookingOpensAt}
-                            label="Le prenotazioni aprono tra"
-                            completedLabel="Le prenotazioni sono aperte!"
-                            className="mt-4"
-                          />
-                        ) : null}
-                      </>
-                    )}
-                  </div>
-
-                  <Link href="/dice-fest/sessioni" className="dicefest-btn-primary mt-4 w-full">
+                  <Link href="/dice-fest/sessioni" className="dicefest-btn-primary mt-8 w-full">
                     Vai alle sessioni
                   </Link>
                 </div>
