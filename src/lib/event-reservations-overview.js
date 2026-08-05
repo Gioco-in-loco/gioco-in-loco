@@ -299,3 +299,210 @@ export async function deleteEventReservation({ eventId, type, reservationId }) {
 
   throw createHttpError(400, 'Tipo prenotazione non valido')
 }
+
+// Elimina in un colpo solo più prenotazioni selezionate dalla tabella
+// (checkbox per riga). Righe già sparite (cancellate da un altro admin nel
+// frattempo) vengono ignorate invece di far fallire l'intera operazione.
+export async function deleteEventReservationsBulk({ eventId, items }) {
+  if (!Array.isArray(items) || items.length === 0) {
+    throw createHttpError(400, 'Nessuna prenotazione selezionata.')
+  }
+
+  let deleted = 0
+  for (const item of items) {
+    try {
+      await deleteEventReservation({ eventId, type: item.type, reservationId: item.reservationId })
+      deleted += 1
+    } catch (error) {
+      if (error?.status !== 404) throw error
+    }
+  }
+
+  return { deleted }
+}
+
+// Dettaglio completo di una singola prenotazione (qualsiasi dei 3 tipi) per
+// la pagina di modifica in admin — a differenza delle righe di
+// getEventAllReservations, include anche i campi modificabili (notes) e i
+// dati di consenso.
+export async function getEventReservationDetail({ eventId, type, reservationId }) {
+  const authBySupabaseId = await buildAuthLookup()
+
+  if (type === 'oneshot') {
+    const reservation = await prisma.reservation.findFirst({
+      where: { id: reservationId, slot: { eventId } },
+      select: {
+        id: true,
+        status: true,
+        playerName: true,
+        playerEmail: true,
+        notes: true,
+        consentGiven: true,
+        consentDate: true,
+        createdAt: true,
+        updatedAt: true,
+        user: { select: { supabaseUserId: true } },
+        invitedBy: { select: { supabaseUserId: true } },
+        slot: { select: { day: true, slot: true, table: true, oneshot: { select: { title: true, master: true } } } },
+      },
+    })
+    if (!reservation) throw createHttpError(404, 'Prenotazione non trovata')
+
+    return {
+      id: reservation.id,
+      type: 'oneshot',
+      status: reservation.status,
+      playerName: reservation.playerName,
+      playerEmail: reservation.playerEmail,
+      notes: reservation.notes,
+      consentGiven: reservation.consentGiven,
+      consentDate: reservation.consentDate,
+      createdAt: reservation.createdAt,
+      updatedAt: reservation.updatedAt,
+      invitedByName: reservation.invitedBy ? (accountFieldsFor(reservation.invitedBy, authBySupabaseId).accountName || accountFieldsFor(reservation.invitedBy, authBySupabaseId).accountEmail) : null,
+      ...accountFieldsFor(reservation.user, authBySupabaseId),
+      title: reservation.slot.oneshot?.title || 'One-shot',
+      subtitle: reservation.slot.oneshot?.master ? `Master ${reservation.slot.oneshot.master}` : null,
+      day: reservation.slot.day,
+      slotTime: reservation.slot.slot,
+      table: reservation.slot.table,
+    }
+  }
+
+  if (type === 'mainEvent') {
+    const reservation = await prisma.mainEventReservation.findFirst({
+      where: { id: reservationId, eventId },
+      select: {
+        id: true,
+        status: true,
+        playerName: true,
+        playerEmail: true,
+        notes: true,
+        consentGiven: true,
+        consentDate: true,
+        day: true,
+        slot: true,
+        createdAt: true,
+        updatedAt: true,
+        user: { select: { supabaseUserId: true } },
+        invitedBy: { select: { supabaseUserId: true } },
+        mainEvent: { select: { title: true } },
+      },
+    })
+    if (!reservation) throw createHttpError(404, 'Prenotazione non trovata')
+
+    return {
+      id: reservation.id,
+      type: 'mainEvent',
+      status: reservation.status,
+      playerName: reservation.playerName,
+      playerEmail: reservation.playerEmail,
+      notes: reservation.notes,
+      consentGiven: reservation.consentGiven,
+      consentDate: reservation.consentDate,
+      createdAt: reservation.createdAt,
+      updatedAt: reservation.updatedAt,
+      invitedByName: reservation.invitedBy ? (accountFieldsFor(reservation.invitedBy, authBySupabaseId).accountName || accountFieldsFor(reservation.invitedBy, authBySupabaseId).accountEmail) : null,
+      ...accountFieldsFor(reservation.user, authBySupabaseId),
+      title: reservation.mainEvent?.title || 'Main Event',
+      subtitle: null,
+      day: reservation.day,
+      slotTime: reservation.slot,
+      table: null,
+    }
+  }
+
+  if (type === 'admission') {
+    const admission = await prisma.eventAdmission.findFirst({
+      where: { id: reservationId, eventId },
+      select: {
+        id: true,
+        status: true,
+        day: true,
+        pricePaid: true,
+        playerName: true,
+        playerEmail: true,
+        consentGiven: true,
+        consentDate: true,
+        createdAt: true,
+        updatedAt: true,
+        user: { select: { supabaseUserId: true } },
+        invitedBy: { select: { supabaseUserId: true } },
+      },
+    })
+    if (!admission) throw createHttpError(404, 'Prenotazione non trovata')
+
+    return {
+      id: admission.id,
+      type: 'admission',
+      status: admission.status,
+      playerName: admission.playerName,
+      playerEmail: admission.playerEmail,
+      notes: null,
+      consentGiven: admission.consentGiven,
+      consentDate: admission.consentDate,
+      createdAt: admission.createdAt,
+      updatedAt: admission.updatedAt,
+      invitedByName: admission.invitedBy ? (accountFieldsFor(admission.invitedBy, authBySupabaseId).accountName || accountFieldsFor(admission.invitedBy, authBySupabaseId).accountEmail) : null,
+      ...accountFieldsFor(admission.user, authBySupabaseId),
+      title: 'Pass ingresso',
+      subtitle: admission.pricePaid != null ? `EUR ${Number(admission.pricePaid).toFixed(2)}` : null,
+      day: admission.day || null,
+      slotTime: null,
+      table: null,
+    }
+  }
+
+  throw createHttpError(400, 'Tipo prenotazione non valido')
+}
+
+// Stati che l'admin può impostare direttamente dal form di modifica.
+// CANCELLED resta un'azione a parte (pulsante "Annulla", con motivo e audit
+// trail); HOLD/EXPIRED/INVITED sono stati gestiti dal ciclo di vita
+// automatico del carrello, non qualcosa da impostare a mano.
+const EDITABLE_STATUSES = new Set(['PENDING', 'CONFIRMED', 'ATTENDED'])
+
+// Modifica i campi di una prenotazione (nome/email giocatore, note, stato)
+// dalla pagina di dettaglio in admin. Annullamento ed eliminazione restano
+// azioni separate (cancelEventReservation / deleteEventReservation) per
+// mantenere il motivo obbligatorio e l'audit trail sull'annullamento.
+export async function updateEventReservationFields({ eventId, type, reservationId, body }) {
+  const playerName = typeof body?.playerName === 'string' ? (body.playerName.trim() || null) : undefined
+  const playerEmail = typeof body?.playerEmail === 'string' ? (body.playerEmail.trim() || null) : undefined
+  const notes = typeof body?.notes === 'string' ? (body.notes.trim() || null) : undefined
+  const status = typeof body?.status === 'string' && body.status ? body.status : undefined
+
+  if (status !== undefined && !EDITABLE_STATUSES.has(status)) {
+    throw createHttpError(400, 'Stato non valido. Usa "Annulla prenotazione" per annullarla.')
+  }
+
+  const data = {}
+  if (playerName !== undefined) data.playerName = playerName
+  if (playerEmail !== undefined) data.playerEmail = playerEmail
+  if (status !== undefined) data.status = status
+
+  if (type === 'oneshot') {
+    if (notes !== undefined) data.notes = notes
+    const existing = await prisma.reservation.findFirst({ where: { id: reservationId, slot: { eventId } }, select: { id: true } })
+    if (!existing) throw createHttpError(404, 'Prenotazione non trovata')
+    await prisma.reservation.update({ where: { id: reservationId }, data })
+    return getEventReservationDetail({ eventId, type, reservationId })
+  }
+
+  if (type === 'mainEvent') {
+    if (notes !== undefined) data.notes = notes
+    const existing = await prisma.mainEventReservation.findFirst({ where: { id: reservationId, eventId }, select: { id: true } })
+    if (!existing) throw createHttpError(404, 'Prenotazione non trovata')
+    await prisma.mainEventReservation.update({ where: { id: reservationId }, data })
+    return getEventReservationDetail({ eventId, type, reservationId })
+  }
+
+  if (type === 'admission') {
+    const existing = await prisma.eventAdmission.findFirst({ where: { id: reservationId, eventId }, select: { id: true } })
+    if (!existing) throw createHttpError(404, 'Prenotazione non trovata')
+    await prisma.eventAdmission.update({ where: { id: reservationId }, data })
+    return getEventReservationDetail({ eventId, type, reservationId })
+  }
+
+  throw createHttpError(400, 'Tipo prenotazione non valido')
+}

@@ -454,13 +454,16 @@ export async function addMainEventSessionToCart({ userId, mainEventId, eventId, 
       select: { id: true, status: true, holdExpiresAt: true },
     })
 
-    if (existingReservation && MAIN_EVENT_ACTIVE_STATUSES.includes(existingReservation.status)) {
-      throw createHttpError(400, 'Hai già prenotato questa sessione.')
-    }
+    // Being already confirmed no longer blocks the request: it just means
+    // this add-to-cart call is companion-only (invite friends without
+    // re-booking yourself). The host's own row is left untouched below.
+    const hostIsConfirmed = Boolean(existingReservation && MAIN_EVENT_ACTIVE_STATUSES.includes(existingReservation.status))
 
-    // Own hold still valid — counted in currentReservations below, so it must be
-    // excluded from the "seats taken by others" tally.
+    // Own hold/confirmed seat is counted in currentReservations below (both a
+    // valid hold and a confirmed reservation match getActiveMainEventReservationFilter),
+    // so it must be excluded from the "seats taken by others" tally.
     const holdStillValid = Boolean(existingReservation?.status === MAIN_EVENT_CART_HOLD_STATUS && existingReservation.holdExpiresAt && existingReservation.holdExpiresAt > new Date())
+    const hostSeatAlreadyCounted = hostIsConfirmed || holdStillValid
     const holdExpiresAt = getNextHoldExpiration()
 
     const [conflictingReservation, currentReservations, existingCompanionsCount] = await Promise.all([
@@ -494,15 +497,20 @@ export async function addMainEventSessionToCart({ userId, mainEventId, eventId, 
     }
 
     // Seats taken by other people, excluding this host's own row and their
-    // own (about-to-be-replaced) companion invites for this session.
-    const seatsTakenByOthers = currentReservations - (holdStillValid ? 1 : 0) - existingCompanionsCount
-    const seatsNeeded = 1 + companions.length
+    // own (about-to-be-replaced) companion invites for this session. If the
+    // host is already confirmed they don't need a new seat, only their
+    // companions do.
+    const seatsTakenByOthers = currentReservations - (hostSeatAlreadyCounted ? 1 : 0) - existingCompanionsCount
+    const seatsNeeded = (hostIsConfirmed ? 0 : 1) + companions.length
 
     if (seatsTakenByOthers + seatsNeeded > capacity) {
-      throw createHttpError(400, `Non ci sono abbastanza posti liberi per te e i tuoi amici nel main event ${mainEvent.title}.`)
+      const subject = hostIsConfirmed ? 'i tuoi amici' : 'te e i tuoi amici'
+      throw createHttpError(400, `Non ci sono abbastanza posti liberi per ${subject} nel main event ${mainEvent.title}.`)
     }
 
-    if (existingReservation) {
+    if (hostIsConfirmed) {
+      // Host's own confirmed reservation stays exactly as-is.
+    } else if (existingReservation) {
       await tx.mainEventReservation.update({
         where: { id: existingReservation.id },
         data: {

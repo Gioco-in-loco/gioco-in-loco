@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { useToast } from '../../context/ToastContext'
 
 const TYPE_LABELS = {
@@ -47,110 +48,25 @@ function normalizeSearchValue(value) {
   return String(value || '').trim().toLocaleLowerCase('it-IT')
 }
 
+function rowKeyFor(reservation) {
+  return `${reservation.type}-${reservation.id}`
+}
+
 // Di default si vedono solo le prenotazioni confermate: la lista completa
 // (in attesa, annullate, scadute...) è pensata per l'audit occasionale, non
 // per la vista principale su cosa succederà davvero all'evento.
 const DEFAULT_FILTERS = { type: '', day: '', slotTime: '', status: 'CONFIRMED' }
 
-function ReservationActionsCell({ reservation, busyKey, onCancel, onDelete }) {
-  const [mode, setMode] = useState(null) // null | 'cancel' | 'confirmDelete'
-  const [reason, setReason] = useState('')
-  const rowKey = `${reservation.type}-${reservation.id}`
-  const isBusy = busyKey === rowKey
-
-  if (mode === 'cancel') {
-    return (
-      <div className="flex min-w-[220px] flex-col gap-1.5">
-        <textarea
-          value={reason}
-          onChange={(event) => setReason(event.target.value)}
-          placeholder="Motivo dell'annullamento (visibile all'utente)..."
-          rows={2}
-          className="w-full rounded-lg border border-editorial-border px-2 py-1.5 font-body text-xs text-editorial-text placeholder:text-editorial-text-muted focus:border-editorial-terra focus:outline-none"
-        />
-        <div className="flex gap-1.5">
-          <button
-            type="button"
-            disabled={isBusy || !reason.trim()}
-            onClick={async () => {
-              const ok = await onCancel(reservation, reason.trim())
-              if (ok) setMode(null)
-            }}
-            className="rounded-lg bg-red-600 px-2.5 py-1 font-body text-xs font-semibold text-white transition-colors hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {isBusy ? 'Annullo...' : 'Conferma annullamento'}
-          </button>
-          <button
-            type="button"
-            disabled={isBusy}
-            onClick={() => { setMode(null); setReason('') }}
-            className="rounded-lg border border-editorial-border px-2.5 py-1 font-body text-xs font-semibold text-editorial-text hover:border-editorial-terra"
-          >
-            Chiudi
-          </button>
-        </div>
-      </div>
-    )
-  }
-
-  if (mode === 'confirmDelete') {
-    return (
-      <div className="flex min-w-[220px] flex-col gap-1.5">
-        <p className="font-body text-xs font-semibold text-red-600">Eliminare definitivamente questo record?</p>
-        <div className="flex gap-1.5">
-          <button
-            type="button"
-            disabled={isBusy}
-            onClick={async () => {
-              const ok = await onDelete(reservation)
-              if (ok) setMode(null)
-            }}
-            className="rounded-lg bg-red-600 px-2.5 py-1 font-body text-xs font-semibold text-white transition-colors hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {isBusy ? 'Elimino...' : 'Sì, elimina'}
-          </button>
-          <button
-            type="button"
-            disabled={isBusy}
-            onClick={() => setMode(null)}
-            className="rounded-lg border border-editorial-border px-2.5 py-1 font-body text-xs font-semibold text-editorial-text hover:border-editorial-terra"
-          >
-            Annulla
-          </button>
-        </div>
-      </div>
-    )
-  }
-
-  return (
-    <div className="flex gap-1.5">
-      <button
-        type="button"
-        disabled={reservation.status === 'CANCELLED'}
-        onClick={() => setMode('cancel')}
-        className="rounded-lg border border-editorial-border px-2.5 py-1 font-body text-xs font-semibold text-editorial-text transition-colors hover:border-editorial-terra disabled:cursor-not-allowed disabled:opacity-40"
-      >
-        Annulla
-      </button>
-      <button
-        type="button"
-        onClick={() => setMode('confirmDelete')}
-        className="rounded-lg border border-red-200 px-2.5 py-1 font-body text-xs font-semibold text-red-600 transition-colors hover:bg-red-50"
-      >
-        Elimina
-      </button>
-    </div>
-  )
-}
-
 export default function EventReservationsPanel({ eventId }) {
+  const router = useRouter()
   const toast = useToast()
   const [reservations, setReservations] = useState([])
   const [loading, setLoading] = useState(false)
   const [loadError, setLoadError] = useState('')
   const [search, setSearch] = useState('')
   const [filters, setFilters] = useState(DEFAULT_FILTERS)
-  const [busyKey, setBusyKey] = useState(null)
+  const [selectedKeys, setSelectedKeys] = useState(() => new Set())
+  const [bulkDeleting, setBulkDeleting] = useState(false)
 
   const load = useCallback(async () => {
     if (!eventId) { setReservations([]); return }
@@ -199,48 +115,63 @@ export default function EventReservationsPanel({ eventId }) {
     })
   }, [reservations, search, filters])
 
-  const handleCancel = async (reservation, reason) => {
-    const rowKey = `${reservation.type}-${reservation.id}`
-    setBusyKey(rowKey)
+  // Selezioni fuori dai filtri correnti (es. cambiando filtro dopo aver
+  // selezionato righe) non contano più verso il conteggio/bulk delete.
+  const filteredKeys = useMemo(() => new Set(filtered.map(rowKeyFor)), [filtered])
+  const selectedInView = useMemo(() => Array.from(selectedKeys).filter((key) => filteredKeys.has(key)), [selectedKeys, filteredKeys])
+  const allInViewSelected = filtered.length > 0 && selectedInView.length === filtered.length
+
+  const toggleRow = (key) => {
+    setSelectedKeys((current) => {
+      const next = new Set(current)
+      if (next.has(key)) next.delete(key)
+      else next.add(key)
+      return next
+    })
+  }
+
+  const toggleAllInView = () => {
+    setSelectedKeys((current) => {
+      const next = new Set(current)
+      if (allInViewSelected) {
+        for (const reservation of filtered) next.delete(rowKeyFor(reservation))
+      } else {
+        for (const reservation of filtered) next.add(rowKeyFor(reservation))
+      }
+      return next
+    })
+  }
+
+  const handleBulkDelete = async () => {
+    if (selectedInView.length === 0) return
+    const shouldDelete = window.confirm(`Eliminare definitivamente ${selectedInView.length} prenotazioni selezionate? L'operazione non è reversibile.`)
+    if (!shouldDelete) return
+
+    setBulkDeleting(true)
     try {
-      const res = await fetch(`/api/admin/eventi/${eventId}/reservations/${reservation.id}?type=${reservation.type}`, {
-        method: 'PATCH',
+      const items = selectedInView.map((key) => {
+        const reservation = filtered.find((r) => rowKeyFor(r) === key)
+        return { type: reservation.type, reservationId: reservation.id }
+      })
+      const res = await fetch(`/api/admin/eventi/${eventId}/reservations/bulk-delete`, {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ cancellationReason: reason }),
+        body: JSON.stringify({ items }),
       })
       const payload = await res.json().catch(() => ({}))
-      if (!res.ok) throw new Error(payload.error || 'Annullamento non riuscito.')
-      toast.success('Prenotazione annullata.')
+      if (!res.ok) throw new Error(payload.error || 'Eliminazione non riuscita.')
+      toast.success(`${payload.deleted ?? items.length} prenotazioni eliminate.`)
+      setSelectedKeys(new Set())
       await load()
-      return true
     } catch (err) {
-      toast.error(err.message || 'Annullamento non riuscito.')
-      return false
+      toast.error(err.message || 'Eliminazione non riuscita.')
     } finally {
-      setBusyKey(null)
+      setBulkDeleting(false)
     }
   }
 
-  const handleDelete = async (reservation) => {
-    const rowKey = `${reservation.type}-${reservation.id}`
-    setBusyKey(rowKey)
-    try {
-      const res = await fetch(`/api/admin/eventi/${eventId}/reservations/${reservation.id}?type=${reservation.type}`, {
-        method: 'DELETE',
-      })
-      if (!res.ok) {
-        const payload = await res.json().catch(() => ({}))
-        throw new Error(payload.error || 'Eliminazione non riuscita.')
-      }
-      toast.success('Prenotazione eliminata.')
-      await load()
-      return true
-    } catch (err) {
-      toast.error(err.message || 'Eliminazione non riuscita.')
-      return false
-    } finally {
-      setBusyKey(null)
-    }
+  const openReservation = (reservation) => {
+    router.push(`/admin/eventi/${eventId}/prenotazioni/${reservation.id}?type=${reservation.type}`)
   }
 
   return (
@@ -249,7 +180,7 @@ export default function EventReservationsPanel({ eventId }) {
         <div>
           <p className="font-body text-xs font-semibold uppercase tracking-wider text-editorial-terra">Prenotazioni</p>
           <p className="mt-1 font-body text-xs text-editorial-text-muted">
-            Tutte le prenotazioni di questo evento: one-shot, Main Event e pass d&apos;ingresso.
+            Tutte le prenotazioni di questo evento: one-shot, Main Event e pass d&apos;ingresso. Clicca una riga per aprirla e modificarla.
           </p>
         </div>
         <input
@@ -261,7 +192,7 @@ export default function EventReservationsPanel({ eventId }) {
         />
       </div>
 
-      <div className="flex flex-wrap gap-3">
+      <div className="flex flex-wrap items-center gap-3">
         <select
           value={filters.status}
           onChange={(event) => setFilters((current) => ({ ...current, status: event.target.value }))}
@@ -311,6 +242,17 @@ export default function EventReservationsPanel({ eventId }) {
             Reset filtri
           </button>
         ) : null}
+
+        {selectedInView.length > 0 ? (
+          <button
+            type="button"
+            onClick={handleBulkDelete}
+            disabled={bulkDeleting}
+            className="ml-auto rounded-lg border border-red-200 px-3 py-1.5 font-body text-xs font-semibold text-red-600 transition-colors hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {bulkDeleting ? 'Elimino...' : `Elimina selezionate (${selectedInView.length})`}
+          </button>
+        ) : null}
       </div>
 
       {loading ? (
@@ -326,13 +268,20 @@ export default function EventReservationsPanel({ eventId }) {
           <table className="w-full">
             <thead>
               <tr className="bg-editorial-bg">
+                <th className="px-3 py-2 text-left">
+                  <input
+                    type="checkbox"
+                    checked={allInViewSelected}
+                    onChange={toggleAllInView}
+                    aria-label="Seleziona tutte le righe visibili"
+                  />
+                </th>
                 <th className="px-3 py-2 text-left font-body text-xs uppercase tracking-wider text-editorial-text-muted">Giocatore</th>
                 <th className="px-3 py-2 text-left font-body text-xs uppercase tracking-wider text-editorial-text-muted">Tipo</th>
                 <th className="px-3 py-2 text-left font-body text-xs uppercase tracking-wider text-editorial-text-muted">Dettaglio</th>
                 <th className="px-3 py-2 text-left font-body text-xs uppercase tracking-wider text-editorial-text-muted">Giorno · Fascia</th>
                 <th className="px-3 py-2 text-left font-body text-xs uppercase tracking-wider text-editorial-text-muted">Stato</th>
                 <th className="px-3 py-2 text-left font-body text-xs uppercase tracking-wider text-editorial-text-muted">Prenotato il</th>
-                <th className="px-3 py-2 text-left font-body text-xs uppercase tracking-wider text-editorial-text-muted">Azioni</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-editorial-border">
@@ -340,9 +289,22 @@ export default function EventReservationsPanel({ eventId }) {
                 const displayName = reservation.playerName || reservation.accountName || reservation.accountEmail || 'Utente sconosciuto'
                 const displayEmail = reservation.playerEmail || reservation.accountEmail
                 const slotLabel = [reservation.day, reservation.slotTime].filter(Boolean).join(' · ')
+                const key = rowKeyFor(reservation)
 
                 return (
-                  <tr key={`${reservation.type}-${reservation.id}`}>
+                  <tr
+                    key={key}
+                    onClick={() => openReservation(reservation)}
+                    className="cursor-pointer transition-colors hover:bg-editorial-bg/50"
+                  >
+                    <td className="px-3 py-2" onClick={(event) => event.stopPropagation()}>
+                      <input
+                        type="checkbox"
+                        checked={selectedKeys.has(key)}
+                        onChange={() => toggleRow(key)}
+                        aria-label={`Seleziona prenotazione di ${displayName}`}
+                      />
+                    </td>
                     <td className="px-3 py-2 font-body text-sm text-editorial-text">
                       {displayName}
                       {displayEmail && displayEmail !== displayName ? (
@@ -367,14 +329,6 @@ export default function EventReservationsPanel({ eventId }) {
                       </span>
                     </td>
                     <td className="px-3 py-2 font-body text-sm text-editorial-text-secondary">{formatDate(reservation.createdAt)}</td>
-                    <td className="px-3 py-2">
-                      <ReservationActionsCell
-                        reservation={reservation}
-                        busyKey={busyKey}
-                        onCancel={handleCancel}
-                        onDelete={handleDelete}
-                      />
-                    </td>
                   </tr>
                 )
               })}

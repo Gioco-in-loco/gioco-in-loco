@@ -782,7 +782,20 @@ function computeOneShotState({ slot, cartState, isLoggedIn, isAdmin = false, isP
   let disabled = false
   let variant = ''
 
-  if (!isLoggedIn) {
+  // Blocked states (not open yet / full) show as such regardless of login —
+  // no point sending an anonymous visitor to login for a table they can't
+  // book anyway.
+  if (notYetOpen) {
+    label = 'Non ancora aperto'
+    verboseLabel = 'Prenotazioni non ancora aperte'
+    disabled = true
+    variant = 'not-open'
+  } else if (full) {
+    label = 'Pieno'
+    verboseLabel = 'Sala piena'
+    disabled = true
+    variant = 'full'
+  } else if (!isLoggedIn) {
     label = 'Prenota'
     verboseLabel = 'Vai al login per prenotare'
     actionKind = 'login'
@@ -797,16 +810,6 @@ function computeOneShotState({ slot, cartState, isLoggedIn, isAdmin = false, isP
     actionKind = 'remove'
     disabled = isPending
     variant = 'in-cart'
-  } else if (notYetOpen) {
-    label = 'Non ancora aperto'
-    verboseLabel = 'Prenotazioni non ancora aperte'
-    disabled = true
-    variant = 'not-open'
-  } else if (full) {
-    label = 'Pieno'
-    verboseLabel = 'Sala piena'
-    disabled = true
-    variant = 'full'
   } else if (conflictConfirmed) {
     label = 'Slot occupato'
     verboseLabel = 'Hai già un\'altra sessione in questa fascia'
@@ -906,7 +909,24 @@ function computeMainEventState({ slot, reservation, inCart, hasReservedKey, hasC
   let disabled = false
   let variant = ''
 
-  if (reservation) {
+  // Blocked states (not open yet / full) show as such regardless of login —
+  // no point sending an anonymous visitor to login for a table they can't
+  // book anyway.
+  if (notYetOpen) {
+    variant = 'not-open'
+    label = 'Non ancora aperto'
+    verboseLabel = 'Prenotazioni non ancora aperte'
+    disabled = true
+  } else if (full) {
+    variant = 'full'
+    label = 'Pieno'
+    verboseLabel = 'Sala piena'
+    disabled = true
+  } else if (!isLoggedIn) {
+    label = 'Accedi'
+    verboseLabel = 'Accedi per prenotare'
+    actionKind = 'login'
+  } else if (reservation) {
     variant = 'confirmed'
     label = isPending ? 'Cancello…' : 'Cancella'
     verboseLabel = isPending ? 'Cancellazione…' : 'Cancella la prenotazione'
@@ -918,20 +938,6 @@ function computeMainEventState({ slot, reservation, inCart, hasReservedKey, hasC
     verboseLabel = isPending ? 'Cancellazione…' : 'Cancella la prenotazione'
     actionKind = 'remove'
     disabled = isPending
-  } else if (!isLoggedIn) {
-    label = 'Accedi'
-    verboseLabel = 'Accedi per prenotare'
-    actionKind = 'login'
-  } else if (notYetOpen) {
-    variant = 'not-open'
-    label = 'Non ancora aperto'
-    verboseLabel = 'Prenotazioni non ancora aperte'
-    disabled = true
-  } else if (full) {
-    variant = 'full'
-    label = 'Pieno'
-    verboseLabel = 'Sala piena'
-    disabled = true
   } else if (hasConflict) {
     label = 'Slot occupato'
     verboseLabel = 'Hai già un altro tavolo in questa fascia'
@@ -1161,7 +1167,9 @@ function OneShotDetailsModal({ session, cartState, pendingSlotId, busy, onAdd, o
   const { oneshot, slot } = session
   const isPending = pendingSlotId === slot.id
   const state = computeOneShotState({ slot, cartState, isLoggedIn, isAdmin, isPending, busy })
-  const invite = useCompanionInvites(state.remaining - 1)
+  // Already confirmed means the host's own seat is taken but doesn't need to
+  // be reserved again — every remaining seat can go to a companion.
+  const invite = useCompanionInvites(state.confirmed ? state.remaining : state.remaining - 1)
 
   const handleAction = () => {
     if (state.actionKind === 'login') {
@@ -1172,6 +1180,8 @@ function OneShotDetailsModal({ session, cartState, pendingSlotId, busy, onAdd, o
       onRemove(slot)
     }
   }
+
+  const handleInviteOnly = () => onAdd(slot, invite.validCompanions)
 
   const actionClass = state.actionKind === 'add' && !state.disabled ? 'dicefest-btn-primary w-full' : 'dicefest-btn-secondary w-full'
 
@@ -1227,6 +1237,17 @@ function OneShotDetailsModal({ session, cartState, pendingSlotId, busy, onAdd, o
           />
         ) : null}
 
+        {state.confirmed ? (
+          <button
+            type="button"
+            onClick={handleInviteOnly}
+            disabled={busy || invite.validCompanions.length === 0}
+            className="dicefest-btn-primary w-full mt-6"
+          >
+            Invita amici
+          </button>
+        ) : null}
+
         <button
           type="button"
           onClick={handleAction}
@@ -1244,7 +1265,11 @@ function MainEventDetailsModal({ session, sessionKey, reservation, inCart, hasRe
   const { mainEvent, slot } = session
   const isPending = pendingSessionKey === sessionKey
   const state = computeMainEventState({ slot, reservation, inCart, hasReservedKey, hasCartKey, isLoggedIn, isAdmin, isPending, busy })
-  const invite = useCompanionInvites(state.remaining - 1)
+  // Already reserved means the host's own seat is taken but doesn't need to
+  // be reserved again — every remaining seat can go to a companion.
+  const invite = useCompanionInvites(reservation ? state.remaining : state.remaining - 1)
+
+  const handleInviteOnly = () => onAdd({ mainEventId: mainEvent.id, day: slot.day, slot: slot.slot }, invite.validCompanions)
 
   const handleAction = () => {
     if (state.actionKind === 'login') {
@@ -1309,13 +1334,24 @@ function MainEventDetailsModal({ session, sessionKey, reservation, inCart, hasRe
           ) : null}
         </div>
 
-        {state.actionKind === 'add' && invite.maxCount > 0 ? (
+        {(state.actionKind === 'add' || reservation) && invite.maxCount > 0 ? (
           <CompanionInviteFields
             companions={invite.companions}
             onChange={invite.setCompanions}
             maxCount={invite.maxCount}
             className="mt-6 border-t border-dashed border-dicefest-border pt-5"
           />
+        ) : null}
+
+        {reservation ? (
+          <button
+            type="button"
+            onClick={handleInviteOnly}
+            disabled={busy || invite.validCompanions.length === 0}
+            className="dicefest-btn-primary w-full mt-6"
+          >
+            Invita amici
+          </button>
         ) : null}
 
         <button

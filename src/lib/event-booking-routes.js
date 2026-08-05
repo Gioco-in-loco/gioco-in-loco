@@ -424,13 +424,16 @@ export async function handleAddEventCartSlot(request, { eventId, displayName }) 
         },
       })
 
-      if (existingReservation && isConfirmedReservationStatus(existingReservation.status)) {
-        throw new Error(`Hai già prenotato la sessione ${selectedSlot.oneshot.title}.`)
-      }
+      // Being already confirmed no longer blocks the request: it just means
+      // this add-to-cart call is companion-only (invite friends without
+      // re-booking yourself). The host's own row is left untouched below.
+      const hostIsConfirmed = Boolean(existingReservation && isConfirmedReservationStatus(existingReservation.status))
 
-      // Own hold still valid — counted in currentReservations below, so it must be
-      // excluded from the "seats taken by others" tally.
+      // Own hold/confirmed seat is counted in currentReservations below (both
+      // a valid hold and a confirmed reservation match getActiveReservationFilter),
+      // so it must be excluded from the "seats taken by others" tally.
       const holdStillValid = Boolean(existingReservation?.status === EVENT_CART_HOLD_STATUS && existingReservation.holdExpiresAt && existingReservation.holdExpiresAt > new Date())
+      const hostSeatAlreadyCounted = hostIsConfirmed || holdStillValid
 
       const selectedSlotKey = getSlotKey(selectedSlot)
       const [userActiveReservations, userActiveMainEventReservations, currentReservations, existingCompanionsCount] = await Promise.all([
@@ -481,17 +484,22 @@ export async function handleAddEventCartSlot(request, { eventId, displayName }) 
       }
 
       // Seats taken by other people, excluding this host's own row and their
-      // own (about-to-be-replaced) companion invites for this slot.
-      const seatsTakenByOthers = currentReservations - (holdStillValid ? 1 : 0) - existingCompanionsCount
-      const seatsNeeded = 1 + companions.length
+      // own (about-to-be-replaced) companion invites for this slot. If the
+      // host is already confirmed they don't need a new seat, only their
+      // companions do.
+      const seatsTakenByOthers = currentReservations - (hostSeatAlreadyCounted ? 1 : 0) - existingCompanionsCount
+      const seatsNeeded = (hostIsConfirmed ? 0 : 1) + companions.length
 
       if (seatsTakenByOthers + seatsNeeded > selectedSlot.maxPlayers) {
-        throw new Error(`Non ci sono abbastanza posti liberi per te e i tuoi amici nella sessione ${selectedSlot.oneshot.title}.`)
+        const subject = hostIsConfirmed ? 'i tuoi amici' : 'te e i tuoi amici'
+        throw new Error(`Non ci sono abbastanza posti liberi per ${subject} nella sessione ${selectedSlot.oneshot.title}.`)
       }
 
       const holdExpiresAt = getNextHoldExpiration()
 
-      if (existingReservation) {
+      if (hostIsConfirmed) {
+        // Host's own confirmed reservation stays exactly as-is.
+      } else if (existingReservation) {
         await tx.reservation.update({
           where: { id: existingReservation.id },
           data: {
@@ -748,13 +756,16 @@ export async function handleAddEventCartMainEventSlot(request, { eventId, displa
         },
       })
 
-      if (existingReservation && isConfirmedReservationStatus(existingReservation.status)) {
-        throw new Error(`Hai già prenotato il main event ${mainEvent.title}.`)
-      }
+      // Being already confirmed no longer blocks the request: it just means
+      // this add-to-cart call is companion-only (invite friends without
+      // re-booking yourself). The host's own row is left untouched below.
+      const hostIsConfirmed = Boolean(existingReservation && isConfirmedReservationStatus(existingReservation.status))
 
-      // Own hold still valid — counted in currentReservations below, so it must be
-      // excluded from the "seats taken by others" tally.
+      // Own hold/confirmed seat is counted in currentReservations below (both
+      // a valid hold and a confirmed reservation match getActiveMainEventReservationFilter),
+      // so it must be excluded from the "seats taken by others" tally.
       const holdStillValid = Boolean(existingReservation?.status === EVENT_CART_HOLD_STATUS && existingReservation.holdExpiresAt && existingReservation.holdExpiresAt > new Date())
+      const hostSeatAlreadyCounted = hostIsConfirmed || holdStillValid
 
       const selectedSlotKey = getSlotKey({ day, slot })
       const [userActiveReservations, userActiveMainEventReservations, currentReservations, existingCompanionsCount] = await Promise.all([
@@ -809,17 +820,22 @@ export async function handleAddEventCartMainEventSlot(request, { eventId, displa
       }
 
       // Seats taken by other people, excluding this host's own row and their
-      // own (about-to-be-replaced) companion invites for this session.
-      const seatsTakenByOthers = currentReservations - (holdStillValid ? 1 : 0) - existingCompanionsCount
-      const seatsNeeded = 1 + companions.length
+      // own (about-to-be-replaced) companion invites for this session. If the
+      // host is already confirmed they don't need a new seat, only their
+      // companions do.
+      const seatsTakenByOthers = currentReservations - (hostSeatAlreadyCounted ? 1 : 0) - existingCompanionsCount
+      const seatsNeeded = (hostIsConfirmed ? 0 : 1) + companions.length
 
       if (seatsTakenByOthers + seatsNeeded > sessionCapacity) {
-        throw new Error(`Non ci sono abbastanza posti liberi per te e i tuoi amici nel main event ${mainEvent.title}.`)
+        const subject = hostIsConfirmed ? 'i tuoi amici' : 'te e i tuoi amici'
+        throw new Error(`Non ci sono abbastanza posti liberi per ${subject} nel main event ${mainEvent.title}.`)
       }
 
       const holdExpiresAt = getNextHoldExpiration()
 
-      if (existingReservation) {
+      if (hostIsConfirmed) {
+        // Host's own confirmed reservation stays exactly as-is.
+      } else if (existingReservation) {
         await tx.mainEventReservation.update({
           where: { id: existingReservation.id },
           data: {

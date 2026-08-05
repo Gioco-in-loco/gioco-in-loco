@@ -211,7 +211,9 @@ export async function claimInvite({ code, user, db = prisma }) {
         },
         data: {
           userId: user.id,
-          status: 'PENDING',
+          // Matches the host's own admission flow (handleConfirmEventCart),
+          // which sets CONFIRMED, not PENDING, at checkout.
+          status: 'CONFIRMED',
           holdExpiresAt: null,
           consentGiven: true,
           consentDate: now,

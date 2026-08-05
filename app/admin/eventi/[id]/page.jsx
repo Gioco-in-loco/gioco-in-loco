@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import ManagementPageHeader from '../../../../src/components/management/ManagementPageHeader'
 import EventForm, { toInputDate, toInputDateTime } from '../../../../src/components/management/EventForm'
 import EventTableMapPanel from '../../../../src/components/management/EventTableMapPanel'
@@ -16,11 +16,12 @@ function formatDate(dateStr) {
 
 export default function AdminEventDetailPage({ params }) {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [event, setEvent] = useState(null)
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState('')
   const [isEditing, setIsEditing] = useState(false)
-  const [activeTab, setActiveTab] = useState('dettaglio')
+  const [activeTab, setActiveTab] = useState(() => searchParams.get('tab') || 'dettaglio')
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [deleting, setDeleting] = useState(false)
 

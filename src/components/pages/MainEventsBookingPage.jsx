@@ -347,8 +347,13 @@ export default function MainEventsBookingPage({ mainEvents }) {
                     const notYetOpen = session.bookable === false && !reservation && !inCart && !user?.isAdmin
                     const disabled = requestState.loading || isPending || isUserStateLoading || notYetOpen || (!session.available && !reservation && !inCart)
                     const remainingSeats = Math.max(0, session.maxPlayers - (session.currentReservations || 0))
-                    const canInviteCompanions = !reservation && !inCart && !notYetOpen && remainingSeats > 1
+                    // Already reserved means the host's own seat is taken but
+                    // doesn't need to be reserved again — every remaining seat
+                    // can go to a companion.
+                    const canInviteCompanions = !inCart && !notYetOpen && remainingSeats > (reservation ? 0 : 1)
                     const isCompanionPanelOpen = expandedCompanionKey === key
+                    const currentCompanions = companionsBySessionKey[key] || []
+                    const hasValidCompanion = currentCompanions.some((c) => c.firstName.trim() && c.lastName.trim() && c.email.trim())
 
                     return (
                       <div key={key} className="rounded-xl border border-editorial-border bg-editorial-bg/40 p-4">
@@ -426,12 +431,24 @@ export default function MainEventsBookingPage({ mainEvents }) {
                         ) : null}
 
                         {canInviteCompanions && isCompanionPanelOpen ? (
-                          <CompanionInviteFields
-                            companions={companionsBySessionKey[key] || []}
-                            onChange={(next) => setCompanionsBySessionKey((current) => ({ ...current, [key]: next }))}
-                            maxCount={remainingSeats - 1}
-                            className="mt-3"
-                          />
+                          <>
+                            <CompanionInviteFields
+                              companions={currentCompanions}
+                              onChange={(next) => setCompanionsBySessionKey((current) => ({ ...current, [key]: next }))}
+                              maxCount={reservation ? remainingSeats : remainingSeats - 1}
+                              className="mt-3"
+                            />
+                            {reservation ? (
+                              <button
+                                type="button"
+                                onClick={() => handleAddToCart(mainEvent, session)}
+                                disabled={disabled || !hasValidCompanion}
+                                className="mt-3 rounded-lg border border-editorial-border px-4 py-2 font-body text-sm font-semibold text-editorial-text transition-colors hover:border-editorial-terra disabled:cursor-not-allowed disabled:opacity-60"
+                              >
+                                {isPending ? 'Invio...' : 'Invita amici'}
+                              </button>
+                            ) : null}
+                          </>
                         ) : null}
                       </div>
                     )

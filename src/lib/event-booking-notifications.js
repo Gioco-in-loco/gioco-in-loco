@@ -220,7 +220,7 @@ export async function sendWaitlistSpotAvailableEmail({ user, event, day, routeBa
   }
 }
 
-function buildCompanionInviteText({ invite, event, host, claimLink }) {
+function buildCompanionInviteText({ invite, event, host, claimLink, claimPageLink }) {
   return [
     `Ciao ${invite.name || ''},`,
     '',
@@ -228,15 +228,19 @@ function buildCompanionInviteText({ invite, event, host, claimLink }) {
     '',
     `${invite.day || ''} · ${invite.slot || ''}${invite.table ? ` · ${invite.table}` : ''}`,
     '',
-    `Per confermare il tuo posto devi registrarti (o accedere, se hai già un account) entro ${COMPANION_INVITE_MINUTES} minuti usando il link qui sotto. Il posto è riservato a questa email: dopo la scadenza verrà rilasciato.`,
+    `Per confermare il tuo posto devi registrarti (o accedere, se hai già un account) entro ${COMPANION_INVITE_MINUTES} minuti (1 ora). Il posto è riservato a questa email: dopo la scadenza verrà rilasciato.`,
     '',
-    claimLink ? `Conferma il tuo posto qui: ${claimLink}` : 'Contatta chi ti ha invitato per il link di conferma.',
+    claimLink ? `Puoi confermare cliccando qui: ${claimLink}` : 'Contatta chi ti ha invitato per il link di conferma.',
+    '',
+    claimPageLink
+      ? `In alternativa, vai su ${claimPageLink} e inserisci questo codice: ${invite.inviteCode}`
+      : `In alternativa puoi usare questo codice: ${invite.inviteCode}`,
     '',
     'Gioco In Loco',
   ].join('\n')
 }
 
-function buildCompanionInviteHtml({ invite, event, host, claimLink }) {
+function buildCompanionInviteHtml({ invite, event, host, claimLink, claimPageLink }) {
   return `
     <div style="font-family:Arial,sans-serif;line-height:1.5;color:#1F2937;max-width:680px;margin:0 auto;">
       <h1 style="color:#1A1A2E;">${escapeHtml(host?.name || host?.email || 'Un amico')} ti ha invitato!</h1>
@@ -245,8 +249,10 @@ function buildCompanionInviteHtml({ invite, event, host, claimLink }) {
       <div style="border:1px solid #D1D5DB;border-radius:12px;padding:16px;margin:24px 0;background:#F9FAFB;">
         <div>${escapeHtml(invite.day || '')} · ${escapeHtml(invite.slot || '')}${invite.table ? ` · ${escapeHtml(invite.table)}` : ''}</div>
       </div>
-      <p>Per confermare il tuo posto devi <strong>registrarti (o accedere)</strong> entro <strong>${COMPANION_INVITE_MINUTES} minuti</strong> con questo link. Il posto è riservato a questa email: dopo la scadenza verrà rilasciato.</p>
+      <p>Per confermare il tuo posto devi <strong>registrarti (o accedere)</strong> entro <strong>${COMPANION_INVITE_MINUTES} minuti (1 ora)</strong>. Il posto è riservato a questa email: dopo la scadenza verrà rilasciato.</p>
       ${claimLink ? `<p><a href="${escapeHtml(claimLink)}" style="color:#B45309;font-weight:700;">Conferma il tuo posto</a></p>` : ''}
+      <p>In alternativa${claimPageLink ? ` vai su <a href="${escapeHtml(claimPageLink)}">${escapeHtml(claimPageLink)}</a> e` : ','} inserisci questo codice:</p>
+      <p style="font-family:monospace;font-size:16px;background:#F3F4F6;border-radius:8px;padding:10px 14px;display:inline-block;">${escapeHtml(invite.inviteCode)}</p>
       <p>Gioco In Loco</p>
     </div>
   `
@@ -263,6 +269,7 @@ export async function sendCompanionInviteEmails({ host, eventId, invites }) {
     : []
   const eventById = new Map(events.map((event) => [event.id, event]))
   const siteUrl = getConfiguredSiteUrl()
+  const claimPageLink = siteUrl ? buildAbsoluteUrl('/invito', siteUrl) : null
 
   const results = await Promise.allSettled(invites.map((invite) => {
     const event = eventById.get(invite.eventId || eventId)
@@ -271,8 +278,8 @@ export async function sendCompanionInviteEmails({ host, eventId, invites }) {
     return sendMail({
       to: invite.email,
       subject: `${host?.name || 'Un amico'} ti ha invitato · ${event?.name || 'Gioco In Loco'}`,
-      text: buildCompanionInviteText({ invite, event, host, claimLink }),
-      html: buildCompanionInviteHtml({ invite, event, host, claimLink }),
+      text: buildCompanionInviteText({ invite, event, host, claimLink, claimPageLink }),
+      html: buildCompanionInviteHtml({ invite, event, host, claimLink, claimPageLink }),
     })
   }))
 

@@ -102,7 +102,11 @@ export default function InviteClaimPage({ code }) {
 
   if (!invite || invite.state === 'not_found') {
     return (
-      <AuthShell eyebrow="Invito" title="Invito non trovato" description="Il link che hai usato non è valido. Chiedi a chi ti ha invitato di controllare il link." />
+      <AuthShell eyebrow="Invito" title="Invito non trovato" description="Il link o il codice che hai usato non è valido. Controlla di averlo copiato per intero, oppure chiedi a chi ti ha invitato di controllarlo.">
+        <Link href="/invito" className="btn-ghost w-full inline-block text-center">
+          Riprova con un altro codice
+        </Link>
+      </AuthShell>
     )
   }
 
