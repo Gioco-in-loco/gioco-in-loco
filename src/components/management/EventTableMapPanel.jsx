@@ -63,6 +63,7 @@ export default function EventTableMapPanel({
   const [showEditMainEvent, setShowEditMainEvent] = useState(false)
   const [selectedSlot, setSelectedSlot] = useState(null)
   const [filters, setFilters] = useState(EMPTY_FILTERS)
+  const [unlockingBookings, setUnlockingBookings] = useState(false)
 
   const loadSlots = useCallback(async () => {
     if (!eventId) { setSlots([]); return [] }
@@ -98,6 +99,23 @@ export default function EventTableMapPanel({
     }
 
     toast.success(data.swapped ? 'Sessioni scambiate.' : 'Sessione spostata.')
+    loadSlots()
+  }, [eventId, slotsEndpointBase, toast, loadSlots])
+
+  const handleUnlockAllBookings = useCallback(async () => {
+    if (!window.confirm('Attivare "Attiva prenotazione" su tutti i tavoli di questo evento?')) return
+
+    setUnlockingBookings(true)
+    const res = await fetch(`${slotsEndpointBase}/${eventId}/slots/unlock-bookings`, { method: 'POST' })
+    const data = await res.json().catch(() => ({}))
+    setUnlockingBookings(false)
+
+    if (!res.ok) {
+      toast.error(data.error || 'Sblocco prenotazioni non riuscito.')
+      return
+    }
+
+    toast.success(data.count > 0 ? `Prenotazioni sbloccate su ${data.count} tavoli.` : 'Le prenotazioni erano già tutte sbloccate.')
     loadSlots()
   }, [eventId, slotsEndpointBase, toast, loadSlots])
 
@@ -186,6 +204,11 @@ export default function EventTableMapPanel({
           {canManageSlot ? (
             <ActionsMenuItem as="a" href={`${slotsEndpointBase}/${eventId}/slots/export`} className="text-editorial-forest">
               Esporta Excel
+            </ActionsMenuItem>
+          ) : null}
+          {canManageSlot ? (
+            <ActionsMenuItem onClick={handleUnlockAllBookings} disabled={unlockingBookings}>
+              {unlockingBookings ? 'Sblocco in corso...' : 'Sblocca prenotazioni su tutti i tavoli'}
             </ActionsMenuItem>
           ) : null}
         </ActionsMenu>

@@ -335,6 +335,20 @@ export async function updateEventSlot({ eventId, slotId, body }) {
   }
 }
 
+// Bulk override: riattiva "attiva prenotazione" su tutti gli slot dell'evento
+// in un colpo solo, invece di doverlo fare tavolo per tavolo. Non tocca
+// isVisible/adminOnly, solo il flag di prenotabilità.
+export async function enableBookingForAllSlots({ eventId }) {
+  if (!eventId) throw createHttpError(400, 'Evento non valido')
+
+  const result = await prisma.eventSlot.updateMany({
+    where: { eventId, bookingEnabled: false },
+    data: { bookingEnabled: true },
+  })
+
+  return { count: result.count }
+}
+
 export async function deleteEventSlot({ eventId, slotId }) {
   const slot = await prisma.eventSlot.findFirst({
     where: { id: slotId, eventId },
