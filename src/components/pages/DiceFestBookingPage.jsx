@@ -15,6 +15,7 @@ import { getSlotKey } from '../../lib/event-booking'
 import { DICE_FEST_BOOKING_CONFIG } from '../../lib/bookable-events'
 import { ParchmentCard } from '../dice-fest/decorations'
 import TableMap from '../dice-fest/TableMap'
+import Countdown from '../dice-fest/Countdown'
 import CompanionInviteFields from '../booking/CompanionInviteFields'
 
 function useCompanionInvites(maxCount) {
@@ -459,6 +460,14 @@ export default function DiceFestBookingPage({ event }) {
                     <p className="mx-auto mt-2 max-w-md font-df-body text-sm leading-relaxed text-dicefest-paper/75">
                       I master stanno ancora preparando le loro avventure. Tornate presto.
                     </p>
+                    {event.bookingOpensAt ? (
+                      <Countdown
+                        startDate={event.bookingOpensAt}
+                        label="Le prenotazioni aprono tra"
+                        completedLabel="Le prenotazioni sono aperte!"
+                        className="mx-auto mt-6 max-w-xs"
+                      />
+                    ) : null}
                   </div>
                 </ParchmentCard>
               ) : (

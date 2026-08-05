@@ -18,7 +18,7 @@ function getTimeLeft(targetTime) {
   }
 }
 
-export default function Countdown({ startDate, className = '' }) {
+export default function Countdown({ startDate, className = '', label = 'Al via tra', completedLabel = 'Dice Fest è iniziato!' }) {
   const targetTime = startDate ? new Date(startDate).getTime() : null
   const [timeLeft, setTimeLeft] = useState(() => (targetTime ? getTimeLeft(targetTime) : null))
 
@@ -37,7 +37,7 @@ export default function Countdown({ startDate, className = '' }) {
 
   return (
     <div className={`dicefest-surface shadow-df-hard-green px-6 py-6 text-center sm:px-8 ${className}`}>
-      <p className="dicefest-eyebrow justify-center">Al via tra</p>
+      <p className="dicefest-eyebrow justify-center">{label}</p>
       {timeLeft ? (
         <div className="mt-4 grid grid-cols-4 gap-2">
           {[
@@ -55,7 +55,7 @@ export default function Countdown({ startDate, className = '' }) {
           ))}
         </div>
       ) : (
-        <p className="mt-4 font-df-display text-2xl uppercase text-dicefest-green">Dice Fest è iniziato!</p>
+        <p className="mt-4 font-df-display text-2xl uppercase text-dicefest-green">{completedLabel}</p>
       )}
     </div>
   )
