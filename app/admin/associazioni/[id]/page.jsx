@@ -68,6 +68,7 @@ export default function AdminAssociationDetailPage({ params }) {
               onSave={handleSave}
               onCancel={() => setIsEditing(false)}
               submitLabel="Salva modifiche"
+              uploadEndpoint="/api/admin/associazioni/upload-image"
             />
           ) : (
             <div className="flex items-start justify-between gap-4">
@@ -106,7 +107,11 @@ export default function AdminAssociationDetailPage({ params }) {
                 </div>
                 <div>
                   <dt className="font-body text-xs font-semibold uppercase tracking-wider text-editorial-text-muted">Logo</dt>
-                  <dd className="mt-1 font-body text-sm text-editorial-text">{association.logo || '—'}</dd>
+                  <dd className="mt-1 font-body text-sm text-editorial-text">
+                    {association.logo ? (
+                      <img src={association.logo} alt="" className="h-12 w-12 rounded-lg border border-editorial-border object-cover" />
+                    ) : '—'}
+                  </dd>
                 </div>
                 <div className="sm:col-span-2 xl:col-span-3">
                   <dt className="font-body text-xs font-semibold uppercase tracking-wider text-editorial-text-muted">Bio</dt>

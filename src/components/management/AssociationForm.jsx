@@ -18,10 +18,12 @@ const EMPTY_FORM = {
   linktree: '',
 }
 
-export default function AssociationForm({ initial = EMPTY_FORM, onSave, onCancel, submitLabel, showLogoField = true }) {
+export default function AssociationForm({ initial = EMPTY_FORM, onSave, onCancel, submitLabel, showLogoField = true, uploadEndpoint }) {
   const [form, setForm] = useState({ ...EMPTY_FORM, ...initial })
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [logoUploading, setLogoUploading] = useState(false)
+  const [logoError, setLogoError] = useState('')
 
   useEffect(() => {
     setForm({ ...EMPTY_FORM, ...initial })
@@ -31,6 +33,28 @@ export default function AssociationForm({ initial = EMPTY_FORM, onSave, onCancel
 
   const set = (field) => (event) => {
     setForm((current) => ({ ...current, [field]: event.target.value }))
+  }
+
+  const handleLogoChange = async (event) => {
+    const file = event.target.files?.[0]
+    event.target.value = ''
+    if (!file) return
+
+    setLogoUploading(true)
+    setLogoError('')
+
+    try {
+      const body = new FormData()
+      body.append('file', file)
+      const response = await fetch(uploadEndpoint, { method: 'POST', body })
+      const data = await response.json().catch(() => ({}))
+      if (!response.ok) throw new Error(data.error || 'Caricamento immagine non riuscito.')
+      setForm((current) => ({ ...current, logo: data.url }))
+    } catch (uploadError) {
+      setLogoError(uploadError.message || 'Caricamento immagine non riuscito.')
+    } finally {
+      setLogoUploading(false)
+    }
   }
 
   const handleSubmit = async (event) => {
@@ -66,7 +90,28 @@ export default function AssociationForm({ initial = EMPTY_FORM, onSave, onCancel
         {showLogoField ? (
           <div>
             <label className={labelClass}>Logo</label>
-            <input className={inputClass} value={form.logo} onChange={set('logo')} placeholder="/images/logo.png oppure URL" />
+            {logoError ? <p className="mb-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 font-body text-xs text-red-600">{logoError}</p> : null}
+            <div className="flex items-center gap-3">
+              {form.logo ? (
+                <img src={form.logo} alt="" className="h-16 w-16 rounded-lg border border-editorial-border object-cover" />
+              ) : null}
+              <div className="flex flex-col gap-2">
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp,image/gif"
+                  onChange={handleLogoChange}
+                  disabled={logoUploading}
+                  className="font-body text-xs text-editorial-text-muted file:mr-3 file:rounded-lg file:border file:border-editorial-border file:bg-white file:px-3 file:py-1.5 file:font-body file:text-xs file:font-semibold file:text-editorial-text hover:file:border-editorial-terra"
+                />
+                {logoUploading ? <p className="font-body text-xs text-editorial-text-muted">Caricamento in corso...</p> : null}
+                {form.logo && !logoUploading ? (
+                  <button type="button" onClick={() => setForm((current) => ({ ...current, logo: '' }))} className="self-start font-body text-xs font-semibold text-red-600 hover:underline">
+                    Rimuovi logo
+                  </button>
+                ) : null}
+              </div>
+            </div>
+            <p className="mt-1 font-body text-xs text-editorial-text-muted">PNG, JPEG, WEBP o GIF, max 3MB.</p>
           </div>
         ) : null}
         <div className={showLogoField ? '' : 'hidden'}>

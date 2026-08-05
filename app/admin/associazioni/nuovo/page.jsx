@@ -33,7 +33,7 @@ export default function AdminNewAssociationPage() {
       />
 
       <div className="bg-white rounded-xl border border-editorial-border p-6 shadow-soft">
-        <AssociationForm onSave={handleCreate} onCancel={() => router.push('/admin/associazioni')} submitLabel="Crea associazione" />
+        <AssociationForm onSave={handleCreate} onCancel={() => router.push('/admin/associazioni')} submitLabel="Crea associazione" uploadEndpoint="/api/admin/associazioni/upload-image" />
       </div>
     </>
   )
