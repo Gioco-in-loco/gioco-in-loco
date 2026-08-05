@@ -8,6 +8,7 @@ import EditOneShotDialog from './EditOneShotDialog'
 import MainEventFormDialog from './MainEventFormDialog'
 import EditMainEventDialog from './EditMainEventDialog'
 import SlotCellDialog from './SlotCellDialog'
+import BookingLockDialog from './BookingLockDialog'
 import ActionsMenu, { ActionsMenuItem } from './ActionsMenu'
 import { useToast } from '../../context/ToastContext'
 
@@ -63,7 +64,7 @@ export default function EventTableMapPanel({
   const [showEditMainEvent, setShowEditMainEvent] = useState(false)
   const [selectedSlot, setSelectedSlot] = useState(null)
   const [filters, setFilters] = useState(EMPTY_FILTERS)
-  const [unlockingBookings, setUnlockingBookings] = useState(false)
+  const [showBookingLockDialog, setShowBookingLockDialog] = useState(false)
 
   const loadSlots = useCallback(async () => {
     if (!eventId) { setSlots([]); return [] }
@@ -99,23 +100,6 @@ export default function EventTableMapPanel({
     }
 
     toast.success(data.swapped ? 'Sessioni scambiate.' : 'Sessione spostata.')
-    loadSlots()
-  }, [eventId, slotsEndpointBase, toast, loadSlots])
-
-  const handleUnlockAllBookings = useCallback(async () => {
-    if (!window.confirm('Attivare "Attiva prenotazione" su tutti i tavoli di questo evento?')) return
-
-    setUnlockingBookings(true)
-    const res = await fetch(`${slotsEndpointBase}/${eventId}/slots/unlock-bookings`, { method: 'POST' })
-    const data = await res.json().catch(() => ({}))
-    setUnlockingBookings(false)
-
-    if (!res.ok) {
-      toast.error(data.error || 'Sblocco prenotazioni non riuscito.')
-      return
-    }
-
-    toast.success(data.count > 0 ? `Prenotazioni sbloccate su ${data.count} tavoli.` : 'Le prenotazioni erano già tutte sbloccate.')
     loadSlots()
   }, [eventId, slotsEndpointBase, toast, loadSlots])
 
@@ -211,6 +195,11 @@ export default function EventTableMapPanel({
               {unlockingBookings ? 'Sblocco in corso...' : 'Sblocca prenotazioni su tutti i tavoli'}
             </ActionsMenuItem>
           ) : null}
+          {canManageSlot ? (
+            <ActionsMenuItem onClick={() => setShowBookingLockDialog(true)}>
+              Visibilità / prenotazioni per giorno o fascia
+            </ActionsMenuItem>
+          ) : null}
         </ActionsMenu>
       </div>
 
@@ -277,6 +266,18 @@ export default function EventTableMapPanel({
           eventTimeSlots={eventTimeSlots}
           slotsEndpointBase={slotsEndpointBase}
           onCreated={() => { setShowAddSlot(false); loadSlots() }}
+        />
+      ) : null}
+
+      {canManageSlot ? (
+        <BookingLockDialog
+          open={showBookingLockDialog}
+          onClose={() => setShowBookingLockDialog(false)}
+          eventId={eventId}
+          eventDays={eventDays}
+          eventTimeSlots={eventTimeSlots}
+          slotsEndpointBase={slotsEndpointBase}
+          onApplied={() => { setShowBookingLockDialog(false); loadSlots() }}
         />
       ) : null}
 

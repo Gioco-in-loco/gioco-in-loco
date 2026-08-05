@@ -349,6 +349,30 @@ export async function enableBookingForAllSlots({ eventId }) {
   return { count: result.count }
 }
 
+// Modifica granulare di visibilità e/o prenotabilità: un giorno intero
+// (slot = null) oppure un singolo giorno+fascia. Usato dalla dialog "Blocca /
+// sblocca prenotazioni" per non dover passare tavolo per tavolo quando serve
+// chiudere/nascondere solo una fascia o un'intera giornata. isVisible e
+// bookingEnabled sono entrambi opzionali: solo i campi passati vengono
+// aggiornati, cosi si puo cambiare l'uno, l'altro, o entrambi insieme.
+export async function updateSlotsScope({ eventId, day, slot, isVisible, bookingEnabled }) {
+  if (!eventId) throw createHttpError(400, 'Evento non valido')
+  if (!WEEK_DAYS.has(day)) throw createHttpError(400, 'Giorno non valido')
+  if (slot && !TIME_SLOT_REGEX.test(slot)) throw createHttpError(400, 'Fascia oraria non valida')
+  if (isVisible === undefined && bookingEnabled === undefined) {
+    throw createHttpError(400, 'Seleziona almeno una modifica da applicare (prenotazione o visibilità).')
+  }
+
+  const scope = slot ? { eventId, day, slot } : { eventId, day }
+  const data = {}
+  if (isVisible !== undefined) data.isVisible = Boolean(isVisible)
+  if (bookingEnabled !== undefined) data.bookingEnabled = Boolean(bookingEnabled)
+
+  const result = await prisma.eventSlot.updateMany({ where: scope, data })
+
+  return { count: result.count }
+}
+
 export async function deleteEventSlot({ eventId, slotId }) {
   const slot = await prisma.eventSlot.findFirst({
     where: { id: slotId, eventId },
