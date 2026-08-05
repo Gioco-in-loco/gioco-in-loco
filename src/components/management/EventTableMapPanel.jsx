@@ -191,11 +191,6 @@ export default function EventTableMapPanel({
             </ActionsMenuItem>
           ) : null}
           {canManageSlot ? (
-            <ActionsMenuItem onClick={handleUnlockAllBookings} disabled={unlockingBookings}>
-              {unlockingBookings ? 'Sblocco in corso...' : 'Sblocca prenotazioni su tutti i tavoli'}
-            </ActionsMenuItem>
-          ) : null}
-          {canManageSlot ? (
             <ActionsMenuItem onClick={() => setShowBookingLockDialog(true)}>
               Visibilità / prenotazioni per giorno o fascia
             </ActionsMenuItem>

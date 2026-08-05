@@ -335,20 +335,6 @@ export async function updateEventSlot({ eventId, slotId, body }) {
   }
 }
 
-// Bulk override: riattiva "attiva prenotazione" su tutti gli slot dell'evento
-// in un colpo solo, invece di doverlo fare tavolo per tavolo. Non tocca
-// isVisible/adminOnly, solo il flag di prenotabilità.
-export async function enableBookingForAllSlots({ eventId }) {
-  if (!eventId) throw createHttpError(400, 'Evento non valido')
-
-  const result = await prisma.eventSlot.updateMany({
-    where: { eventId, bookingEnabled: false },
-    data: { bookingEnabled: true },
-  })
-
-  return { count: result.count }
-}
-
 // Modifica granulare di visibilità e/o prenotabilità: un giorno intero
 // (slot = null) oppure un singolo giorno+fascia. Usato dalla dialog "Blocca /
 // sblocca prenotazioni" per non dover passare tavolo per tavolo quando serve
