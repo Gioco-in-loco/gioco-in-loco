@@ -3,7 +3,7 @@ import { prisma } from '../../../../../src/lib/prisma'
 import { requireAdminApi } from '../../../../../src/lib/admin-guard'
 import { normalizeEventDays, normalizeEventTimeSlots } from '../../../../../src/lib/oneshots-management'
 
-const EVENT_VISIBILITY_VALUES = new Set(['COMING_SOON', 'PREVIEW', 'REVEALED'])
+const EVENT_VISIBILITY_VALUES = new Set(['PREVIEW', 'REVEALED'])
 
 // params.id qui è l'externalId (slug) dell'evento, non il cuid interno — la
 // pagina/rotta admin naviga e cerca gli eventi per externalId in modo che

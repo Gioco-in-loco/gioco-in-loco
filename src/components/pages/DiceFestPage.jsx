@@ -114,7 +114,7 @@ export default function DiceFestPage({ event }) {
                       Prenota il tuo tavolo
                     </Link>
                   ) : null}
-                  {distinctGames.length > 0 ? (
+                  {event.visibility === 'REVEALED' && distinctGames.length > 0 ? (
                     <Link href="#giochi" className="dicefest-btn-secondary">
                       Scopri i giochi
                     </Link>
@@ -187,32 +187,36 @@ export default function DiceFestPage({ event }) {
           </>
         ) : null}
 
-        <SigilDivider className="my-12 sm:my-16" />
+        {event.visibility === 'REVEALED' ? (
+          <>
+            <SigilDivider className="my-12 sm:my-16" />
 
-        {/* STATS — credibility numbers right after the hero */}
-        <section>
-          <div className="text-center">
-            <p className="dicefest-eyebrow justify-center">I tavoli che ti aspettano</p>
-            <h2 className="mt-3 font-df-display text-3xl uppercase text-dicefest-paper sm:text-4xl">
-              {hasProgram ? 'La sala è pronta' : 'Il programma è ancora un mistero'}
-            </h2>
-            <p className="mx-auto mt-3 max-w-xl font-df-body text-[15px] leading-relaxed text-dicefest-paper/75">
-              {hasProgram
-                ? 'Ecco quanti tavoli sono già pronti per questa edizione.'
-                : 'I master stanno ancora preparando le loro avventure. Tornate presto.'}
-            </p>
-          </div>
+            {/* STATS — credibility numbers right after the hero */}
+            <section>
+              <div className="text-center">
+                <p className="dicefest-eyebrow justify-center">I tavoli che ti aspettano</p>
+                <h2 className="mt-3 font-df-display text-3xl uppercase text-dicefest-paper sm:text-4xl">
+                  {hasProgram ? 'La sala è pronta' : 'Il programma è ancora un mistero'}
+                </h2>
+                <p className="mx-auto mt-3 max-w-xl font-df-body text-[15px] leading-relaxed text-dicefest-paper/75">
+                  {hasProgram
+                    ? 'Ecco quanti tavoli sono già pronti per questa edizione.'
+                    : 'I master stanno ancora preparando le loro avventure. Tornate presto.'}
+                </p>
+              </div>
 
-          {hasProgram ? (
-            <div className="mt-10 grid grid-cols-2 gap-5 sm:grid-cols-4">
-              {stats.map((stat) => (
-                <CountStat key={stat.label} {...stat} />
-              ))}
-            </div>
-          ) : null}
-        </section>
+              {hasProgram ? (
+                <div className="mt-10 grid grid-cols-2 gap-5 sm:grid-cols-4">
+                  {stats.map((stat) => (
+                    <CountStat key={stat.label} {...stat} />
+                  ))}
+                </div>
+              ) : null}
+            </section>
+          </>
+        ) : null}
 
-        {distinctGames.length > 0 ? (
+        {event.visibility === 'REVEALED' && distinctGames.length > 0 ? (
           <>
             <SigilDivider className="my-12 sm:my-16" />
 

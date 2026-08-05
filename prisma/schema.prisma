@@ -126,7 +126,7 @@ model Event {
   startDate   DateTime?
   endDate     DateTime?
   bookingOpensAt DateTime? // le prenotazioni sono permesse solo da questa data/ora in poi (stato REVEALED); null = nessun limite
-  visibility  EventVisibility @default(REVEALED) // stato pubblico delle pagine evento (staff bypassa sempre): COMING_SOON = pagina "in arrivo", PREVIEW = pagina principale visibile ma programma nascosto, REVEALED = tutto visibile
+  visibility  EventVisibility @default(REVEALED) // stato pubblico delle pagine evento (staff bypassa sempre): PREVIEW = pagina principale visibile ma programma nascosto, REVEALED = tutto visibile
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -142,7 +142,6 @@ model Event {
 }
 
 enum EventVisibility {
-  COMING_SOON
   PREVIEW
   REVEALED
 }

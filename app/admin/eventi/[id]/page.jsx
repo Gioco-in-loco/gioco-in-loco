@@ -225,8 +225,7 @@ export default function AdminEventDetailPage({ params }) {
                     <div>
                       <dt className="font-body text-xs font-semibold uppercase tracking-wider text-editorial-text-muted">Stato pagina evento</dt>
                       <dd className="mt-1 font-body text-sm text-editorial-text">
-                        {event.visibility === 'COMING_SOON' ? 'Coming soon — le pagine mostrano "in arrivo"'
-                          : event.visibility === 'PREVIEW' ? 'Preview — pagina principale visibile, programma nascosto'
+                        {event.visibility === 'PREVIEW' ? 'Preview — pagina principale visibile, programma nascosto'
                           : 'Rivelato — tutto visibile'}
                       </dd>
                     </div>

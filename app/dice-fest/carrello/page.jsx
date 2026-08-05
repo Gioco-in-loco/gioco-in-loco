@@ -1,4 +1,3 @@
-import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import DiceFestCartPage from '../../../src/components/pages/DiceFestCartPage'
 import { getDiceFestEventData } from '../../../src/lib/dice-fest'
@@ -13,11 +12,6 @@ export const metadata = {
 
 export default async function DiceFestCartRoute() {
   const event = await getDiceFestEventData()
-
-  if (event?.visibility === 'COMING_SOON') {
-    const staff = await requireAdminOrResponsabile()
-    if (!staff) redirect('/dice-fest/coming-soon')
-  }
 
   if (!event) {
     return (

@@ -9,7 +9,6 @@ const TIME_SLOT_REGEX = /^([01]\d|2[0-3]):[0-5]\d-([01]\d|2[0-3]):[0-5]\d$/
 const EMPTY_FORM = { externalId: '', name: '', description: '', location: '', mapsUrl: '', price: '', dailyPrice: '', days: [], timeSlots: [], startDate: '', endDate: '', bookingOpensAt: '', visibility: 'REVEALED' }
 
 const VISIBILITY_OPTIONS = [
-  { value: 'COMING_SOON', label: 'Coming soon', description: 'Le pagine dell\'evento mostrano "in arrivo" al posto dei contenuti.' },
   { value: 'PREVIEW', label: 'Preview', description: 'La pagina principale è visibile, ma il programma (sessioni) resta nascosto.' },
   { value: 'REVEALED', label: 'Rivelato', description: 'Tutto visibile. Le prenotazioni si aprono alla data indicata sotto.' },
 ]

@@ -3,7 +3,7 @@ import { prisma } from '../../../../src/lib/prisma'
 import { requireAdminApi } from '../../../../src/lib/admin-guard'
 import { normalizeEventDays, normalizeEventTimeSlots } from '../../../../src/lib/oneshots-management'
 
-const EVENT_VISIBILITY_VALUES = new Set(['COMING_SOON', 'PREVIEW', 'REVEALED'])
+const EVENT_VISIBILITY_VALUES = new Set(['PREVIEW', 'REVEALED'])
 
 function normalizeEventVisibility(value) {
   return EVENT_VISIBILITY_VALUES.has(value) ? value : 'REVEALED'
