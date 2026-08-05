@@ -143,42 +143,19 @@ export default function DiceFestPage({ event }) {
               </div>
             </div>
 
-            <div className="fade-stagger mt-10 flex flex-col gap-3 border-t border-dashed border-dicefest-border pt-6 sm:flex-row sm:items-center sm:justify-between" style={{ animationDelay: '0.4s' }}>
-              <div className="max-w-sm">
-                <p className="font-df-display text-sm uppercase text-dicefest-paper">Non sai ancora a quale tavolo sederti?</p>
-                <p className="mt-1 font-df-body text-[13px] leading-relaxed text-dicefest-paper/70">
-                  Segnaci la tua presenza: confermiamo subito il tuo pass per la giornata. Le sessioni le scegli quando vuoi.
-                </p>
+            {event.visibility === 'REVEALED' ? (
+              <div className="fade-stagger mt-10 flex flex-col gap-3 border-t border-dashed border-dicefest-border pt-6 sm:flex-row sm:items-center sm:justify-between" style={{ animationDelay: '0.4s' }}>
+                <div className="max-w-sm">
+                  <p className="font-df-display text-sm uppercase text-dicefest-paper">Non sai ancora a quale tavolo sederti?</p>
+                  <p className="mt-1 font-df-body text-[13px] leading-relaxed text-dicefest-paper/70">
+                    Segnaci la tua presenza: confermiamo subito il tuo pass per la giornata. Le sessioni le scegli quando vuoi.
+                  </p>
+                </div>
+                <RsvpButton days={event.days} />
               </div>
-              <RsvpButton days={event.days} />
-            </div>
+            ) : null}
           </div>
         </ParchmentCard>
-
-        <SigilDivider className="my-12 sm:my-16" />
-
-        {/* STATS — credibility numbers right after the hero */}
-        <section>
-          <div className="text-center">
-            <p className="dicefest-eyebrow justify-center">I tavoli che ti aspettano</p>
-            <h2 className="mt-3 font-df-display text-3xl uppercase text-dicefest-paper sm:text-4xl">
-              {hasProgram ? 'La sala è pronta' : 'Il programma è ancora un mistero'}
-            </h2>
-            <p className="mx-auto mt-3 max-w-xl font-df-body text-[15px] leading-relaxed text-dicefest-paper/75">
-              {hasProgram
-                ? 'Ecco quanti tavoli sono già pronti per questa edizione.'
-                : 'I master stanno ancora preparando le loro avventure. Tornate presto.'}
-            </p>
-          </div>
-
-          {hasProgram ? (
-            <div className="mt-10 grid grid-cols-2 gap-5 sm:grid-cols-4">
-              {stats.map((stat) => (
-                <CountStat key={stat.label} {...stat} />
-              ))}
-            </div>
-          ) : null}
-        </section>
 
         {event.location ? (
           <>
@@ -208,6 +185,31 @@ export default function DiceFestPage({ event }) {
           </>
         ) : null}
 
+        <SigilDivider className="my-12 sm:my-16" />
+
+        {/* STATS — credibility numbers right after the hero */}
+        <section>
+          <div className="text-center">
+            <p className="dicefest-eyebrow justify-center">I tavoli che ti aspettano</p>
+            <h2 className="mt-3 font-df-display text-3xl uppercase text-dicefest-paper sm:text-4xl">
+              {hasProgram ? 'La sala è pronta' : 'Il programma è ancora un mistero'}
+            </h2>
+            <p className="mx-auto mt-3 max-w-xl font-df-body text-[15px] leading-relaxed text-dicefest-paper/75">
+              {hasProgram
+                ? 'Ecco quanti tavoli sono già pronti per questa edizione.'
+                : 'I master stanno ancora preparando le loro avventure. Tornate presto.'}
+            </p>
+          </div>
+
+          {hasProgram ? (
+            <div className="mt-10 grid grid-cols-2 gap-5 sm:grid-cols-4">
+              {stats.map((stat) => (
+                <CountStat key={stat.label} {...stat} />
+              ))}
+            </div>
+          ) : null}
+        </section>
+
         {distinctGames.length > 0 ? (
           <>
             <SigilDivider className="my-12 sm:my-16" />
@@ -236,62 +238,66 @@ export default function DiceFestPage({ event }) {
           </>
         ) : null}
 
-        <SigilDivider className="my-12 sm:my-16" />
+        {event.visibility === 'REVEALED' ? (
+          <>
+            <SigilDivider className="my-12 sm:my-16" />
 
-        {/* L'ESPERIENZA — narrative + how it works */}
-        <section className="grid gap-8 lg:grid-cols-[1.35fr_1fr]">
-          <ParchmentCard className="overflow-hidden">
-            <div className="px-7 py-9 sm:px-10 sm:py-12">
-              <p className="dicefest-eyebrow">L&apos;esperienza</p>
-              <h2 className="mt-3 font-df-display text-3xl uppercase text-dicefest-paper sm:text-4xl">
-                {isMultiDay ? 'Una sala, molti tavoli, giornate che non dimenticherai' : 'Una sala, molti tavoli, una sera che non dimenticherai'}
-              </h2>
-              <p className="mt-6 font-df-body text-[15px] leading-[1.85] text-dicefest-paper/75">
-                Apriamo le porte all&apos;alba degli avventurieri. Da quel momento, la sala diventa un piccolo regno: ai tavoli più
-                intimi, le <span className="font-semibold text-dicefest-paper">one-shot</span> dei nostri master raccontano storie autoconclusive — un&apos;avventura intera in un solo
-                pomeriggio, perfetta per chi vuole assaggiare un sistema nuovo o tornare a tirare i dadi senza impegno.
-              </p>
-              {hasMainEvent ? (
-                <p className="mt-4 font-df-body text-[15px] leading-[1.85] text-dicefest-paper/75">
-                  Al centro {isMultiDay ? 'di ogni giornata' : 'della giornata'} si svolge il <span className="font-semibold text-dicefest-paper">Main Event</span>: lo stesso gioco condiviso
-                  in più tavoli paralleli, in cui ogni gruppo scrive il proprio capitolo di una narrazione corale. È il momento in cui
-                  la sala respira insieme.
-                </p>
-              ) : null}
-              {event.description ? (
-                <p className="mt-4 font-df-body text-[15px] leading-[1.85] text-dicefest-paper/75">{event.description}</p>
-              ) : null}
-            </div>
-          </ParchmentCard>
+            {/* L'ESPERIENZA — narrative + how it works */}
+            <section className="grid gap-8 lg:grid-cols-[1.35fr_1fr]">
+              <ParchmentCard className="overflow-hidden">
+                <div className="px-7 py-9 sm:px-10 sm:py-12">
+                  <p className="dicefest-eyebrow">L&apos;esperienza</p>
+                  <h2 className="mt-3 font-df-display text-3xl uppercase text-dicefest-paper sm:text-4xl">
+                    {isMultiDay ? 'Una sala, molti tavoli, giornate che non dimenticherai' : 'Una sala, molti tavoli, una sera che non dimenticherai'}
+                  </h2>
+                  <p className="mt-6 font-df-body text-[15px] leading-[1.85] text-dicefest-paper/75">
+                    Apriamo le porte all&apos;alba degli avventurieri. Da quel momento, la sala diventa un piccolo regno: ai tavoli più
+                    intimi, le <span className="font-semibold text-dicefest-paper">one-shot</span> dei nostri master raccontano storie autoconclusive — un&apos;avventura intera in un solo
+                    pomeriggio, perfetta per chi vuole assaggiare un sistema nuovo o tornare a tirare i dadi senza impegno.
+                  </p>
+                  {hasMainEvent ? (
+                    <p className="mt-4 font-df-body text-[15px] leading-[1.85] text-dicefest-paper/75">
+                      Al centro {isMultiDay ? 'di ogni giornata' : 'della giornata'} si svolge il <span className="font-semibold text-dicefest-paper">Main Event</span>: lo stesso gioco condiviso
+                      in più tavoli paralleli, in cui ogni gruppo scrive il proprio capitolo di una narrazione corale. È il momento in cui
+                      la sala respira insieme.
+                    </p>
+                  ) : null}
+                  {event.description ? (
+                    <p className="mt-4 font-df-body text-[15px] leading-[1.85] text-dicefest-paper/75">{event.description}</p>
+                  ) : null}
+                </div>
+              </ParchmentCard>
 
-          <ParchmentCard className="lg:sticky lg:top-24">
-            <div className="px-7 py-9 sm:px-9 sm:py-10">
-              <p className="dicefest-eyebrow">Come si compie</p>
-              <h3 className="mt-3 font-df-display text-2xl uppercase text-dicefest-paper">In quattro passi</h3>
-              <ol className="mt-6 space-y-5">
-                {[
-                  { n: 'I', t: 'Leggi il programma', d: 'Scorri le One-shot e l\'evento principale. Ogni tavolo ha un titolo, un master e un sistema.' },
-                  { n: 'II', t: 'Segnaci che ci sarai', d: 'Il pass giornaliero viene confermato subito. Poi scegli i tavoli quando vuoi.' },
-                  { n: 'III', t: 'Conferma Prenotazioni', d: 'Confermi in un click.' },
-                  { n: 'IV', t: 'Presentati in orario', d: 'Vieni al check-in puntuale: al resto pensiamo noi.' },
-                ].map((step, idx) => (
-                  <li key={step.n} className="fade-stagger flex gap-4" style={{ animationDelay: `${0.1 + idx * 0.08}s` }}>
-                    <span className="flex h-9 w-9 shrink-0 items-center justify-center border-2 border-dicefest-pink bg-dicefest-pink/10 font-df-display text-sm text-dicefest-pink">
-                      {step.n}
-                    </span>
-                    <div>
-                      <p className="font-df-display text-base uppercase text-dicefest-paper">{step.t}</p>
-                      <p className="mt-1 font-df-body text-sm leading-relaxed text-dicefest-paper/75">{step.d}</p>
-                    </div>
-                  </li>
-                ))}
-              </ol>
-              <Link href="/dice-fest/sessioni" className="dicefest-btn-primary mt-8 w-full">
-                Vai alle sessioni
-              </Link>
-            </div>
-          </ParchmentCard>
-        </section>
+              <ParchmentCard className="lg:sticky lg:top-24">
+                <div className="px-7 py-9 sm:px-9 sm:py-10">
+                  <p className="dicefest-eyebrow">Come si compie</p>
+                  <h3 className="mt-3 font-df-display text-2xl uppercase text-dicefest-paper">In quattro passi</h3>
+                  <ol className="mt-6 space-y-5">
+                    {[
+                      { n: 'I', t: 'Leggi il programma', d: 'Scorri le One-shot e l\'evento principale. Ogni tavolo ha un titolo, un master e un sistema.' },
+                      { n: 'II', t: 'Segnaci che ci sarai', d: 'Il pass giornaliero viene confermato subito. Poi scegli i tavoli quando vuoi.' },
+                      { n: 'III', t: 'Conferma Prenotazioni', d: 'Confermi in un click.' },
+                      { n: 'IV', t: 'Presentati in orario', d: 'Vieni al check-in puntuale: al resto pensiamo noi.' },
+                    ].map((step, idx) => (
+                      <li key={step.n} className="fade-stagger flex gap-4" style={{ animationDelay: `${0.1 + idx * 0.08}s` }}>
+                        <span className="flex h-9 w-9 shrink-0 items-center justify-center border-2 border-dicefest-pink bg-dicefest-pink/10 font-df-display text-sm text-dicefest-pink">
+                          {step.n}
+                        </span>
+                        <div>
+                          <p className="font-df-display text-base uppercase text-dicefest-paper">{step.t}</p>
+                          <p className="mt-1 font-df-body text-sm leading-relaxed text-dicefest-paper/75">{step.d}</p>
+                        </div>
+                      </li>
+                    ))}
+                  </ol>
+                  <Link href="/dice-fest/sessioni" className="dicefest-btn-primary mt-8 w-full">
+                    Vai alle sessioni
+                  </Link>
+                </div>
+              </ParchmentCard>
+            </section>
+          </>
+        ) : null}
 
         {partners.length > 0 ? (
           <>
@@ -324,29 +330,33 @@ export default function DiceFestPage({ event }) {
           </>
         ) : null}
 
-        <SigilDivider className="my-12 sm:my-16" />
+        {event.visibility === 'REVEALED' ? (
+          <>
+            <SigilDivider className="my-12 sm:my-16" />
 
-        {/* FINAL CTA */}
-        <ParchmentCard className="dicefest-surface--accent">
-          <div className="px-7 py-10 text-center sm:px-12 sm:py-14">
-            <h2 className="font-df-display text-3xl uppercase text-dicefest-paper sm:text-4xl">
-              Scegli il tuo tavolo, scegli la tua storia
-            </h2>
-            <p className="mx-auto mt-4 max-w-xl font-df-body text-[15px] leading-relaxed text-dicefest-paper/75">
-              Le sessioni sono aperte. I posti si assegnano in ordine di arrivo: chi prenota prima, si assicura il tavolo.
-            </p>
-            <div className="mt-7 flex flex-wrap justify-center gap-3">
-              <Link href="/dice-fest/sessioni" className="dicefest-btn-primary">
-                Entra nella sala
-              </Link>
-              {hasMainEvent ? (
-                <Link href="/dice-fest/sessioni" className="dicefest-btn-secondary">
-                  Vedi il Main Event
-                </Link>
-              ) : null}
-            </div>
-          </div>
-        </ParchmentCard>
+            {/* FINAL CTA */}
+            <ParchmentCard className="dicefest-surface--accent">
+              <div className="px-7 py-10 text-center sm:px-12 sm:py-14">
+                <h2 className="font-df-display text-3xl uppercase text-dicefest-paper sm:text-4xl">
+                  Scegli il tuo tavolo, scegli la tua storia
+                </h2>
+                <p className="mx-auto mt-4 max-w-xl font-df-body text-[15px] leading-relaxed text-dicefest-paper/75">
+                  Le sessioni sono aperte. I posti si assegnano in ordine di arrivo: chi prenota prima, si assicura il tavolo.
+                </p>
+                <div className="mt-7 flex flex-wrap justify-center gap-3">
+                  <Link href="/dice-fest/sessioni" className="dicefest-btn-primary">
+                    Entra nella sala
+                  </Link>
+                  {hasMainEvent ? (
+                    <Link href="/dice-fest/sessioni" className="dicefest-btn-secondary">
+                      Vedi il Main Event
+                    </Link>
+                  ) : null}
+                </div>
+              </div>
+            </ParchmentCard>
+          </>
+        ) : null}
       </div>
     </div>
   )
