@@ -805,8 +805,8 @@ function computeOneShotState({ slot, cartState, isLoggedIn, isAdmin = false, isP
     disabled = true
     variant = 'confirmed'
   } else if (inCart) {
-    label = isPending ? 'Libero slot…' : 'Libera slot'
-    verboseLabel = isPending ? 'Libero slot…' : 'Libera lo slot'
+    label = isPending ? 'Cancella prenotazione…' : 'Cancella prenotazione'
+    verboseLabel = isPending ? 'Cancellando prenotazione…' : 'Cancella la prenotazione'
     actionKind = 'remove'
     disabled = isPending
     variant = 'in-cart'
@@ -1167,9 +1167,11 @@ function OneShotDetailsModal({ session, cartState, pendingSlotId, busy, onAdd, o
   const { oneshot, slot } = session
   const isPending = pendingSlotId === slot.id
   const state = computeOneShotState({ slot, cartState, isLoggedIn, isAdmin, isPending, busy })
-  // Already confirmed means the host's own seat is taken but doesn't need to
-  // be reserved again — every remaining seat can go to a companion.
-  const invite = useCompanionInvites(state.confirmed ? state.remaining : state.remaining - 1)
+  // Already confirmed or already in cart (HOLD) both mean the host's own
+  // seat is already taken/counted — it doesn't need to be reserved again, so
+  // every remaining seat can go to a companion.
+  const hostSeatTaken = state.confirmed || state.inCart
+  const invite = useCompanionInvites(hostSeatTaken ? state.remaining : state.remaining - 1)
 
   const handleAction = () => {
     if (state.actionKind === 'login') {
@@ -1228,7 +1230,7 @@ function OneShotDetailsModal({ session, cartState, pendingSlotId, busy, onAdd, o
           ) : null}
         </div>
 
-        {state.actionKind === 'add' && invite.maxCount > 0 ? (
+        {(state.actionKind === 'add' || hostSeatTaken) && invite.maxCount > 0 ? (
           <CompanionInviteFields
             companions={invite.companions}
             onChange={invite.setCompanions}
@@ -1237,7 +1239,7 @@ function OneShotDetailsModal({ session, cartState, pendingSlotId, busy, onAdd, o
           />
         ) : null}
 
-        {state.confirmed ? (
+        {hostSeatTaken ? (
           <button
             type="button"
             onClick={handleInviteOnly}
@@ -1265,9 +1267,11 @@ function MainEventDetailsModal({ session, sessionKey, reservation, inCart, hasRe
   const { mainEvent, slot } = session
   const isPending = pendingSessionKey === sessionKey
   const state = computeMainEventState({ slot, reservation, inCart, hasReservedKey, hasCartKey, isLoggedIn, isAdmin, isPending, busy })
-  // Already reserved means the host's own seat is taken but doesn't need to
-  // be reserved again — every remaining seat can go to a companion.
-  const invite = useCompanionInvites(reservation ? state.remaining : state.remaining - 1)
+  // Already reserved or already in cart (HOLD) both mean the host's own seat
+  // is already taken/counted — it doesn't need to be reserved again, so
+  // every remaining seat can go to a companion.
+  const hostSeatTaken = Boolean(reservation) || inCart
+  const invite = useCompanionInvites(hostSeatTaken ? state.remaining : state.remaining - 1)
 
   const handleInviteOnly = () => onAdd({ mainEventId: mainEvent.id, day: slot.day, slot: slot.slot }, invite.validCompanions)
 
@@ -1334,7 +1338,7 @@ function MainEventDetailsModal({ session, sessionKey, reservation, inCart, hasRe
           ) : null}
         </div>
 
-        {(state.actionKind === 'add' || reservation) && invite.maxCount > 0 ? (
+        {(state.actionKind === 'add' || hostSeatTaken) && invite.maxCount > 0 ? (
           <CompanionInviteFields
             companions={invite.companions}
             onChange={invite.setCompanions}
@@ -1343,7 +1347,7 @@ function MainEventDetailsModal({ session, sessionKey, reservation, inCart, hasRe
           />
         ) : null}
 
-        {reservation ? (
+        {hostSeatTaken ? (
           <button
             type="button"
             onClick={handleInviteOnly}
