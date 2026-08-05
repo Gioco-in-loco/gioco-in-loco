@@ -3,6 +3,8 @@ import { prisma } from '../../../../../src/lib/prisma'
 import { requireAdminApi } from '../../../../../src/lib/admin-guard'
 import { normalizeEventDays, normalizeEventTimeSlots } from '../../../../../src/lib/oneshots-management'
 
+const EVENT_VISIBILITY_VALUES = new Set(['COMING_SOON', 'PREVIEW', 'REVEALED'])
+
 // params.id qui è l'externalId (slug) dell'evento, non il cuid interno — la
 // pagina/rotta admin naviga e cerca gli eventi per externalId in modo che
 // l'URL resti leggibile e stabile anche se l'id interno non lo è. Le rotte
@@ -23,7 +25,7 @@ export async function PATCH(request, { params }) {
   if (error) return NextResponse.json({ error }, { status })
 
   const body = await request.json()
-  const { externalId, name, description, location, mapsUrl, price, dailyPrice, startDate, endDate, bookingOpensAt, showComingSoon } = body
+  const { externalId, name, description, location, mapsUrl, price, dailyPrice, startDate, endDate, bookingOpensAt, visibility } = body
 
   try {
     const days = normalizeEventDays(body.days)
@@ -31,6 +33,10 @@ export async function PATCH(request, { params }) {
 
     if (externalId !== undefined && !externalId.trim()) {
       throw Object.assign(new Error('externalId non può essere vuoto'), { status: 400 })
+    }
+
+    if (visibility !== undefined && !EVENT_VISIBILITY_VALUES.has(visibility)) {
+      throw Object.assign(new Error('Stato pagina evento non valido'), { status: 400 })
     }
 
     const event = await prisma.event.update({
@@ -48,7 +54,7 @@ export async function PATCH(request, { params }) {
         ...(startDate !== undefined && { startDate: startDate ? new Date(startDate) : null }),
         ...(endDate !== undefined && { endDate: endDate ? new Date(endDate) : null }),
         ...(bookingOpensAt !== undefined && { bookingOpensAt: bookingOpensAt ? new Date(bookingOpensAt) : null }),
-        ...(showComingSoon !== undefined && { showComingSoon: Boolean(showComingSoon) }),
+        ...(visibility !== undefined && { visibility }),
       },
     })
     return NextResponse.json(event)

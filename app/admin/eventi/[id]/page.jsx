@@ -166,7 +166,7 @@ export default function AdminEventDetailPage({ params }) {
                   startDate: toInputDate(event.startDate),
                   endDate: toInputDate(event.endDate),
                   bookingOpensAt: toInputDateTime(event.bookingOpensAt),
-                  showComingSoon: Boolean(event.showComingSoon),
+                  visibility: event.visibility || 'REVEALED',
                 }}
                 onSave={handleSave}
                 onCancel={() => setIsEditing(false)}
@@ -223,8 +223,12 @@ export default function AdminEventDetailPage({ params }) {
                       </dd>
                     </div>
                     <div>
-                      <dt className="font-body text-xs font-semibold uppercase tracking-wider text-editorial-text-muted">Coming soon</dt>
-                      <dd className="mt-1 font-body text-sm text-editorial-text">{event.showComingSoon ? 'Attivo — le pagine mostrano "in arrivo"' : 'Non attivo'}</dd>
+                      <dt className="font-body text-xs font-semibold uppercase tracking-wider text-editorial-text-muted">Stato pagina evento</dt>
+                      <dd className="mt-1 font-body text-sm text-editorial-text">
+                        {event.visibility === 'COMING_SOON' ? 'Coming soon — le pagine mostrano "in arrivo"'
+                          : event.visibility === 'PREVIEW' ? 'Preview — pagina principale visibile, programma nascosto'
+                          : 'Rivelato — tutto visibile'}
+                      </dd>
                     </div>
                     <div>
                       <dt className="font-body text-xs font-semibold uppercase tracking-wider text-editorial-text-muted">Giorni evento</dt>

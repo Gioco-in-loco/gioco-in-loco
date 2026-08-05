@@ -3,6 +3,12 @@ import { prisma } from '../../../../src/lib/prisma'
 import { requireAdminApi } from '../../../../src/lib/admin-guard'
 import { normalizeEventDays, normalizeEventTimeSlots } from '../../../../src/lib/oneshots-management'
 
+const EVENT_VISIBILITY_VALUES = new Set(['COMING_SOON', 'PREVIEW', 'REVEALED'])
+
+function normalizeEventVisibility(value) {
+  return EVENT_VISIBILITY_VALUES.has(value) ? value : 'REVEALED'
+}
+
 export async function GET() {
   const { error, status } = await requireAdminApi()
   if (error) return NextResponse.json({ error }, { status })
@@ -23,7 +29,7 @@ export async function GET() {
       startDate: true,
       endDate: true,
       bookingOpensAt: true,
-      showComingSoon: true,
+      visibility: true,
       createdAt: true,
     },
   })
@@ -36,7 +42,7 @@ export async function POST(request) {
   if (error) return NextResponse.json({ error }, { status })
 
   const body = await request.json()
-  const { externalId, name, description, location, mapsUrl, price, dailyPrice, startDate, endDate, bookingOpensAt, showComingSoon } = body
+  const { externalId, name, description, location, mapsUrl, price, dailyPrice, startDate, endDate, bookingOpensAt, visibility } = body
 
   if (!externalId?.trim() || !name?.trim()) {
     return NextResponse.json({ error: 'externalId e name sono obbligatori' }, { status: 400 })
@@ -62,7 +68,7 @@ export async function POST(request) {
         startDate: startDate ? new Date(startDate) : null,
         endDate: endDate ? new Date(endDate) : null,
         bookingOpensAt: bookingOpensAt ? new Date(bookingOpensAt) : null,
-        showComingSoon: Boolean(showComingSoon),
+        visibility: normalizeEventVisibility(visibility),
       },
     })
 

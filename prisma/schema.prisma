@@ -125,8 +125,8 @@ model Event {
   timeSlots   String[] @default([]) // fasce orarie dell'evento (formato "HH:mm-HH:mm"), usate per limitare le fasce selezionabili negli slot
   startDate   DateTime?
   endDate     DateTime?
-  bookingOpensAt DateTime? // le prenotazioni sono permesse solo da questa data/ora in poi; null = nessun limite
-  showComingSoon Boolean   @default(false) // se true, le pagine dell'evento mostrano "in arrivo" invece dei contenuti (staff escluso)
+  bookingOpensAt DateTime? // le prenotazioni sono permesse solo da questa data/ora in poi (stato REVEALED); null = nessun limite
+  visibility  EventVisibility @default(REVEALED) // stato pubblico delle pagine evento (staff bypassa sempre): COMING_SOON = pagina "in arrivo", PREVIEW = pagina principale visibile ma programma nascosto, REVEALED = tutto visibile
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -139,6 +139,12 @@ model Event {
   waitlists      EventWaitlist[]
 
   @@map("events")
+}
+
+enum EventVisibility {
+  COMING_SOON
+  PREVIEW
+  REVEALED
 }
 
 model EventAdmission {

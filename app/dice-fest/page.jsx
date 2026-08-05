@@ -14,7 +14,9 @@ export const metadata = {
 export default async function DiceFestRoute() {
   const event = await getDiceFestBookableData()
 
-  if (event?.showComingSoon) {
+  // Coming soon blocks the whole event; preview still shows this landing
+  // page normally (only the program on /sessioni stays hidden).
+  if (event?.visibility === 'COMING_SOON') {
     const staff = await requireAdminOrResponsabile()
     if (!staff) redirect('/dice-fest/coming-soon')
   }

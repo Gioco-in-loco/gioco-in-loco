@@ -6,7 +6,13 @@ const WEEK_DAYS = ['Lunedi', 'Martedi', 'Mercoledi', 'Giovedi', 'Venerdi', 'Saba
 const TIME_SLOT_PATTERN = '^([01]\\d|2[0-3]):[0-5]\\d-([01]\\d|2[0-3]):[0-5]\\d$'
 const TIME_SLOT_REGEX = /^([01]\d|2[0-3]):[0-5]\d-([01]\d|2[0-3]):[0-5]\d$/
 
-const EMPTY_FORM = { externalId: '', name: '', description: '', location: '', mapsUrl: '', price: '', dailyPrice: '', days: [], timeSlots: [], startDate: '', endDate: '', bookingOpensAt: '', showComingSoon: false }
+const EMPTY_FORM = { externalId: '', name: '', description: '', location: '', mapsUrl: '', price: '', dailyPrice: '', days: [], timeSlots: [], startDate: '', endDate: '', bookingOpensAt: '', visibility: 'REVEALED' }
+
+const VISIBILITY_OPTIONS = [
+  { value: 'COMING_SOON', label: 'Coming soon', description: 'Le pagine dell\'evento mostrano "in arrivo" al posto dei contenuti.' },
+  { value: 'PREVIEW', label: 'Preview', description: 'La pagina principale è visibile, ma il programma (sessioni) resta nascosto.' },
+  { value: 'REVEALED', label: 'Rivelato', description: 'Tutto visibile. Le prenotazioni si aprono alla data indicata sotto.' },
+]
 
 export function toInputDate(dateStr) {
   if (!dateStr) return ''
@@ -116,18 +122,22 @@ export default function EventForm({ initial = EMPTY_FORM, onSave, onCancel, isNe
         </div>
       </div>
       <div>
+        <label className={labelClass}>Stato pagina evento</label>
+        <select className={inputClass} value={form.visibility} onChange={set('visibility')}>
+          {VISIBILITY_OPTIONS.map((option) => (
+            <option key={option.value} value={option.value}>{option.label}</option>
+          ))}
+        </select>
+        <p className="font-body text-xs text-editorial-text-muted mt-1">
+          {VISIBILITY_OPTIONS.find((option) => option.value === form.visibility)?.description}
+          {' '}Admin e responsabile vedono sempre le pagine reali, a prescindere da questo stato.
+        </p>
+      </div>
+      <div>
         <label className={labelClass}>Apertura prenotazioni</label>
         <input type="datetime-local" className={inputClass} value={form.bookingOpensAt} onChange={set('bookingOpensAt')} />
-        <p className="font-body text-xs text-editorial-text-muted mt-1">Le prenotazioni sono permesse solo da questa data e ora in poi. Vuoto = nessun limite.</p>
+        <p className="font-body text-xs text-editorial-text-muted mt-1">Con stato "Rivelato", le prenotazioni sono permesse solo da questa data e ora in poi. Vuoto = nessun limite.</p>
       </div>
-      <label className="flex items-center gap-2 font-body text-sm text-editorial-text">
-        <input
-          type="checkbox"
-          checked={form.showComingSoon}
-          onChange={(e) => setForm((f) => ({ ...f, showComingSoon: e.target.checked }))}
-        />
-        Mostra pagina &quot;in arrivo&quot; (coming soon) al posto delle pagine dell&apos;evento
-      </label>
       <div>
         <label className={labelClass}>Giorni evento</label>
         <div className="flex flex-wrap gap-2">

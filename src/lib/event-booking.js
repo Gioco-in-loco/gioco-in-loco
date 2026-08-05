@@ -557,7 +557,7 @@ export const getBookableEventData = cache(async function getBookableEventData(ev
       endDate: true,
       days: true,
       bookingOpensAt: true,
-      showComingSoon: true,
+      visibility: true,
       oneShotLinks: {
         select: {
           oneShot: {
@@ -635,7 +635,7 @@ export const getBookableEventData = cache(async function getBookableEventData(ev
     endDate: normalizeDate(event.endDate),
     days: event.days || [],
     bookingOpensAt: normalizeDate(event.bookingOpensAt),
-    showComingSoon: event.showComingSoon,
+    visibility: event.visibility,
     hiddenSlots,
     oneshots: event.oneShotLinks
       .map((link) => ({
