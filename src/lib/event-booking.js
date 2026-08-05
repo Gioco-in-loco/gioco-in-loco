@@ -122,7 +122,7 @@ export function isConfirmedReservationStatus(status) {
   return status !== EVENT_CART_HOLD_STATUS && status !== 'CANCELLED' && status !== 'EXPIRED'
 }
 
-function getEventScopedSlotWhere(eventId) {
+export function getEventScopedSlotWhere(eventId) {
   return {
     slot: {
       oneshot: {
@@ -143,12 +143,14 @@ export async function releaseExpiredEventHolds({ eventId, db = prisma, userId })
 
   const now = new Date()
 
+  // Companion daily passes (status INVITED, no userId of their own) expire
+  // the same way as cart HOLDs — filtered by invitedByUserId, since userId is null.
   await db.eventAdmission.updateMany({
     where: {
       eventId,
-      status: EVENT_CART_HOLD_STATUS,
+      status: { in: [EVENT_CART_HOLD_STATUS, 'INVITED'] },
       holdExpiresAt: { lte: now },
-      ...(userId ? { userId } : {}),
+      ...(userId ? { OR: [{ userId }, { invitedByUserId: userId }] } : {}),
     },
     data: {
       status: 'EXPIRED',
@@ -187,7 +189,7 @@ export async function getUserEventCartState({ eventId, userId, db = prisma }) {
     await releaseExpiredEventHolds({ eventId, db, userId })
   }
 
-  const [admissions, reservations, mainEventCartState] = await Promise.all([
+  const [admissions, reservations, mainEventCartState, companionReservations] = await Promise.all([
     db.eventAdmission.findMany({
       where: { userId, eventId },
       select: cartHoldsSupported
@@ -261,6 +263,22 @@ export async function getUserEventCartState({ eventId, userId, db = prisma }) {
       ],
     }),
     getUserMainEventCartState({ userId, eventId, db }),
+    cartHoldsSupported
+      ? db.reservation.findMany({
+          where: {
+            invitedByUserId: userId,
+            status: EVENT_CART_HOLD_STATUS,
+            holdExpiresAt: { gt: now },
+            ...getEventScopedSlotWhere(eventId),
+          },
+          select: {
+            id: true,
+            playerName: true,
+            playerEmail: true,
+            slot: { select: { day: true, slot: true, table: true, oneshot: { select: { title: true } } } },
+          },
+        })
+      : [],
   ])
 
   const confirmedReservations = cartHoldsSupported
@@ -314,6 +332,15 @@ export async function getUserEventCartState({ eventId, userId, db = prisma }) {
       price: reservation.slot.oneshot.price ?? null,
       holdExpiresAt: reservation.holdExpiresAt ? reservation.holdExpiresAt.toISOString() : null,
     })),
+    companionCartSlots: companionReservations.map((reservation) => ({
+      reservationId: reservation.id,
+      name: reservation.playerName,
+      email: reservation.playerEmail,
+      day: reservation.slot.day,
+      slot: reservation.slot.slot,
+      table: reservation.slot.table,
+      oneshotTitle: reservation.slot.oneshot.title,
+    })),
     mainEventConfirmedReservationIds: mainEventCartState.confirmedReservationIds,
     mainEventConfirmedSessionKeys: mainEventCartState.confirmedSessionKeys,
     mainEventConfirmedSlotKeys: mainEventCartState.confirmedSlotKeys,
@@ -322,6 +349,7 @@ export async function getUserEventCartState({ eventId, userId, db = prisma }) {
     mainEventCartSessionKeys: mainEventCartState.cartSessionKeys,
     mainEventCartSlotKeys: mainEventCartState.cartSlotKeys,
     mainEventCartSlots: mainEventCartState.cartSlots,
+    mainEventCompanionCartSlots: mainEventCartState.companionCartSlots,
     holdExpiresAt: holdExpiresAt ? holdExpiresAt.toISOString() : null,
   }
 }

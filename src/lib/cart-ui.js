@@ -36,6 +36,7 @@ export function createEmptyEventCartState() {
     cartSlotIds: [],
     cartSlotKeys: [],
     cartSlots: [],
+    companionCartSlots: [],
     holdExpiresAt: null,
   }
 }
@@ -51,6 +52,7 @@ export function createEmptyGdrEventCartState() {
     mainEventCartSessionKeys: [],
     mainEventCartSlotKeys: [],
     mainEventCartSlots: [],
+    mainEventCompanionCartSlots: [],
   }
 }
 
@@ -75,10 +77,12 @@ export function clearExpiredGdrCartState(current) {
     cartSlotIds: [],
     cartSlotKeys: [],
     cartSlots: [],
+    companionCartSlots: [],
     mainEventCartReservationIds: [],
     mainEventCartSessionKeys: [],
     mainEventCartSlotKeys: [],
     mainEventCartSlots: [],
+    mainEventCompanionCartSlots: [],
     holdExpiresAt: null,
   }
 }

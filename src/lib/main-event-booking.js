@@ -319,25 +319,43 @@ export async function getUserMainEventCartState({ userId, eventId, db = prisma }
   const now = new Date()
   await releaseExpiredMainEventHolds({ db, userId, eventId })
 
-  const reservations = await db.mainEventReservation.findMany({
-    where: {
-      userId,
-      ...getActiveMainEventReservationFilter(now),
-      ...getMainEventScopeWhere(eventId),
-    },
-    select: {
-      id: true,
-      status: true,
-      day: true,
-      slot: true,
-      createdAt: true,
-      updatedAt: true,
-      holdExpiresAt: true,
-      mainEvent: { select: { id: true, title: true, game: true, price: true } },
-      event: { select: { id: true, name: true } },
-    },
-    orderBy: [{ updatedAt: 'desc' }],
-  })
+  const [reservations, companionReservations] = await Promise.all([
+    db.mainEventReservation.findMany({
+      where: {
+        userId,
+        ...getActiveMainEventReservationFilter(now),
+        ...getMainEventScopeWhere(eventId),
+      },
+      select: {
+        id: true,
+        status: true,
+        day: true,
+        slot: true,
+        createdAt: true,
+        updatedAt: true,
+        holdExpiresAt: true,
+        mainEvent: { select: { id: true, title: true, game: true, price: true } },
+        event: { select: { id: true, name: true } },
+      },
+      orderBy: [{ updatedAt: 'desc' }],
+    }),
+    db.mainEventReservation.findMany({
+      where: {
+        invitedByUserId: userId,
+        status: MAIN_EVENT_CART_HOLD_STATUS,
+        holdExpiresAt: { gt: now },
+        ...getMainEventScopeWhere(eventId),
+      },
+      select: {
+        id: true,
+        day: true,
+        slot: true,
+        playerName: true,
+        playerEmail: true,
+        mainEvent: { select: { title: true } },
+      },
+    }),
+  ])
 
   const sessionKey = (reservation) => `${reservation.mainEvent.id}__${reservation.event.id}__${reservation.day}__${reservation.slot}`
   // Chiave generica giorno+fascia (stesso formato di getSlotKey in
@@ -370,6 +388,14 @@ export async function getUserMainEventCartState({ userId, eventId, db = prisma }
       eventName: reservation.event?.name || null,
       price: reservation.mainEvent.price ?? null,
       holdExpiresAt: reservation.holdExpiresAt ? reservation.holdExpiresAt.toISOString() : null,
+    })),
+    companionCartSlots: companionReservations.map((reservation) => ({
+      reservationId: reservation.id,
+      name: reservation.playerName,
+      email: reservation.playerEmail,
+      day: reservation.day,
+      slot: reservation.slot,
+      mainEventTitle: reservation.mainEvent.title,
     })),
     holdExpiresAt: holdExpiresAt ? holdExpiresAt.toISOString() : null,
   }

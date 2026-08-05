@@ -1106,8 +1106,12 @@ const TUTORIAL_STEPS = [
     description: 'Apri la scheda della one-shot o del Main Event: descrizione, master, sistema di gioco e posti rimasti.',
   },
   {
+    title: 'Invita degli amici (facoltativo)',
+    description: 'Nella stessa scheda, prima di prenotare, trovi "Invita amici": aggiungi nome ed email di chi vuoi portare con te. Riceveranno un\'email per registrarsi e confermare il loro posto — non paghi né occupi il loro posto tu.',
+  },
+  {
     title: 'Prenota',
-    description: 'Il tavolo entra nel tuo carrello e resta bloccato per 10 minuti: il countdown è visibile nel pulsante "Riepilogo sessioni" in basso.',
+    description: 'Il tavolo entra nel tuo carrello e resta bloccato per 10 minuti: il countdown è visibile nel pulsante "Riepilogo sessioni" in basso. Anche gli amici invitati restano bloccati con te.',
   },
   {
     title: 'Conferma nelle Prenotazioni',

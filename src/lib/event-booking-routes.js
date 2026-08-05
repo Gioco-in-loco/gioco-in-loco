@@ -5,6 +5,7 @@ import {
   EVENT_CART_HOLD_STATUS,
   getConfirmedEventBookingSummary,
   getActiveReservationFilter,
+  getEventScopedSlotWhere,
   getNextHoldExpiration,
   getSlotKey,
   getUserEventBookingStatus,
@@ -81,6 +82,14 @@ async function refreshAllEventCartHolds({ eventId, tx, userId, holdExpiresAt }) 
         invitedByUserId: userId,
         status: EVENT_CART_HOLD_STATUS,
         ...getMainEventScopeWhere(eventId),
+      },
+      data: { holdExpiresAt },
+    }),
+    tx.eventAdmission.updateMany({
+      where: {
+        invitedByUserId: userId,
+        eventId,
+        status: EVENT_CART_HOLD_STATUS,
       },
       data: { holdExpiresAt },
     }),
@@ -247,6 +256,75 @@ async function clearEventAdmissionHoldIfEmpty({ eventId, tx, userId, day = '' })
     await tx.eventAdmission.deleteMany({
       where: { userId, eventId, status: EVENT_CART_HOLD_STATUS },
     })
+  }
+}
+
+// A companion's daily pass mirrors whichever sessions they're still invited
+// to that day — recomputed from scratch each time (instead of incrementing
+// or decrementing per slot) so a companion invited to two sessions the same
+// day only ever gets one pass, and it survives removing just one of the two.
+// Always free (pricePaid: 0): the host is never charged for a companion's
+// seat or pass. Pass holdExpiresAt to also refresh existing holds (an add);
+// omit it on a pure removal, where only stale holds need clearing.
+async function reconcileCompanionAdmissionHolds({ tx, invitedByUserId, eventId, day, holdExpiresAt = null }) {
+  if (!day) return
+
+  const [oneshotCompanions, mainEventCompanions] = await Promise.all([
+    tx.reservation.findMany({
+      where: {
+        invitedByUserId,
+        status: EVENT_CART_HOLD_STATUS,
+        slot: { day, oneshot: { eventLinks: { some: { eventId } } } },
+      },
+      select: { playerName: true, playerEmail: true },
+    }),
+    tx.mainEventReservation.findMany({
+      where: { invitedByUserId, status: EVENT_CART_HOLD_STATUS, day, ...getMainEventScopeWhere(eventId) },
+      select: { playerName: true, playerEmail: true },
+    }),
+  ])
+
+  const byEmail = new Map()
+  for (const companion of [...oneshotCompanions, ...mainEventCompanions]) {
+    const email = String(companion.playerEmail || '').trim().toLowerCase()
+    if (email && !byEmail.has(email)) byEmail.set(email, companion)
+  }
+
+  const existingAdmissions = await tx.eventAdmission.findMany({
+    where: { invitedByUserId, eventId, day, status: EVENT_CART_HOLD_STATUS },
+    select: { id: true, playerEmail: true },
+  })
+
+  const staleIds = existingAdmissions
+    .filter((admission) => !byEmail.has(String(admission.playerEmail || '').trim().toLowerCase()))
+    .map((admission) => admission.id)
+  if (staleIds.length > 0) {
+    await tx.eventAdmission.deleteMany({ where: { id: { in: staleIds } } })
+  }
+
+  const existingEmails = new Set(existingAdmissions.map((admission) => String(admission.playerEmail || '').trim().toLowerCase()))
+
+  for (const [email, companion] of byEmail) {
+    if (!existingEmails.has(email)) {
+      await tx.eventAdmission.create({
+        data: {
+          eventId,
+          day,
+          status: EVENT_CART_HOLD_STATUS,
+          holdExpiresAt,
+          pricePaid: 0,
+          playerName: companion.playerName,
+          playerEmail: companion.playerEmail,
+          invitedByUserId,
+          consentGiven: false,
+        },
+      })
+    } else if (holdExpiresAt) {
+      await tx.eventAdmission.updateMany({
+        where: { invitedByUserId, eventId, day, playerEmail: companion.playerEmail, status: EVENT_CART_HOLD_STATUS },
+        data: { holdExpiresAt },
+      })
+    }
   }
 }
 
@@ -461,6 +539,7 @@ export async function handleAddEventCartSlot(request, { eventId, displayName }) 
       }
 
       await ensureEventAdmissionHold({ event, tx, user, holdExpiresAt, day: selectedSlot.day })
+      await reconcileCompanionAdmissionHolds({ tx, invitedByUserId: user.id, eventId, day: selectedSlot.day, holdExpiresAt })
       await refreshAllEventCartHolds({ eventId, tx, userId: user.id, holdExpiresAt })
     }, CART_TX_OPTIONS)
 
@@ -512,12 +591,93 @@ export async function handleRemoveEventCartSlot({ eventId, slotId }) {
         where: { invitedByUserId: user.id, slotId, status: EVENT_CART_HOLD_STATUS },
       })
       await clearEventAdmissionHoldIfEmpty({ eventId, tx, userId: user.id, day: reservation.slot.day })
+      await reconcileCompanionAdmissionHolds({ tx, invitedByUserId: user.id, eventId, day: reservation.slot.day })
     }, CART_TX_OPTIONS)
 
     const cartState = await getUserEventCartState({ eventId, userId: user.id })
     return NextResponse.json(cartState)
   } catch (cartError) {
     return NextResponse.json({ error: cartError.message || 'Impossibile rimuovere la prenotazione .' }, { status: 400 })
+  }
+}
+
+// Ritira l'invito a un amico per una one-shot, prima ancora che confermi il
+// suo account: la riga dell'invitato non ha un userId proprio (invitedByUserId
+// al posto suo), quindi va cercata per id + invitedByUserId, non per userId.
+export async function handleRemoveEventCartCompanion({ eventId, reservationId }) {
+  const unavailableCartHoldResponse = await getUnavailableCartHoldResponse()
+  if (unavailableCartHoldResponse) return unavailableCartHoldResponse
+
+  const { user, error, status } = await requireAuthenticatedApi()
+  if (error) return NextResponse.json({ error }, { status })
+
+  if (!reservationId) {
+    return NextResponse.json({ error: 'Invito non valido.' }, { status: 400 })
+  }
+
+  try {
+    await prisma.$transaction(async (tx) => {
+      const reservation = await tx.reservation.findFirst({
+        where: {
+          id: reservationId,
+          invitedByUserId: user.id,
+          status: EVENT_CART_HOLD_STATUS,
+          ...getEventScopedSlotWhere(eventId),
+        },
+        select: { id: true, slot: { select: { day: true } } },
+      })
+
+      if (!reservation) {
+        throw new Error('L\'invito non è presente nelle tue Prenotazioni.')
+      }
+
+      await tx.reservation.delete({ where: { id: reservation.id } })
+      await reconcileCompanionAdmissionHolds({ tx, invitedByUserId: user.id, eventId, day: reservation.slot.day })
+    }, CART_TX_OPTIONS)
+
+    const cartState = await getUserEventCartState({ eventId, userId: user.id })
+    return NextResponse.json(cartState)
+  } catch (cartError) {
+    return NextResponse.json({ error: cartError.message || 'Impossibile rimuovere l\'invito.' }, { status: 400 })
+  }
+}
+
+// Stesso ritiro invito, ma per una sessione Main Event.
+export async function handleRemoveEventCartMainEventCompanion({ eventId, reservationId }) {
+  const unavailableCartHoldResponse = await getUnavailableCartHoldResponse()
+  if (unavailableCartHoldResponse) return unavailableCartHoldResponse
+
+  const { user, error, status } = await requireAuthenticatedApi()
+  if (error) return NextResponse.json({ error }, { status })
+
+  if (!reservationId) {
+    return NextResponse.json({ error: 'Invito non valido.' }, { status: 400 })
+  }
+
+  try {
+    await prisma.$transaction(async (tx) => {
+      const reservation = await tx.mainEventReservation.findFirst({
+        where: {
+          id: reservationId,
+          invitedByUserId: user.id,
+          status: EVENT_CART_HOLD_STATUS,
+          ...getMainEventScopeWhere(eventId),
+        },
+        select: { id: true, day: true },
+      })
+
+      if (!reservation) {
+        throw new Error('L\'invito non è presente nelle tue Prenotazioni.')
+      }
+
+      await tx.mainEventReservation.delete({ where: { id: reservation.id } })
+      await reconcileCompanionAdmissionHolds({ tx, invitedByUserId: user.id, eventId, day: reservation.day })
+    }, CART_TX_OPTIONS)
+
+    const cartState = await getUserEventCartState({ eventId, userId: user.id })
+    return NextResponse.json(cartState)
+  } catch (cartError) {
+    return NextResponse.json({ error: cartError.message || 'Impossibile rimuovere l\'invito.' }, { status: 400 })
   }
 }
 
@@ -713,6 +873,7 @@ export async function handleAddEventCartMainEventSlot(request, { eventId, displa
       }
 
       await ensureEventAdmissionHold({ event, tx, user, holdExpiresAt, day })
+      await reconcileCompanionAdmissionHolds({ tx, invitedByUserId: user.id, eventId: event.id, day, holdExpiresAt })
       await refreshAllEventCartHolds({ eventId, tx, userId: user.id, holdExpiresAt })
     }, CART_TX_OPTIONS)
 
@@ -760,6 +921,7 @@ export async function handleRemoveEventCartMainEventSlot({ eventId, mainEventId,
         where: { invitedByUserId: user.id, mainEventId, eventId, day, slot, status: EVENT_CART_HOLD_STATUS },
       })
       await clearEventAdmissionHoldIfEmpty({ eventId, tx, userId: user.id, day: reservation.day })
+      await reconcileCompanionAdmissionHolds({ tx, invitedByUserId: user.id, eventId, day: reservation.day })
     }, CART_TX_OPTIONS)
 
     const cartState = await getUserEventCartState({ eventId, userId: user.id })
@@ -1098,6 +1260,30 @@ export async function handleConfirmEventCart(eventId) {
             })
           }
         }
+      }
+
+      // Companion daily passes move to INVITED alongside their session invite,
+      // keyed by day+email since a companion invited to two sessions the same
+      // day still only has one pass (see reconcileCompanionAdmissionHolds).
+      const companionAdmissionScopes = Array.from(new Set(
+        companionInvites
+          .filter((invite) => invite.day)
+          .map((invite) => `${invite.day}__${String(invite.email || '').trim().toLowerCase()}`)
+      )).map((pair) => {
+        const [day, email] = pair.split('__')
+        return { day, playerEmail: email }
+      })
+
+      if (companionAdmissionScopes.length > 0) {
+        await tx.eventAdmission.updateMany({
+          where: {
+            invitedByUserId: user.id,
+            eventId,
+            status: EVENT_CART_HOLD_STATUS,
+            OR: companionAdmissionScopes,
+          },
+          data: { status: 'INVITED', holdExpiresAt: companionInviteExpiresAt },
+        })
       }
 
       return {

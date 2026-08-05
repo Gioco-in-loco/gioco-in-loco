@@ -20,6 +20,7 @@ async function findInviteRows(code, db = prisma) {
         playerEmail: true,
         slotId: true,
         userId: true,
+        invitedByUserId: true,
         slot: {
           select: {
             day: true,
@@ -50,6 +51,7 @@ async function findInviteRows(code, db = prisma) {
         day: true,
         slot: true,
         userId: true,
+        invitedByUserId: true,
         mainEvent: { select: { title: true, price: true } },
         event: { select: { id: true, name: true, location: true } },
       },
@@ -155,7 +157,9 @@ export async function claimInvite({ code, user, db = prisma }) {
       where: { id: row.id },
       data: {
         userId: user.id,
-        status: 'PENDING',
+        // Matches the host's own one-shot flow (handleConfirmEventCart),
+        // which sets CONFIRMED, not PENDING, at checkout.
+        status: 'CONFIRMED',
         holdExpiresAt: null,
         claimedAt: now,
         consentGiven: true,
@@ -185,6 +189,36 @@ export async function claimInvite({ code, user, db = prisma }) {
   }
 
   const summary = summarizeInvite(type, row)
+
+  // The daily pass rides along with the session claim, matched by
+  // day+email rather than its own invite code (see
+  // reconcileCompanionAdmissionHolds in event-booking-routes.js) — claiming
+  // any one of a companion's session invites for that day also claims it.
+  if (summary.event?.id && summary.day && row.invitedByUserId) {
+    const admissionConflict = await db.eventAdmission.findUnique({
+      where: { userId_eventId_day: { userId: user.id, eventId: summary.event.id, day: summary.day } },
+      select: { id: true },
+    })
+
+    if (!admissionConflict) {
+      await db.eventAdmission.updateMany({
+        where: {
+          invitedByUserId: row.invitedByUserId,
+          eventId: summary.event.id,
+          day: summary.day,
+          playerEmail: row.playerEmail,
+          status: 'INVITED',
+        },
+        data: {
+          userId: user.id,
+          status: 'PENDING',
+          holdExpiresAt: null,
+          consentGiven: true,
+          consentDate: now,
+        },
+      })
+    }
+  }
 
   try {
     await sendCompanionClaimConfirmationEmail({

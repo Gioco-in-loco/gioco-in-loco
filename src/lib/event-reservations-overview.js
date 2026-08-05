@@ -93,8 +93,11 @@ export async function getEventAllReservations({ eventId }) {
         status: true,
         day: true,
         pricePaid: true,
+        playerName: true,
+        playerEmail: true,
         createdAt: true,
         user: { select: { supabaseUserId: true } },
+        invitedBy: { select: { supabaseUserId: true } },
       },
     }),
   ])
@@ -139,8 +142,9 @@ export async function getEventAllReservations({ eventId }) {
       type: 'admission',
       userId: admission.userId,
       status: admission.status,
-      playerName: null,
-      playerEmail: null,
+      playerName: admission.playerName,
+      playerEmail: admission.playerEmail,
+      invitedByName: admission.invitedBy ? (accountFieldsFor(admission.invitedBy, authBySupabaseId).accountName || accountFieldsFor(admission.invitedBy, authBySupabaseId).accountEmail) : null,
       ...accountFieldsFor(admission.user, authBySupabaseId),
       title: 'Pass ingresso',
       subtitle: admission.pricePaid != null ? `EUR ${Number(admission.pricePaid).toFixed(2)}` : null,
@@ -182,15 +186,19 @@ export async function cancelEventReservation({ eventId, type, reservationId, can
         data: { status: 'CANCELLED' },
         select: { id: true, status: true },
       })
-      await tx.userFeedback.create({
-        data: {
-          userId: reservation.userId,
-          reservationId: reservation.id,
-          authorUserId: actorUserId,
-          type: 'ADMIN_RESERVATION_CANCELLATION',
-          message,
-        },
-      })
+      // Unclaimed companion invites have no userId yet — nothing to attribute
+      // the audit trail to, so skip it rather than violate the FK.
+      if (reservation.userId) {
+        await tx.userFeedback.create({
+          data: {
+            userId: reservation.userId,
+            reservationId: reservation.id,
+            authorUserId: actorUserId,
+            type: 'ADMIN_RESERVATION_CANCELLATION',
+            message,
+          },
+        })
+      }
       return updated
     })
   }
@@ -208,15 +216,17 @@ export async function cancelEventReservation({ eventId, type, reservationId, can
         data: { status: 'CANCELLED' },
         select: { id: true, status: true },
       })
-      await tx.userFeedback.create({
-        data: {
-          userId: reservation.userId,
-          mainEventReservationId: reservation.id,
-          authorUserId: actorUserId,
-          type: 'ADMIN_RESERVATION_CANCELLATION',
-          message,
-        },
-      })
+      if (reservation.userId) {
+        await tx.userFeedback.create({
+          data: {
+            userId: reservation.userId,
+            mainEventReservationId: reservation.id,
+            authorUserId: actorUserId,
+            type: 'ADMIN_RESERVATION_CANCELLATION',
+            message,
+          },
+        })
+      }
       return updated
     })
   }
@@ -234,15 +244,17 @@ export async function cancelEventReservation({ eventId, type, reservationId, can
         data: { status: 'CANCELLED' },
         select: { id: true, status: true },
       })
-      await tx.userFeedback.create({
-        data: {
-          userId: admission.userId,
-          eventAdmissionId: admission.id,
-          authorUserId: actorUserId,
-          type: 'ADMIN_RESERVATION_CANCELLATION',
-          message,
-        },
-      })
+      if (admission.userId) {
+        await tx.userFeedback.create({
+          data: {
+            userId: admission.userId,
+            eventAdmissionId: admission.id,
+            authorUserId: actorUserId,
+            type: 'ADMIN_RESERVATION_CANCELLATION',
+            message,
+          },
+        })
+      }
       return updated
     })
   }

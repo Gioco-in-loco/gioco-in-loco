@@ -42,6 +42,7 @@ model User {
   waitlistEntries       EventWaitlist[]
   invitedReservations          Reservation[]           @relation("ReservationInvitedBy")
   invitedMainEventReservations MainEventReservation[]   @relation("MainEventReservationInvitedBy")
+  invitedEventAdmissions       EventAdmission[]         @relation("EventAdmissionInvitedBy")
 
   @@map("users")
 }
@@ -148,7 +149,7 @@ enum EventVisibility {
 
 model EventAdmission {
   id           String            @id @default(cuid())
-  userId       String
+  userId       String?
   eventId      String
   day          String            @default("") // "" = intero evento / nessun giorno GDR; altrimenti stringa giorno (es. "Sabato") come EventSlot.day
   status       ReservationStatus @default(PENDING)
@@ -156,16 +157,26 @@ model EventAdmission {
   pricePaid    Float?
   consentGiven Boolean           @default(false)
   consentDate  DateTime?
+  playerName   String?           // Nome dell'amico invitato, prima che confermi il proprio account
+  playerEmail  String?
   createdAt    DateTime          @default(now())
   updatedAt    DateTime          @updatedAt
 
-  user         User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // Companion invite (pass giornaliero caricato da un altro utente per conto di
+  // questa persona): niente inviteCode/claimedAt propri, il riscatto avviene
+  // insieme a quello della sessione a cui l'amico è stato invitato (stesso
+  // playerEmail+day), vedi claimInvite in companion-invites.js.
+  invitedByUserId String?
+
+  user         User?             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  invitedBy    User?             @relation("EventAdmissionInvitedBy", fields: [invitedByUserId], references: [id])
   event        Event             @relation(fields: [eventId], references: [id], onDelete: Cascade)
   feedbackEntries UserFeedback[]
 
   @@unique([userId, eventId, day])
   @@index([eventId])
   @@index([status, holdExpiresAt])
+  @@index([invitedByUserId])
   @@map("event_admissions")
 }
 

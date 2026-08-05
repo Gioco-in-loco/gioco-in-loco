@@ -53,6 +53,11 @@ export default function DiceFestCartPage({ event }) {
 
   const filteredMainCartSlots = useMemo(() => cartState.mainEventCartSlots || [], [cartState.mainEventCartSlots])
 
+  const companions = useMemo(() => [
+    ...(cartState.companionCartSlots || []).map((companion) => ({ ...companion, type: 'oneshot' })),
+    ...(cartState.mainEventCompanionCartSlots || []).map((companion) => ({ ...companion, type: 'main-event' })),
+  ], [cartState.companionCartSlots, cartState.mainEventCompanionCartSlots])
+
   const cartAdmissions = cartState.cartAdmissions || []
 
   const total = useMemo(() => {
@@ -151,6 +156,29 @@ export default function DiceFestCartPage({ event }) {
       toast.success(`Posto principale abbandonato: ${slotLabel}.`)
     } catch (err) {
       const msg = err.message || 'Impossibile rimuovere il posto principale.'
+      setRequestState({ loading: false, error: msg })
+      toast.error(msg)
+    } finally {
+      inFlightRef.current = false
+    }
+  }, [toast])
+
+  const handleRemoveCompanion = useCallback(async (companion) => {
+    if (inFlightRef.current) return
+    inFlightRef.current = true
+    setRequestState({ loading: true, error: '' })
+    try {
+      const path = companion.type === 'main-event'
+        ? `${DICE_FEST_BOOKING_CONFIG.apiBasePath}/cart/main-events/companions/${companion.reservationId}`
+        : `${DICE_FEST_BOOKING_CONFIG.apiBasePath}/cart/companions/${companion.reservationId}`
+      const response = await fetch(path, { method: 'DELETE', credentials: 'same-origin' })
+      const payload = await response.json().catch(() => ({}))
+      if (!response.ok) throw new Error(payload.error || 'Impossibile ritirare l\'invito.')
+      setCartState({ loading: false, ...payload })
+      setRequestState({ loading: false, error: '' })
+      toast.success(`Invito ritirato: ${companion.name}.`)
+    } catch (err) {
+      const msg = err.message || 'Impossibile ritirare l\'invito.'
       setRequestState({ loading: false, error: msg })
       toast.error(msg)
     } finally {
@@ -343,6 +371,7 @@ export default function DiceFestCartPage({ event }) {
             event={event}
             cartState={cartState}
             filteredMainCartSlots={filteredMainCartSlots}
+            companions={companions}
             summaryRows={summaryRows}
             total={total}
             busy={busy}
@@ -350,6 +379,7 @@ export default function DiceFestCartPage({ event }) {
             isSubmitting={requestState.loading}
             onRemove={handleRemove}
             onRemoveMainFromCart={handleRemoveMainFromCart}
+            onRemoveCompanion={handleRemoveCompanion}
             onConfirm={handleConfirm}
             onClearCart={handleClearCart}
           />
@@ -371,6 +401,7 @@ const PendingOrderLayout = memo(function PendingOrderLayout({
   event,
   cartState,
   filteredMainCartSlots,
+  companions,
   summaryRows,
   total,
   busy,
@@ -378,6 +409,7 @@ const PendingOrderLayout = memo(function PendingOrderLayout({
   isSubmitting,
   onRemove,
   onRemoveMainFromCart,
+  onRemoveCompanion,
   onConfirm,
   onClearCart,
 }) {
@@ -483,6 +515,42 @@ const PendingOrderLayout = memo(function PendingOrderLayout({
             )}
           </div>
         </ParchmentCard>
+
+        {companions.length > 0 ? (
+          <ParchmentCard>
+            <div className="px-6 py-5 sm:px-7">
+              <p className="dicefest-eyebrow">Amici che stai invitando</p>
+              <p className="mt-2 font-df-body text-sm leading-relaxed text-dicefest-paper/75">
+                Riceveranno un&apos;email per registrarsi e confermare il loro posto: include anche il pass giornaliero per quel giorno, gratuito. Se ci ripensi, puoi ritirare l&apos;invito prima di confermare le Prenotazioni.
+              </p>
+              <ul className="mt-4 space-y-3">
+                {companions.map((companion) => (
+                  <li key={companion.reservationId} className="dicefest-slot-card dicefest-slot-card--in-cart">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="font-df-display text-base text-dicefest-paper">{companion.name}</p>
+                        <p className="mt-1 font-df-body text-sm text-dicefest-paper/75">{companion.email}</p>
+                        <p className="mt-1 font-df-body text-xs text-dicefest-paper/50">
+                          {companion.type === 'main-event'
+                            ? `Main Event · ${companion.mainEventTitle} · ${companion.day} · ${companion.slot}`
+                            : `${companion.oneshotTitle} · ${companion.day} · ${companion.slot} · ${companion.table}`}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => onRemoveCompanion(companion)}
+                        disabled={busy}
+                        className="shrink-0 font-df-mono text-xs font-semibold uppercase tracking-widest text-dicefest-paper/50 underline-offset-2 hover:text-dicefest-pink hover:underline disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        Ritira invito
+                      </button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </ParchmentCard>
+        ) : null}
       </section>
 
       <aside className="lg:sticky lg:top-24 lg:self-start">
