@@ -109,9 +109,11 @@ export default function DiceFestPage({ event }) {
                 </p>
 
                 <div className="fade-stagger mt-8 flex flex-wrap items-center gap-3" style={{ animationDelay: '0.28s' }}>
-                  <Link href="/dice-fest/sessioni" className="dicefest-btn-primary">
-                    Prenota il tuo tavolo
-                  </Link>
+                  {event.visibility === 'REVEALED' ? (
+                    <Link href="/dice-fest/sessioni" className="dicefest-btn-primary">
+                      Prenota il tuo tavolo
+                    </Link>
+                  ) : null}
                   {distinctGames.length > 0 ? (
                     <Link href="#giochi" className="dicefest-btn-secondary">
                       Scopri i giochi

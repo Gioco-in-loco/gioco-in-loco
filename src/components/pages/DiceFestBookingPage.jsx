@@ -460,7 +460,7 @@ export default function DiceFestBookingPage({ event }) {
                     <p className="mx-auto mt-2 max-w-md font-df-body text-sm leading-relaxed text-dicefest-paper/75">
                       I master stanno ancora preparando le loro avventure. Tornate presto.
                     </p>
-                    {event.bookingOpensAt ? (
+                    {event.visibility === 'REVEALED' && event.bookingOpensAt ? (
                       <Countdown
                         startDate={event.bookingOpensAt}
                         label="Le prenotazioni aprono tra"
