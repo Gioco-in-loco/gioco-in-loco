@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useState, useEffect } from 'react'
 import AuthShell from './AuthShell'
 import AuthMessage from './AuthMessage'
@@ -14,10 +14,13 @@ const PHONE_RE = /^[+\d][\d\s]{6,}$/
 
 export default function RegisterPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const redirectTo = searchParams.get('redirect') || ''
+  const prefillEmail = searchParams.get('email') || ''
   const { register, isConfigured } = useAuth()
   const [showPrivacy, setShowPrivacy] = useState(false)
   const [fullName, setFullName] = useState('')
-  const [email, setEmail] = useState('')
+  const [email, setEmail] = useState(prefillEmail)
   const [emailTouched, setEmailTouched] = useState(false)
   const [phone, setPhone] = useState('')
   const [phoneTouched, setPhoneTouched] = useState(false)
@@ -61,7 +64,7 @@ export default function RegisterPage() {
     }
 
     setIsSubmitting(true)
-    const result = await register({ email, password, fullName, phone: phone.trim(), consentGiven, newsletterOptIn })
+    const result = await register({ email, password, fullName, phone: phone.trim(), consentGiven, newsletterOptIn }, { next: redirectTo || undefined })
     setIsSubmitting(false)
 
     if (result.error) {
@@ -74,7 +77,7 @@ export default function RegisterPage() {
       return
     }
 
-    router.replace('/account')
+    router.replace(redirectTo || '/account')
     router.refresh()
   }
 
@@ -85,7 +88,7 @@ export default function RegisterPage() {
       eyebrow="Registrazione"
       title="Crea il tuo account"
       description="Registrati per prenotare sessioni GDR, salvare i tuoi giochi preferiti e seguire gli eventi."
-      footer={<span>Hai già un account? <Link href="/auth/login" className="text-editorial-terra hover:underline font-semibold">Accedi</Link></span>}
+      footer={<span>Hai già un account? <Link href={redirectTo ? `/auth/login?redirect=${encodeURIComponent(redirectTo)}` : '/auth/login'} className="text-editorial-terra hover:underline font-semibold">Accedi</Link></span>}
     >
       {!isConfigured && (
         <AuthMessage type="info">

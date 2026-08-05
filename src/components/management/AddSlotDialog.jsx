@@ -4,7 +4,7 @@ import { useState } from 'react'
 import Modal from './Modal'
 import { useToast } from '../../context/ToastContext'
 
-const EMPTY_FORM = { day: '', slot: '', table: '', maxPlayers: 5, quantity: 1, tableStart: 1, adminOnly: false, isVisible: true }
+const EMPTY_FORM = { day: '', slot: '', table: '', maxPlayers: 5, quantity: 1, tableStart: 1, adminOnly: false, isVisible: true, bookingEnabled: true }
 
 export default function AddSlotDialog({ open, onClose, eventId, eventDays, eventTimeSlots, slotsEndpointBase, onCreated }) {
   const toast = useToast()
@@ -35,6 +35,7 @@ export default function AddSlotDialog({ open, onClose, eventId, eventDays, event
         tableStart: Number(form.tableStart) || 1,
         adminOnly: Boolean(form.adminOnly),
         isVisible: Boolean(form.isVisible),
+        bookingEnabled: Boolean(form.bookingEnabled),
       }),
     })
     const data = await res.json().catch(() => ({}))
@@ -126,6 +127,15 @@ export default function AddSlotDialog({ open, onClose, eventId, eventDays, event
             onChange={(e) => setForm((current) => ({ ...current, isVisible: e.target.checked }))}
           />
           Visibile agli utenti per la prenotazione
+        </label>
+
+        <label className="flex items-center gap-2 font-body text-sm text-editorial-text">
+          <input
+            type="checkbox"
+            checked={form.bookingEnabled}
+            onChange={(e) => setForm((current) => ({ ...current, bookingEnabled: e.target.checked }))}
+          />
+          Attiva prenotazione (se spento, lo slot resta visibile ma non prenotabile)
         </label>
 
         <div className="flex gap-2 pt-2">

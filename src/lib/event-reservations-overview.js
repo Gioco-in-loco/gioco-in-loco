@@ -56,6 +56,7 @@ export async function getEventAllReservations({ eventId }) {
         playerEmail: true,
         createdAt: true,
         user: { select: { supabaseUserId: true } },
+        invitedBy: { select: { supabaseUserId: true } },
         slot: {
           select: {
             day: true,
@@ -79,6 +80,7 @@ export async function getEventAllReservations({ eventId }) {
         slot: true,
         createdAt: true,
         user: { select: { supabaseUserId: true } },
+        invitedBy: { select: { supabaseUserId: true } },
         mainEvent: { select: { title: true } },
       },
     }),
@@ -107,6 +109,7 @@ export async function getEventAllReservations({ eventId }) {
       status: reservation.status,
       playerName: reservation.playerName,
       playerEmail: reservation.playerEmail,
+      invitedByName: reservation.invitedBy ? (accountFieldsFor(reservation.invitedBy, authBySupabaseId).accountName || accountFieldsFor(reservation.invitedBy, authBySupabaseId).accountEmail) : null,
       ...accountFieldsFor(reservation.user, authBySupabaseId),
       title: reservation.slot.oneshot?.title || 'One-shot',
       subtitle: reservation.slot.oneshot?.master ? `Master ${reservation.slot.oneshot.master}` : null,
@@ -122,6 +125,7 @@ export async function getEventAllReservations({ eventId }) {
       status: reservation.status,
       playerName: reservation.playerName,
       playerEmail: reservation.playerEmail,
+      invitedByName: reservation.invitedBy ? (accountFieldsFor(reservation.invitedBy, authBySupabaseId).accountName || accountFieldsFor(reservation.invitedBy, authBySupabaseId).accountEmail) : null,
       ...accountFieldsFor(reservation.user, authBySupabaseId),
       title: reservation.mainEvent?.title || 'Main Event',
       subtitle: null,

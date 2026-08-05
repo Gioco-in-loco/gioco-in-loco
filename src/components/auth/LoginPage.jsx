@@ -16,6 +16,7 @@ const AUTH_ERROR_MESSAGES = {
 export default function LoginPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const redirectTo = searchParams.get('redirect') || ''
   const { login, loginWithGoogle, isGoogleAuthEnabled, isConfigured } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -42,7 +43,7 @@ export default function LoginPage() {
       return
     }
 
-    window.location.replace('/account')
+    window.location.replace(redirectTo || '/account')
   }
 
   const handleGoogleLogin = async () => {
@@ -61,7 +62,7 @@ export default function LoginPage() {
       eyebrow="Accesso"
       title="Bentornato!"
       description="Accedi al tuo account per gestire le prenotazioni e seguire gli eventi."
-      footer={<span>Non hai un account? <Link href="/auth/register" className="text-editorial-terra hover:underline font-semibold">Registrati</Link></span>}
+      footer={<span>Non hai un account? <Link href={redirectTo ? `/auth/register?redirect=${encodeURIComponent(redirectTo)}` : '/auth/register'} className="text-editorial-terra hover:underline font-semibold">Registrati</Link></span>}
     >
       {!isConfigured && (
         <AuthMessage type="info">

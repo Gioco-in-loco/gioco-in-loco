@@ -29,6 +29,11 @@ function normalizeDate(value) {
   return value ? value.toISOString() : null
 }
 
+// null bookingOpensAt = no restriction, bookings always allowed date-wise.
+export function isBookingWindowOpen(event, now = new Date()) {
+  return !event?.bookingOpensAt || now >= new Date(event.bookingOpensAt)
+}
+
 async function detectEventCartHoldSupport(db = prisma) {
   if (db === prisma && typeof globalForEventBooking.__eventCartHoldSupport === 'boolean') {
     return globalForEventBooking.__eventCartHoldSupport
@@ -108,7 +113,7 @@ export function getActiveReservationFilter(now = new Date(), { cartHoldsSupporte
   return {
     OR: [
       { status: { in: EVENT_ACTIVE_RESERVATION_STATUSES } },
-      { status: EVENT_CART_HOLD_STATUS, holdExpiresAt: { gt: now } },
+      { status: { in: [EVENT_CART_HOLD_STATUS, 'INVITED'] }, holdExpiresAt: { gt: now } },
     ],
   }
 }
@@ -151,11 +156,13 @@ export async function releaseExpiredEventHolds({ eventId, db = prisma, userId })
     },
   })
 
+  // Companion invites (status INVITED, no userId of their own) expire the same
+  // way as cart HOLDs — filtered by invitedByUserId, since userId is null.
   const expiredReservations = await db.reservation.findMany({
     where: {
-      status: EVENT_CART_HOLD_STATUS,
+      status: { in: [EVENT_CART_HOLD_STATUS, 'INVITED'] },
       holdExpiresAt: { lte: now },
-      ...(userId ? { userId } : {}),
+      ...(userId ? { OR: [{ userId }, { invitedByUserId: userId }] } : {}),
       ...getEventScopedSlotWhere(eventId),
     },
     select: { id: true },
@@ -548,6 +555,8 @@ export const getBookableEventData = cache(async function getBookableEventData(ev
       dailyPrice: true,
       startDate: true,
       endDate: true,
+      bookingOpensAt: true,
+      showComingSoon: true,
       oneShotLinks: {
         select: {
           oneShot: {
@@ -574,6 +583,7 @@ export const getBookableEventData = cache(async function getBookableEventData(ev
                   slot: true,
                   table: true,
                   maxPlayers: true,
+                  bookingEnabled: true,
                 },
               },
             },
@@ -586,6 +596,8 @@ export const getBookableEventData = cache(async function getBookableEventData(ev
   if (!event) {
     return null
   }
+
+  const bookingWindowOpen = isBookingWindowOpen(event)
 
   const slotIds = event.oneShotLinks.flatMap((link) => link.oneShot.slots.map((slot) => slot.id))
   const reservationCounts = slotIds.length > 0
@@ -620,6 +632,8 @@ export const getBookableEventData = cache(async function getBookableEventData(ev
     dailyPrice: event.dailyPrice,
     startDate: normalizeDate(event.startDate),
     endDate: normalizeDate(event.endDate),
+    bookingOpensAt: normalizeDate(event.bookingOpensAt),
+    showComingSoon: event.showComingSoon,
     hiddenSlots,
     oneshots: event.oneShotLinks
       .map((link) => ({
@@ -636,6 +650,7 @@ export const getBookableEventData = cache(async function getBookableEventData(ev
             ...slot,
             currentReservations: countsBySlotId.get(slot.id) || 0,
             available: (countsBySlotId.get(slot.id) || 0) < slot.maxPlayers,
+            bookable: slot.bookingEnabled && bookingWindowOpen,
           }))
           .sort(sortSlots),
       }))

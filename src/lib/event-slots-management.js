@@ -96,6 +96,7 @@ export async function listEventSlots({ eventId }) {
       maxPlayers: true,
       adminOnly: true,
       isVisible: true,
+      bookingEnabled: true,
       oneshotId: true,
       oneshot: { select: { title: true, master: true, game: true, association: { select: { id: true, name: true } } } },
       mainEventId: true,
@@ -136,6 +137,7 @@ export async function listEventSlots({ eventId }) {
       maxPlayers: slot.maxPlayers,
       adminOnly: slot.adminOnly,
       isVisible: slot.isVisible,
+      bookingEnabled: slot.bookingEnabled,
       oneshotId: slot.oneshotId,
       oneshotTitle: slot.oneshot?.title || null,
       oneshotMaster: slot.oneshot?.master || null,
@@ -230,6 +232,7 @@ export async function createEventSlot({ eventId, body }) {
   const quantity = Number(body?.quantity) || 1
   const adminOnly = Boolean(body?.adminOnly)
   const isVisible = body?.isVisible === undefined ? true : Boolean(body.isVisible)
+  const bookingEnabled = body?.bookingEnabled === undefined ? true : Boolean(body.bookingEnabled)
 
   await assertDayAndSlotAllowed(eventId, day, slotTime)
 
@@ -253,7 +256,7 @@ export async function createEventSlot({ eventId, body }) {
     }
 
     const created = await prisma.eventSlot.createMany({
-      data: tables.map((generatedTable) => ({ eventId, day, slot: slotTime, table: generatedTable, maxPlayers, adminOnly, isVisible, oneshotId: null, mainEventId: null })),
+      data: tables.map((generatedTable) => ({ eventId, day, slot: slotTime, table: generatedTable, maxPlayers, adminOnly, isVisible, bookingEnabled, oneshotId: null, mainEventId: null })),
     })
 
     return { count: created.count }
@@ -262,7 +265,7 @@ export async function createEventSlot({ eventId, body }) {
   validateSlotFormat({ day, slot: slotTime, table, maxPlayers })
 
   const slot = await prisma.eventSlot.create({
-    data: { eventId, day, slot: slotTime, table, maxPlayers, adminOnly, isVisible, oneshotId: null, mainEventId: null },
+    data: { eventId, day, slot: slotTime, table, maxPlayers, adminOnly, isVisible, bookingEnabled, oneshotId: null, mainEventId: null },
   })
 
   return {
@@ -273,6 +276,7 @@ export async function createEventSlot({ eventId, body }) {
     maxPlayers: slot.maxPlayers,
     adminOnly: slot.adminOnly,
     isVisible: slot.isVisible,
+    bookingEnabled: slot.bookingEnabled,
     oneshotId: null,
     oneshotTitle: null,
     associationName: null,
@@ -298,13 +302,14 @@ export async function updateEventSlot({ eventId, slotId, body }) {
   const maxPlayers = Number(body?.maxPlayers)
   const adminOnly = Boolean(body?.adminOnly)
   const isVisible = body?.isVisible === undefined ? true : Boolean(body.isVisible)
+  const bookingEnabled = body?.bookingEnabled === undefined ? true : Boolean(body.bookingEnabled)
 
   validateSlotFormat({ day, slot: slotTime, table, maxPlayers })
   await assertDayAndSlotAllowed(eventId, day, slotTime)
 
   const updated = await prisma.eventSlot.update({
     where: { id: slotId },
-    data: { day, slot: slotTime, table, maxPlayers, adminOnly, isVisible },
+    data: { day, slot: slotTime, table, maxPlayers, adminOnly, isVisible, bookingEnabled },
     include: {
       oneshot: { select: { title: true, association: { select: { name: true } } } },
       mainEvent: { select: { title: true } },
@@ -320,6 +325,7 @@ export async function updateEventSlot({ eventId, slotId, body }) {
     maxPlayers: updated.maxPlayers,
     adminOnly: updated.adminOnly,
     isVisible: updated.isVisible,
+    bookingEnabled: updated.bookingEnabled,
     oneshotId: updated.oneshotId,
     oneshotTitle: updated.oneshot?.title || null,
     associationName: updated.oneshot?.association?.name || null,

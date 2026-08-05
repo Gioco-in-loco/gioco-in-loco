@@ -26,7 +26,7 @@ function resolveEmailChangeRedirect(origin, next, user, to) {
 }
 
 function resolveRedirectTarget(origin, type, next) {
-  if (type === 'signup') return buildAbsoluteUrl('/auth/welcome?notice=account_activated', origin)
+  if (type === 'signup') return buildAbsoluteUrl(next || '/auth/welcome?notice=account_activated', origin)
   return buildAbsoluteUrl(next ?? '/', origin)
 }
 

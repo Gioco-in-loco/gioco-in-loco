@@ -42,6 +42,23 @@ function formatReservationStatus(status) {
   }
 }
 
+function formatCompanionStatus(status) {
+  switch (status) {
+    case 'HOLD':
+      return { label: 'Nel carrello', className: 'border-slate-200 bg-slate-100 text-slate-600' }
+    case 'INVITED':
+      return { label: 'Invito inviato, in attesa di conferma', className: 'border-amber-200 bg-amber-50 text-amber-700' }
+    case 'EXPIRED':
+      return { label: 'Invito scaduto', className: 'border-slate-200 bg-slate-100 text-slate-500' }
+    case 'PENDING':
+    case 'CONFIRMED':
+    case 'ATTENDED':
+      return { label: 'Confermato', className: 'border-emerald-200 bg-emerald-50 text-emerald-700' }
+    default:
+      return { label: status || 'Sconosciuto', className: 'border-editorial-border bg-editorial-bg/60 text-editorial-text-secondary' }
+  }
+}
+
 function formatEventDateRange(startDate, endDate) {
   if (!startDate) {
     return 'Data da definire'
@@ -178,6 +195,23 @@ function BookingItemCard({ booking, pendingCancellationKey, onCancel }) {
           <p className="mt-1.5 font-body text-[10px] text-editorial-text-muted">
             Aggiornata · {formatUpdatedAt(booking.updatedAt)}
           </p>
+
+          {booking.companions?.length > 0 ? (
+            <div className="mt-2 space-y-1 border-t border-dashed border-editorial-border pt-2">
+              <p className="font-body text-[10px] font-bold uppercase tracking-wider text-editorial-text-muted">Amici invitati</p>
+              {booking.companions.map((companion, index) => {
+                const companionStatus = formatCompanionStatus(companion.status)
+                return (
+                  <div key={`${companion.email}:${index}`} className="flex flex-wrap items-center gap-1.5 font-body text-xs text-editorial-text-secondary">
+                    <span className="font-semibold text-editorial-text">{companion.name || companion.email}</span>
+                    <span className={`inline-flex rounded-full border px-2 py-0.5 font-body text-[10px] font-bold ${companionStatus.className}`}>
+                      {companionStatus.label}
+                    </span>
+                  </div>
+                )
+              })}
+            </div>
+          ) : null}
         </div>
 
         <div className="flex shrink-0 flex-col items-stretch gap-1.5 sm:items-end">

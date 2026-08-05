@@ -26,7 +26,7 @@ interface AuthContextType {
   isPasswordRecovery: boolean
   login: (email: string, password: string) => Promise<{ error: string | null }>
   loginWithGoogle: () => Promise<{ error: string | null }>
-  register: (input: { email: string; password: string; fullName: string; consentGiven: boolean }) => Promise<{ error: string | null; requiresEmailConfirmation: boolean }>
+  register: (input: { email: string; password: string; fullName: string; consentGiven: boolean }, options?: { next?: string }) => Promise<{ error: string | null; requiresEmailConfirmation: boolean }>
   forgotPassword: (email: string) => Promise<{ error: string | null }>
   updatePassword: (password: string) => Promise<{ error: string | null }>
   updateProfile: (input: { fullName: string; phone?: string; consentGiven?: boolean }) => Promise<{ error: string | null }>
@@ -191,18 +191,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error: error?.message || null }
   }
 
-  const register = async (input: { email: string; password: string; fullName: string; phone?: string; consentGiven: boolean; newsletterOptIn?: boolean }) => {
+  const register = async (input: { email: string; password: string; fullName: string; phone?: string; consentGiven: boolean; newsletterOptIn?: boolean }, options?: { next?: string }) => {
     if (!isConfigured) {
       return { error: 'Supabase non configurato.', requiresEmailConfirmation: false }
     }
 
     const supabase = createSupabaseBrowserClient()
     const siteUrl = getBrowserSiteUrl() || window.location.origin
+    const callbackPath = options?.next
+      ? `/auth/callback?type=signup&next=${encodeURIComponent(options.next)}`
+      : '/auth/callback?type=signup'
     const { error, data } = await supabase.auth.signUp({
       email: input.email,
       password: input.password,
       options: {
-        emailRedirectTo: buildAbsoluteUrl('/auth/callback?type=signup', siteUrl),
+        emailRedirectTo: buildAbsoluteUrl(callbackPath, siteUrl),
         data: {
           full_name: input.fullName,
           phone: input.phone || null,

@@ -10,6 +10,7 @@ import {
   formatCartPrice,
 } from '../../lib/cart-ui'
 import { getSlotKey } from '../../lib/event-booking'
+import CompanionInviteFields from '../booking/CompanionInviteFields'
 
 function getEventLabel(mainEvent) {
   return mainEvent.eventName || 'Evento non specificato'
@@ -27,6 +28,8 @@ export default function MainEventsBookingPage({ mainEvents }) {
   const [reservationsState, setReservationsState] = useState({ loading: true, reservations: [] })
   const [cartState, setCartState] = useState(() => createEmptyMainEventCartState())
   const [pendingSessionKey, setPendingSessionKey] = useState(null)
+  const [expandedCompanionKey, setExpandedCompanionKey] = useState(null)
+  const [companionsBySessionKey, setCompanionsBySessionKey] = useState({})
 
   useEffect(() => {
     setItems(mainEvents)
@@ -159,7 +162,9 @@ export default function MainEventsBookingPage({ mainEvents }) {
     }
 
     const fullSession = { mainEventId: mainEvent.id, eventId: mainEvent.eventId, day: session.day, slot: session.slot }
-    setPendingSessionKey(sessionKey(fullSession))
+    const key = sessionKey(fullSession)
+    const companions = (companionsBySessionKey[key] || []).filter((c) => c.firstName.trim() && c.lastName.trim() && c.email.trim())
+    setPendingSessionKey(key)
     setRequestState({ loading: true, error: '', success: '' })
 
     try {
@@ -167,7 +172,7 @@ export default function MainEventsBookingPage({ mainEvents }) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'same-origin',
-        body: JSON.stringify(fullSession),
+        body: JSON.stringify({ ...fullSession, companions }),
       })
 
       const payload = await response.json().catch(() => ({}))
@@ -178,6 +183,8 @@ export default function MainEventsBookingPage({ mainEvents }) {
 
       setCartState({ loading: false, ...payload })
       updateSessionAvailability(fullSession, 1)
+      setCompanionsBySessionKey((current) => { const next = { ...current }; delete next[key]; return next })
+      setExpandedCompanionKey(null)
       setRequestState({ loading: false, error: '', success: `Sessione aggiunta per ${session.day} ${session.slot}.` })
       toast.success('Sessione aggiunta.')
     } catch (error) {
@@ -336,7 +343,11 @@ export default function MainEventsBookingPage({ mainEvents }) {
                     const hasCartConflict = cartSlotKeys.has(getSlotKey(session)) && !inCart
                     const hasConflict = hasConfirmedConflict || hasCartConflict
                     const isPending = pendingSessionKey === key
-                    const disabled = requestState.loading || isPending || isUserStateLoading || (!session.available && !reservation && !inCart)
+                    const notYetOpen = session.bookable === false && !reservation && !inCart
+                    const disabled = requestState.loading || isPending || isUserStateLoading || notYetOpen || (!session.available && !reservation && !inCart)
+                    const remainingSeats = Math.max(0, session.maxPlayers - (session.currentReservations || 0))
+                    const canInviteCompanions = !reservation && !inCart && !notYetOpen && remainingSeats > 1
+                    const isCompanionPanelOpen = expandedCompanionKey === key
 
                     return (
                       <div key={key} className="rounded-xl border border-editorial-border bg-editorial-bg/40 p-4">
@@ -382,11 +393,13 @@ export default function MainEventsBookingPage({ mainEvents }) {
                                 ? 'Aggiornamento...'
                                 : isUserStateLoading
                                   ? 'Verifica...'
-                                  : hasConflict
-                                    ? 'Hai già una sessione in orario'
-                                    : !session.available
-                                      ? 'Al completo'
-                                      : 'Aggiungi'}
+                                  : notYetOpen
+                                    ? 'Prenotazioni non ancora aperte'
+                                    : hasConflict
+                                      ? 'Hai già una sessione in orario'
+                                      : !session.available
+                                        ? 'Al completo'
+                                        : 'Aggiungi'}
                             </button>
                           )}
                         </div>
@@ -399,6 +412,25 @@ export default function MainEventsBookingPage({ mainEvents }) {
                           <p className="mt-3 font-body text-xs font-semibold uppercase tracking-widest text-editorial-terra">
                             Prenotato
                           </p>
+                        ) : null}
+
+                        {canInviteCompanions ? (
+                          <button
+                            type="button"
+                            onClick={() => setExpandedCompanionKey(isCompanionPanelOpen ? null : key)}
+                            className="mt-3 font-body text-xs font-semibold text-editorial-terra hover:underline"
+                          >
+                            {isCompanionPanelOpen ? 'Nascondi invito amici' : '+ Invita amici'}
+                          </button>
+                        ) : null}
+
+                        {canInviteCompanions && isCompanionPanelOpen ? (
+                          <CompanionInviteFields
+                            companions={companionsBySessionKey[key] || []}
+                            onChange={(next) => setCompanionsBySessionKey((current) => ({ ...current, [key]: next }))}
+                            maxCount={remainingSeats - 1}
+                            className="mt-3"
+                          />
                         ) : null}
                       </div>
                     )

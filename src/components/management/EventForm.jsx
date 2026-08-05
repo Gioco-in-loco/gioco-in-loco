@@ -6,11 +6,17 @@ const WEEK_DAYS = ['Lunedi', 'Martedi', 'Mercoledi', 'Giovedi', 'Venerdi', 'Saba
 const TIME_SLOT_PATTERN = '^([01]\\d|2[0-3]):[0-5]\\d-([01]\\d|2[0-3]):[0-5]\\d$'
 const TIME_SLOT_REGEX = /^([01]\d|2[0-3]):[0-5]\d-([01]\d|2[0-3]):[0-5]\d$/
 
-const EMPTY_FORM = { externalId: '', name: '', description: '', location: '', mapsUrl: '', price: '', dailyPrice: '', days: [], timeSlots: [], startDate: '', endDate: '' }
+const EMPTY_FORM = { externalId: '', name: '', description: '', location: '', mapsUrl: '', price: '', dailyPrice: '', days: [], timeSlots: [], startDate: '', endDate: '', bookingOpensAt: '', showComingSoon: false }
 
 export function toInputDate(dateStr) {
   if (!dateStr) return ''
   return new Date(dateStr).toISOString().split('T')[0]
+}
+
+export function toInputDateTime(dateStr) {
+  if (!dateStr) return ''
+  const iso = new Date(dateStr).toISOString()
+  return iso.slice(0, 16)
 }
 
 export default function EventForm({ initial = EMPTY_FORM, onSave, onCancel, isNew }) {
@@ -109,6 +115,19 @@ export default function EventForm({ initial = EMPTY_FORM, onSave, onCancel, isNe
           <input type="date" className={inputClass} value={form.endDate} onChange={set('endDate')} />
         </div>
       </div>
+      <div>
+        <label className={labelClass}>Apertura prenotazioni</label>
+        <input type="datetime-local" className={inputClass} value={form.bookingOpensAt} onChange={set('bookingOpensAt')} />
+        <p className="font-body text-xs text-editorial-text-muted mt-1">Le prenotazioni sono permesse solo da questa data e ora in poi. Vuoto = nessun limite.</p>
+      </div>
+      <label className="flex items-center gap-2 font-body text-sm text-editorial-text">
+        <input
+          type="checkbox"
+          checked={form.showComingSoon}
+          onChange={(e) => setForm((f) => ({ ...f, showComingSoon: e.target.checked }))}
+        />
+        Mostra pagina &quot;in arrivo&quot; (coming soon) al posto delle pagine dell&apos;evento
+      </label>
       <div>
         <label className={labelClass}>Giorni evento</label>
         <div className="flex flex-wrap gap-2">

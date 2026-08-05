@@ -1,4 +1,5 @@
 import { prisma } from './prisma'
+import { generateInviteCode, getCompanionInviteExpiration } from './invite-tokens'
 
 export const MAIN_EVENT_ACTIVE_STATUSES = ['PENDING', 'CONFIRMED', 'ATTENDED']
 export const MAIN_EVENT_CART_HOLD_STATUS = 'HOLD'
@@ -30,17 +31,19 @@ export function getActiveMainEventReservationFilter(now = new Date()) {
   return {
     OR: [
       { status: { in: MAIN_EVENT_ACTIVE_STATUSES } },
-      { status: MAIN_EVENT_CART_HOLD_STATUS, holdExpiresAt: { gt: now } },
+      { status: { in: [MAIN_EVENT_CART_HOLD_STATUS, 'INVITED'] }, holdExpiresAt: { gt: now } },
     ],
   }
 }
 
+// Companion invites (status INVITED, no userId of their own) expire the same
+// way as cart HOLDs — filtered by invitedByUserId, since userId is null.
 export async function releaseExpiredMainEventHolds({ db = prisma, userId, eventId } = {}) {
   await db.mainEventReservation.updateMany({
     where: {
-      status: MAIN_EVENT_CART_HOLD_STATUS,
+      status: { in: [MAIN_EVENT_CART_HOLD_STATUS, 'INVITED'] },
       holdExpiresAt: { lte: new Date() },
-      ...(userId ? { userId } : {}),
+      ...(userId ? { OR: [{ userId }, { invitedByUserId: userId }] } : {}),
       ...getMainEventScopeWhere(eventId),
     },
     data: {
@@ -91,14 +94,20 @@ function groupSlotsIntoSessions(slots) {
 
   for (const slot of slots) {
     const key = `${slot.day}__${slot.slot}`
-    if (!groups.has(key)) groups.set(key, { day: slot.day, slot: slot.slot, maxPlayers: 0 })
-    groups.get(key).maxPlayers += slot.maxPlayers
+    if (!groups.has(key)) groups.set(key, { day: slot.day, slot: slot.slot, maxPlayers: 0, allBookingEnabled: true })
+    const group = groups.get(key)
+    group.maxPlayers += slot.maxPlayers
+    // A main event session spans every table assigned to it in that day+slot —
+    // it's only bookable once ALL of those tables have booking turned on.
+    group.allBookingEnabled = group.allBookingEnabled && slot.bookingEnabled
   }
 
   return Array.from(groups.values()).sort(sortSessions)
 }
 
 function serializeMainEventForEvent(mainEvent, event, countsByKey) {
+  const bookingWindowOpen = !event.bookingOpensAt || new Date() >= new Date(event.bookingOpensAt)
+
   const sessions = groupSlotsIntoSessions(mainEvent.slots).map((session) => {
     const key = `${mainEvent.id}__${event.id}__${session.day}__${session.slot}`
     const currentReservations = countsByKey.get(key) || 0
@@ -109,6 +118,7 @@ function serializeMainEventForEvent(mainEvent, event, countsByKey) {
       maxPlayers: session.maxPlayers,
       currentReservations,
       available: currentReservations < session.maxPlayers,
+      bookable: session.allBookingEnabled && bookingWindowOpen,
     }
   })
 
@@ -126,6 +136,7 @@ function serializeMainEventForEvent(mainEvent, event, countsByKey) {
       maxPlayers: session?.maxPlayers ?? slot.maxPlayers,
       currentReservations: session?.currentReservations ?? 0,
       available: session?.available ?? true,
+      bookable: session?.bookable ?? (slot.bookingEnabled && bookingWindowOpen),
     }
   })
 
@@ -152,7 +163,7 @@ async function loadEventsById(db, eventIds) {
 
   const events = await db.event.findMany({
     where: { id: { in: Array.from(eventIds) } },
-    select: { id: true, externalId: true, name: true, location: true, startDate: true, endDate: true },
+    select: { id: true, externalId: true, name: true, location: true, startDate: true, endDate: true, bookingOpensAt: true },
   })
 
   return new Map(events.map((event) => [event.id, event]))
@@ -184,7 +195,7 @@ export async function getPublicMainEvents({ eventId, db = prisma } = {}) {
     include: {
       slots: {
         where: { isVisible: true, ...(eventId ? { eventId } : {}) },
-        select: { day: true, slot: true, table: true, maxPlayers: true, eventId: true },
+        select: { day: true, slot: true, table: true, maxPlayers: true, eventId: true, bookingEnabled: true },
       },
     },
     orderBy: [{ title: 'asc' }],
@@ -238,7 +249,7 @@ export async function getPublicMainEvent(mainEventId, { eventId, db = prisma } =
     include: {
       slots: {
         where: { isVisible: true, ...(eventId ? { eventId } : {}) },
-        select: { day: true, slot: true, maxPlayers: true, eventId: true },
+        select: { day: true, slot: true, maxPlayers: true, eventId: true, bookingEnabled: true },
       },
     },
   })
@@ -376,13 +387,18 @@ const MAIN_EVENT_CART_TX_OPTIONS = {
 async function getSessionCapacity(db, { mainEventId, eventId, day, slot }) {
   const slots = await db.eventSlot.findMany({
     where: { mainEventId, eventId, day, slot },
-    select: { maxPlayers: true },
+    select: { maxPlayers: true, bookingEnabled: true },
   })
 
-  return slots.reduce((sum, s) => sum + s.maxPlayers, 0)
+  return {
+    capacity: slots.reduce((sum, s) => sum + s.maxPlayers, 0),
+    // The session spans every table assigned to this day+slot group — it's
+    // only bookable once ALL of them have booking turned on.
+    bookingEnabled: slots.length > 0 && slots.every((s) => s.bookingEnabled),
+  }
 }
 
-export async function addMainEventSessionToCart({ userId, mainEventId, eventId, day, slot, userName, userEmail, db = prisma }) {
+export async function addMainEventSessionToCart({ userId, mainEventId, eventId, day, slot, userName, userEmail, companions = [], db = prisma }) {
   // Cleanup expired holds OUTSIDE the transaction (idempotent, no atomicity needed)
   await releaseExpiredMainEventHolds({ db, userId, eventId })
 
@@ -392,9 +408,19 @@ export async function addMainEventSessionToCart({ userId, mainEventId, eventId, 
       throw createHttpError(404, 'Main event non trovato.')
     }
 
-    const capacity = await getSessionCapacity(tx, { mainEventId, eventId, day, slot })
+    const event = await tx.event.findUnique({ where: { id: eventId }, select: { bookingOpensAt: true } })
+    if (!event) {
+      throw createHttpError(404, 'Evento non trovato.')
+    }
+
+    const { capacity, bookingEnabled: sessionBookingEnabled } = await getSessionCapacity(tx, { mainEventId, eventId, day, slot })
     if (capacity === 0) {
       throw createHttpError(404, 'Sessione main event non trovata.')
+    }
+
+    const bookingWindowOpen = !event.bookingOpensAt || new Date() >= new Date(event.bookingOpensAt)
+    if (!sessionBookingEnabled || !bookingWindowOpen) {
+      throw createHttpError(400, `Le prenotazioni per il main event ${mainEvent.title} non sono ancora aperte.`)
     }
 
     const existingReservation = await tx.mainEventReservation.findUnique({
@@ -406,14 +432,12 @@ export async function addMainEventSessionToCart({ userId, mainEventId, eventId, 
       throw createHttpError(400, 'Hai già prenotato questa sessione.')
     }
 
-    // Fast path: existing valid hold — just refresh the timer
+    // Own hold still valid — counted in currentReservations below, so it must be
+    // excluded from the "seats taken by others" tally.
+    const holdStillValid = Boolean(existingReservation?.status === MAIN_EVENT_CART_HOLD_STATUS && existingReservation.holdExpiresAt && existingReservation.holdExpiresAt > new Date())
     const holdExpiresAt = getNextHoldExpiration()
-    if (existingReservation?.status === MAIN_EVENT_CART_HOLD_STATUS && existingReservation.holdExpiresAt && existingReservation.holdExpiresAt > new Date()) {
-      await refreshUserMainEventCartHolds({ userId, holdExpiresAt, db: tx, eventId })
-      return
-    }
 
-    const [conflictingReservation, currentReservations] = await Promise.all([
+    const [conflictingReservation, currentReservations, existingCompanionsCount] = await Promise.all([
       tx.mainEventReservation.findFirst({
         where: {
           userId,
@@ -434,14 +458,22 @@ export async function addMainEventSessionToCart({ userId, mainEventId, eventId, 
           ...getActiveMainEventReservationFilter(),
         },
       }),
+      tx.mainEventReservation.count({
+        where: { invitedByUserId: userId, mainEventId, eventId, day, slot, status: MAIN_EVENT_CART_HOLD_STATUS },
+      }),
     ])
 
     if (conflictingReservation) {
       throw createHttpError(400, `Hai già una prenotazione nello stesso giorno e fascia oraria: ${day} ${slot}.`)
     }
 
-    if (currentReservations >= capacity) {
-      throw createHttpError(400, `Il main event ${mainEvent.title} è al completo.`)
+    // Seats taken by other people, excluding this host's own row and their
+    // own (about-to-be-replaced) companion invites for this session.
+    const seatsTakenByOthers = currentReservations - (holdStillValid ? 1 : 0) - existingCompanionsCount
+    const seatsNeeded = 1 + companions.length
+
+    if (seatsTakenByOthers + seatsNeeded > capacity) {
+      throw createHttpError(400, `Non ci sono abbastanza posti liberi per te e i tuoi amici nel main event ${mainEvent.title}.`)
     }
 
     if (existingReservation) {
@@ -474,6 +506,29 @@ export async function addMainEventSessionToCart({ userId, mainEventId, eventId, 
       })
     }
 
+    // Replace this host's companion invites for this session with the submitted list.
+    await tx.mainEventReservation.deleteMany({
+      where: { invitedByUserId: userId, mainEventId, eventId, day, slot, status: MAIN_EVENT_CART_HOLD_STATUS },
+    })
+
+    if (companions.length > 0) {
+      await tx.mainEventReservation.createMany({
+        data: companions.map((companion) => ({
+          mainEventId,
+          eventId,
+          day,
+          slot,
+          status: MAIN_EVENT_CART_HOLD_STATUS,
+          holdExpiresAt,
+          playerName: companion.fullName,
+          playerEmail: companion.email,
+          invitedByUserId: userId,
+          inviteCode: generateInviteCode(),
+          consentGiven: false,
+        })),
+      })
+    }
+
     await refreshUserMainEventCartHolds({ userId, holdExpiresAt, db: tx, eventId })
   }, MAIN_EVENT_CART_TX_OPTIONS)
 
@@ -502,6 +557,9 @@ export async function removeMainEventSessionFromCart({ userId, mainEventId, even
     }
 
     await tx.mainEventReservation.delete({ where: { id: reservation.id } })
+    await tx.mainEventReservation.deleteMany({
+      where: { invitedByUserId: userId, mainEventId, eventId, day, slot, status: MAIN_EVENT_CART_HOLD_STATUS },
+    })
   }, MAIN_EVENT_CART_TX_OPTIONS)
 
   return getUserMainEventCartState({ userId, eventId, db })
@@ -510,7 +568,7 @@ export async function removeMainEventSessionFromCart({ userId, mainEventId, even
 export async function confirmMainEventCart({ userId, eventId, db = prisma }) {
   await releaseExpiredMainEventHolds({ db, userId, eventId })
 
-  await db.$transaction(async (tx) => {
+  const companionInvites = await db.$transaction(async (tx) => {
     const holdReservations = await tx.mainEventReservation.findMany({
       where: {
         userId,
@@ -518,7 +576,7 @@ export async function confirmMainEventCart({ userId, eventId, db = prisma }) {
         holdExpiresAt: { gt: new Date() },
         ...getMainEventScopeWhere(eventId),
       },
-      select: { id: true },
+      select: { id: true, mainEventId: true, eventId: true, day: true, slot: true, mainEvent: { select: { title: true } } },
     })
 
     if (holdReservations.length === 0) {
@@ -529,9 +587,54 @@ export async function confirmMainEventCart({ userId, eventId, db = prisma }) {
       where: { id: { in: holdReservations.map((reservation) => reservation.id) } },
       data: { status: 'PENDING', holdExpiresAt: null },
     })
+
+    // Companions the host invited on these same sessions move from HOLD (still
+    // just a cart draft) to INVITED — reserved for 1h while they register/claim
+    // it. They are never part of the host's own paid total.
+    const companionInviteExpiresAt = getCompanionInviteExpiration()
+    const invites = []
+
+    const companions = await tx.mainEventReservation.findMany({
+      where: {
+        invitedByUserId: userId,
+        status: MAIN_EVENT_CART_HOLD_STATUS,
+        OR: holdReservations.map((reservation) => ({
+          mainEventId: reservation.mainEventId,
+          eventId: reservation.eventId,
+          day: reservation.day,
+          slot: reservation.slot,
+        })),
+      },
+      select: { id: true, playerName: true, playerEmail: true, inviteCode: true, mainEventId: true, eventId: true, day: true, slot: true },
+    })
+
+    if (companions.length > 0) {
+      await tx.mainEventReservation.updateMany({
+        where: { id: { in: companions.map((companion) => companion.id) } },
+        data: { status: 'INVITED', holdExpiresAt: companionInviteExpiresAt },
+      })
+
+      const sessionByKey = new Map(holdReservations.map((reservation) => [`${reservation.mainEventId}__${reservation.eventId}__${reservation.day}__${reservation.slot}`, reservation.mainEvent]))
+      for (const companion of companions) {
+        const mainEvent = sessionByKey.get(`${companion.mainEventId}__${companion.eventId}__${companion.day}__${companion.slot}`)
+        invites.push({
+          name: companion.playerName,
+          email: companion.playerEmail,
+          inviteCode: companion.inviteCode,
+          activityTitle: mainEvent?.title || 'Main event',
+          day: companion.day,
+          slot: companion.slot,
+          table: null,
+          eventId: companion.eventId,
+        })
+      }
+    }
+
+    return invites
   }, MAIN_EVENT_CART_TX_OPTIONS)
 
-  return getUserMainEventCartState({ userId, eventId, db })
+  const cartState = await getUserMainEventCartState({ userId, eventId, db })
+  return { ...cartState, companionInvites }
 }
 
 export async function cancelUserMainEventReservation({ reservationId, userId, db = prisma }) {

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { requireAuthenticatedApi } from '../../../../../src/lib/admin-guard'
 import { addMainEventSessionToCart } from '../../../../../src/lib/main-event-booking'
+import { normalizeCompanions } from '../../../../../src/lib/invite-tokens'
 
 export async function POST(request) {
   const { user, error, status } = await requireAuthenticatedApi()
@@ -16,6 +17,13 @@ export async function POST(request) {
     return NextResponse.json({ error: 'Sessione non valida.' }, { status: 400 })
   }
 
+  let companions
+  try {
+    companions = normalizeCompanions(body?.companions)
+  } catch (validationError) {
+    return NextResponse.json({ error: validationError.message }, { status: 400 })
+  }
+
   try {
     const cartState = await addMainEventSessionToCart({
       userId: user.id,
@@ -25,6 +33,7 @@ export async function POST(request) {
       slot,
       userName: user.name,
       userEmail: user.email,
+      companions,
     })
 
     return NextResponse.json(cartState, { status: 201 })

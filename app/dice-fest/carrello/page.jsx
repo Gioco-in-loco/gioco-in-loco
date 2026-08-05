@@ -12,10 +12,12 @@ export const metadata = {
 }
 
 export default async function DiceFestCartRoute() {
-  const staff = await requireAdminOrResponsabile()
-  if (!staff) redirect('/dice-fest/coming-soon')
-
   const event = await getDiceFestEventData()
+
+  if (event?.showComingSoon) {
+    const staff = await requireAdminOrResponsabile()
+    if (!staff) redirect('/dice-fest/coming-soon')
+  }
 
   if (!event) {
     return (

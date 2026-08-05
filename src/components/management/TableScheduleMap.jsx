@@ -189,6 +189,9 @@ export default function TableScheduleMap({ slots, loading, onCellClick, isCellCl
                             {cell.isVisible === false ? (
                               <span className="rounded bg-editorial-text-muted/20 px-1.5 py-0.5 text-editorial-text-muted normal-case tracking-normal">Nascosto</span>
                             ) : null}
+                            {cell.bookingEnabled === false ? (
+                              <span className="rounded bg-amber-100 px-1.5 py-0.5 text-amber-700 normal-case tracking-normal">Prenotazioni chiuse</span>
+                            ) : null}
                           </p>
                           <p className="font-body text-sm font-semibold text-editorial-text">{isOneShot ? (cell.oneshotTitle || 'One shot') : (cell.mainEventTitle || 'Main event')}</p>
                           {isOneShot && cell.oneshotMaster ? (
@@ -203,7 +206,7 @@ export default function TableScheduleMap({ slots, loading, onCellClick, isCellCl
                         </>
                       ) : (
                         <p className="font-body text-xs text-editorial-text-muted">
-                          Libero · {cell.maxPlayers} posti{cell.adminOnly ? ' · Riservato admin' : ''}{cell.isVisible === false ? ' · Nascosto' : ''}
+                          Libero · {cell.maxPlayers} posti{cell.adminOnly ? ' · Riservato admin' : ''}{cell.isVisible === false ? ' · Nascosto' : ''}{cell.bookingEnabled === false ? ' · Prenotazioni chiuse' : ''}
                         </p>
                       )}
                     </button>

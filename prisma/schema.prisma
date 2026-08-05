@@ -40,6 +40,8 @@ model User {
   feedbackReceived      UserFeedback[]         @relation("UserFeedbackTarget")
   feedbackAuthored      UserFeedback[]         @relation("UserFeedbackAuthor")
   waitlistEntries       EventWaitlist[]
+  invitedReservations          Reservation[]           @relation("ReservationInvitedBy")
+  invitedMainEventReservations MainEventReservation[]   @relation("MainEventReservationInvitedBy")
 
   @@map("users")
 }
@@ -123,6 +125,8 @@ model Event {
   timeSlots   String[] @default([]) // fasce orarie dell'evento (formato "HH:mm-HH:mm"), usate per limitare le fasce selezionabili negli slot
   startDate   DateTime?
   endDate     DateTime?
+  bookingOpensAt DateTime? // le prenotazioni sono permesse solo da questa data/ora in poi; null = nessun limite
+  showComingSoon Boolean   @default(false) // se true, le pagine dell'evento mostrano "in arrivo" invece dei contenuti (staff escluso)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -231,7 +235,7 @@ model MainEvent {
 
 model MainEventReservation {
   id            String           @id @default(cuid())
-  userId        String
+  userId        String?
   mainEventId   String
   eventId       String
   day           String
@@ -243,18 +247,23 @@ model MainEventReservation {
   notes         String?
   consentGiven  Boolean   @default(false)
   consentDate   DateTime?
+  invitedByUserId String?
+  inviteCode      String?   @unique
+  claimedAt       DateTime?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
   // Relations
-  user          User         @relation(fields: [userId], references: [id])
+  user          User?        @relation(fields: [userId], references: [id])
   mainEvent     MainEvent    @relation(fields: [mainEventId], references: [id], onDelete: Cascade)
   event         Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  invitedBy     User?        @relation("MainEventReservationInvitedBy", fields: [invitedByUserId], references: [id])
   feedbackEntries UserFeedback[]
 
   @@unique([userId, mainEventId, eventId, day, slot])
   @@index([mainEventId, eventId, day, slot, status, holdExpiresAt])
   @@index([userId, status, holdExpiresAt])
+  @@index([invitedByUserId])
   @@map("main_event_reservations")
 }
 
@@ -296,6 +305,7 @@ model EventSlot {
   maxPlayers  Int       @default(5)
   adminOnly   Boolean   @default(false)
   isVisible   Boolean   @default(true)
+  bookingEnabled Boolean @default(true) // se false, lo slot resta visibile ma non prenotabile
   eventId     String
   oneshotId   String?
   mainEventId String?
@@ -316,7 +326,7 @@ model EventSlot {
 
 model Reservation {
   id            String           @id @default(cuid())
-  userId        String
+  userId        String?
   slotId        String
   status        ReservationStatus @default(PENDING)
   holdExpiresAt DateTime?
@@ -330,14 +340,21 @@ model Reservation {
   consentGiven  Boolean   @default(false)
   consentDate   DateTime?
 
+  // Companion invite (booking made by another user on this person's behalf)
+  invitedByUserId String?
+  inviteCode       String?   @unique
+  claimedAt        DateTime?
+
   // Relations
-  user          User         @relation(fields: [userId], references: [id])
+  user          User?        @relation(fields: [userId], references: [id])
   slot          EventSlot    @relation(fields: [slotId], references: [id])
+  invitedBy     User?        @relation("ReservationInvitedBy", fields: [invitedByUserId], references: [id])
   feedbackEntries UserFeedback[]
 
   @@unique([userId, slotId])
   @@index([slotId, status, holdExpiresAt])
   @@index([userId, status, holdExpiresAt])
+  @@index([invitedByUserId])
   @@map("reservations")
 }
 
@@ -374,6 +391,7 @@ enum ReservationStatus {
   CANCELLED    // Cancelled by user
   EXPIRED      // Hold expired before confirmation
   ATTENDED     // User attended the event
+  INVITED      // Companion invite sent, awaiting the invitee to register/claim it
 }
 
 enum UserFeedbackType {

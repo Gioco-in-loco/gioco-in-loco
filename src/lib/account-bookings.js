@@ -122,7 +122,15 @@ function getUpcomingLinkedEvent(eventLinks) {
     }) || null
 }
 
-function serializeOneShotBooking(reservation, { cancellationReason = null } = {}) {
+function serializeCompanion(companion) {
+  return {
+    name: companion.playerName,
+    email: companion.playerEmail,
+    status: companion.status,
+  }
+}
+
+function serializeOneShotBooking(reservation, { cancellationReason = null, companions = [] } = {}) {
   const event = getUpcomingLinkedEvent(reservation.slot.oneshot.eventLinks)
 
   return {
@@ -147,10 +155,11 @@ function serializeOneShotBooking(reservation, { cancellationReason = null } = {}
       slot: reservation.slot.slot,
       table: reservation.slot.table,
     },
+    companions: companions.map(serializeCompanion),
   }
 }
 
-function serializeMainEventBooking(reservation, { cancellationReason = null } = {}) {
+function serializeMainEventBooking(reservation, { cancellationReason = null, companions = [] } = {}) {
   return {
     id: reservation.id,
     bookingType: 'main-event',
@@ -173,6 +182,7 @@ function serializeMainEventBooking(reservation, { cancellationReason = null } = 
       slot: reservation.slot,
       table: null,
     },
+    companions: companions.map(serializeCompanion),
   }
 }
 
@@ -230,6 +240,7 @@ export async function getUserAccountBookings({ userId, db = prisma }) {
         status: true,
         createdAt: true,
         updatedAt: true,
+        slotId: true,
         slot: {
           select: {
             day: true,
@@ -279,6 +290,7 @@ export async function getUserAccountBookings({ userId, db = prisma }) {
         updatedAt: true,
         day: true,
         slot: true,
+        mainEventId: true,
         mainEvent: {
           select: {
             title: true,
@@ -383,12 +395,47 @@ export async function getUserAccountBookings({ userId, db = prisma }) {
     }
   }
 
+  // Companions invited by this user on these same slots/sessions — friends who
+  // haven't registered yet still show up as no-account rows with invitedByUserId.
+  const oneshotSlotIds = oneShotReservations.map((r) => r.slotId)
+  const mainEventKeys = mainEventReservations.map((r) => ({ mainEventId: r.mainEventId, eventId: r.event.id, day: r.day, slot: r.slot }))
+
+  const [oneshotCompanions, mainEventCompanions] = await Promise.all([
+    oneshotSlotIds.length > 0
+      ? db.reservation.findMany({
+          where: { invitedByUserId: userId, slotId: { in: oneshotSlotIds } },
+          select: { slotId: true, playerName: true, playerEmail: true, status: true },
+        })
+      : [],
+    mainEventKeys.length > 0
+      ? db.mainEventReservation.findMany({
+          where: { invitedByUserId: userId, OR: mainEventKeys },
+          select: { mainEventId: true, eventId: true, day: true, slot: true, playerName: true, playerEmail: true, status: true },
+        })
+      : [],
+  ])
+
+  const companionsBySlotId = new Map()
+  for (const companion of oneshotCompanions) {
+    if (!companionsBySlotId.has(companion.slotId)) companionsBySlotId.set(companion.slotId, [])
+    companionsBySlotId.get(companion.slotId).push(companion)
+  }
+
+  const companionsBySessionKey = new Map()
+  for (const companion of mainEventCompanions) {
+    const key = `${companion.mainEventId}__${companion.eventId}__${companion.day}__${companion.slot}`
+    if (!companionsBySessionKey.has(key)) companionsBySessionKey.set(key, [])
+    companionsBySessionKey.get(key).push(companion)
+  }
+
   return [
     ...oneShotReservations.map((reservation) => serializeOneShotBooking(reservation, {
       cancellationReason: cancellationReasonByReservationId.get(reservation.id) || null,
+      companions: companionsBySlotId.get(reservation.slotId) || [],
     })),
     ...mainEventReservations.map((reservation) => serializeMainEventBooking(reservation, {
       cancellationReason: cancellationReasonByMainEventReservationId.get(reservation.id) || null,
+      companions: companionsBySessionKey.get(`${reservation.mainEventId}__${reservation.event.id}__${reservation.day}__${reservation.slot}`) || [],
     })),
     ...eventAdmissions.map((admission) => serializeEventAdmissionBooking(admission, {
       hasOtherActiveBookings: admission.day

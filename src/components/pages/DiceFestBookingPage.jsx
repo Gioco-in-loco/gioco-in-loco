@@ -15,6 +15,13 @@ import { getSlotKey } from '../../lib/event-booking'
 import { DICE_FEST_BOOKING_CONFIG } from '../../lib/bookable-events'
 import { ParchmentCard } from '../dice-fest/decorations'
 import TableMap from '../dice-fest/TableMap'
+import CompanionInviteFields from '../booking/CompanionInviteFields'
+
+function useCompanionInvites(maxCount) {
+  const [companions, setCompanions] = useState([])
+  const validCompanions = companions.filter((c) => c.firstName.trim() && c.lastName.trim() && c.email.trim())
+  return { companions, setCompanions, validCompanions, maxCount: Math.max(0, maxCount) }
+}
 
 const EMPTY_FILTERS = {
   association: '',
@@ -102,7 +109,7 @@ export default function DiceFestBookingPage({ event }) {
     }))
   }, [])
 
-  const handleAddOneshot = useCallback(async (slot) => {
+  const handleAddOneshot = useCallback(async (slot, companions = []) => {
     if (!user) {
       window.location.href = '/auth/login?next=/dice-fest/sessioni'
       return
@@ -116,7 +123,7 @@ export default function DiceFestBookingPage({ event }) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'same-origin',
-        body: JSON.stringify({ slotId: slot.id }),
+        body: JSON.stringify({ slotId: slot.id, companions }),
       })
       const payload = await response.json().catch(() => ({}))
       if (!response.ok) throw new Error(payload.error || 'Impossibile prenotare il tavolo.')
@@ -200,7 +207,7 @@ export default function DiceFestBookingPage({ event }) {
     }
   }, [toast])
 
-  const handleAddMainToCart = useCallback(async (session) => {
+  const handleAddMainToCart = useCallback(async (session, companions = []) => {
     if (!user) {
       window.location.href = '/auth/login?next=/dice-fest/sessioni'
       return
@@ -214,7 +221,7 @@ export default function DiceFestBookingPage({ event }) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'same-origin',
-        body: JSON.stringify({ mainEventId: session.mainEventId, day: session.day, slot: session.slot }),
+        body: JSON.stringify({ mainEventId: session.mainEventId, day: session.day, slot: session.slot, companions }),
       })
       const payload = await response.json().catch(() => ({}))
       if (!response.ok) throw new Error(payload.error || 'Impossibile prenotare il posto.')
@@ -742,6 +749,7 @@ function computeOneShotState({ slot, cartState, isLoggedIn, isPending, busy = fa
   const remaining = Math.max(0, slot.maxPlayers - slot.currentReservations)
   const fewLeft = remaining > 0 && remaining <= 2
   const full = !slot.available
+  const notYetOpen = slot.bookable === false
 
   let label = 'Prenota'
   let verboseLabel = 'Prenota il posto'
@@ -764,6 +772,11 @@ function computeOneShotState({ slot, cartState, isLoggedIn, isPending, busy = fa
     actionKind = 'remove'
     disabled = isPending
     variant = 'in-cart'
+  } else if (notYetOpen) {
+    label = 'Non ancora aperto'
+    verboseLabel = 'Prenotazioni non ancora aperte'
+    disabled = true
+    variant = 'not-open'
   } else if (full) {
     label = 'Pieno'
     verboseLabel = 'Sala piena'
@@ -788,7 +801,7 @@ function computeOneShotState({ slot, cartState, isLoggedIn, isPending, busy = fa
     disabled = true
   }
 
-  return { confirmed, inCart, full, fewLeft, remaining, label, verboseLabel, actionKind, disabled, variant }
+  return { confirmed, inCart, full, notYetOpen, fewLeft, remaining, label, verboseLabel, actionKind, disabled, variant }
 }
 
 function OneShotMapCell({ session, cartState, pendingSlotId, busy, onAdd, onRemove, onOpenDetails, isLoggedIn }) {
@@ -809,7 +822,7 @@ function OneShotMapCell({ session, cartState, pendingSlotId, busy, onAdd, onRemo
 
   const cardVariant = state.variant === 'in-cart' ? 'dicefest-slot-card--in-cart'
     : state.variant === 'confirmed' ? 'dicefest-slot-card--confirmed'
-      : state.variant === 'full' ? 'dicefest-slot-card--full' : ''
+      : state.variant === 'full' || state.variant === 'not-open' ? 'dicefest-slot-card--full' : ''
 
   return (
     <div
@@ -857,6 +870,7 @@ function computeMainEventState({ slot, reservation, inCart, hasReservedKey, hasC
   const remaining = Math.max(0, slot.maxPlayers - (slot.currentReservations || 0))
   const fewLeft = remaining > 0 && remaining <= 2
   const full = !slot.available && !reservation && !inCart
+  const notYetOpen = slot.bookable === false && !reservation && !inCart
   const hasConflict = hasReservedKey && !reservation
   const hasCartConflict = hasCartKey && !inCart
 
@@ -882,6 +896,11 @@ function computeMainEventState({ slot, reservation, inCart, hasReservedKey, hasC
     label = 'Accedi'
     verboseLabel = 'Accedi per prenotare'
     actionKind = 'login'
+  } else if (notYetOpen) {
+    variant = 'not-open'
+    label = 'Non ancora aperto'
+    verboseLabel = 'Prenotazioni non ancora aperte'
+    disabled = true
   } else if (full) {
     variant = 'full'
     label = 'Pieno'
@@ -905,7 +924,7 @@ function computeMainEventState({ slot, reservation, inCart, hasReservedKey, hasC
     disabled = true
   }
 
-  return { remaining, fewLeft, full, hasConflict, hasCartConflict, label, verboseLabel, actionKind, disabled, variant }
+  return { remaining, fewLeft, full, notYetOpen, hasConflict, hasCartConflict, label, verboseLabel, actionKind, disabled, variant }
 }
 
 function MainEventMapCell({ session, sessionKey, reservation, inCart, hasReservedKey, hasCartKey, hasOneshotConflict, pendingSessionKey, busy, onAdd, onRemove, onCancel, onOpenDetails, isLoggedIn }) {
@@ -928,7 +947,7 @@ function MainEventMapCell({ session, sessionKey, reservation, inCart, hasReserve
 
   const cardVariant = state.variant === 'confirmed' ? 'dicefest-slot-card--confirmed'
     : state.variant === 'in-cart' ? 'dicefest-slot-card--in-cart'
-      : state.variant === 'full' ? 'dicefest-slot-card--full' : ''
+      : state.variant === 'full' || state.variant === 'not-open' ? 'dicefest-slot-card--full' : ''
 
   return (
     <div
@@ -1112,12 +1131,13 @@ function OneShotDetailsModal({ session, cartState, pendingSlotId, busy, onAdd, o
   const { oneshot, slot } = session
   const isPending = pendingSlotId === slot.id
   const state = computeOneShotState({ slot, cartState, isLoggedIn, isPending, busy })
+  const invite = useCompanionInvites(state.remaining - 1)
 
   const handleAction = () => {
     if (state.actionKind === 'login') {
       window.location.href = '/auth/login?next=/dice-fest/sessioni'
     } else if (state.actionKind === 'add') {
-      onAdd(slot)
+      onAdd(slot, invite.validCompanions)
     } else if (state.actionKind === 'remove') {
       onRemove(slot)
     }
@@ -1168,6 +1188,15 @@ function OneShotDetailsModal({ session, cartState, pendingSlotId, busy, onAdd, o
           ) : null}
         </div>
 
+        {state.actionKind === 'add' && invite.maxCount > 0 ? (
+          <CompanionInviteFields
+            companions={invite.companions}
+            onChange={invite.setCompanions}
+            maxCount={invite.maxCount}
+            className="mt-6 border-t border-dashed border-dicefest-border pt-5"
+          />
+        ) : null}
+
         <button
           type="button"
           onClick={handleAction}
@@ -1185,12 +1214,13 @@ function MainEventDetailsModal({ session, sessionKey, reservation, inCart, hasRe
   const { mainEvent, slot } = session
   const isPending = pendingSessionKey === sessionKey
   const state = computeMainEventState({ slot, reservation, inCart, hasReservedKey, hasCartKey, isLoggedIn, isPending, busy })
+  const invite = useCompanionInvites(state.remaining - 1)
 
   const handleAction = () => {
     if (state.actionKind === 'login') {
       window.location.href = '/auth/login?next=/dice-fest/sessioni'
     } else if (state.actionKind === 'add') {
-      onAdd({ mainEventId: mainEvent.id, day: slot.day, slot: slot.slot })
+      onAdd({ mainEventId: mainEvent.id, day: slot.day, slot: slot.slot }, invite.validCompanions)
     } else if (state.actionKind === 'remove') {
       onRemove({ mainEventId: mainEvent.id, day: slot.day, slot: slot.slot })
     } else if (state.actionKind === 'cancel') {
@@ -1248,6 +1278,15 @@ function MainEventDetailsModal({ session, sessionKey, reservation, inCart, hasRe
             </div>
           ) : null}
         </div>
+
+        {state.actionKind === 'add' && invite.maxCount > 0 ? (
+          <CompanionInviteFields
+            companions={invite.companions}
+            onChange={invite.setCompanions}
+            maxCount={invite.maxCount}
+            className="mt-6 border-t border-dashed border-dicefest-border pt-5"
+          />
+        ) : null}
 
         <button
           type="button"

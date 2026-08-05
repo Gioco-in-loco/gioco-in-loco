@@ -11,6 +11,7 @@ const TYPE_LABELS = {
 
 const STATUS_LABELS = {
   HOLD: 'In blocco',
+  INVITED: 'Invito amico in attesa',
   PENDING: 'In attesa',
   CONFIRMED: 'Confermato',
   CANCELLED: 'Annullato',
@@ -20,6 +21,7 @@ const STATUS_LABELS = {
 
 const STATUS_CLASSES = {
   HOLD: 'bg-editorial-bg text-editorial-text-muted',
+  INVITED: 'bg-amber-50 text-amber-700',
   PENDING: 'bg-amber-50 text-amber-700',
   CONFIRMED: 'bg-editorial-forest/10 text-editorial-forest',
   CANCELLED: 'bg-red-50 text-red-600',
@@ -272,6 +274,7 @@ export default function EventReservationsPanel({ eventId }) {
           <option value="CANCELLED">Annullato</option>
           <option value="EXPIRED">Non confermato</option>
           <option value="HOLD">In blocco</option>
+          <option value="INVITED">Invito amico in attesa</option>
         </select>
         <select
           value={filters.type}
@@ -344,6 +347,9 @@ export default function EventReservationsPanel({ eventId }) {
                       {displayName}
                       {displayEmail && displayEmail !== displayName ? (
                         <span className="block font-body text-xs text-editorial-text-muted">{displayEmail}</span>
+                      ) : null}
+                      {reservation.invitedByName ? (
+                        <span className="block font-body text-xs text-editorial-text-muted">Invitato da {reservation.invitedByName}</span>
                       ) : null}
                     </td>
                     <td className="px-3 py-2 font-body text-sm text-editorial-text-secondary">{TYPE_LABELS[reservation.type] || reservation.type}</td>

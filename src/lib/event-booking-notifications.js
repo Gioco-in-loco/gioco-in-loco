@@ -1,5 +1,7 @@
+import { prisma } from './prisma'
 import { sendMail } from './mailer'
 import { buildAbsoluteUrl, getConfiguredSiteUrl } from './site-url'
+import { COMPANION_INVITE_MINUTES } from './invite-tokens'
 
 function formatPrice(value) {
   if (value == null) return 'Gratis'
@@ -51,7 +53,7 @@ function buildSlotsHtml(summary) {
   `).join('')
 }
 
-function buildUserText(summary, recipientName) {
+function buildUserText(summary, recipientName, { hasPendingCompanionInvites = false } = {}) {
   return [
     `Ciao ${recipientName || 'giocatore'},`,
     '',
@@ -67,7 +69,10 @@ function buildUserText(summary, recipientName) {
     'Prenotazioni confermate',
     buildSlotsText(summary),
     '',
-    `Totale prenotazione: ${formatPrice(summary.totalPrice)}`,
+    `Totale prenotazione (solo per te): ${formatPrice(summary.totalPrice)}`,
+    ...(hasPendingCompanionInvites
+      ? ['', 'Hai invitato degli amici: abbiamo appena inviato loro una email con un codice per registrarsi e confermare il proprio posto entro 1 ora. Il loro posto e il relativo costo non sono inclusi nel totale sopra: saranno a loro carico una volta completata la registrazione.']
+      : []),
     '',
     'Conserva questa email come riepilogo della prenotazione.',
     '',
@@ -75,7 +80,7 @@ function buildUserText(summary, recipientName) {
   ].join('\n')
 }
 
-function buildUserHtml(summary, recipientName) {
+function buildUserHtml(summary, recipientName, { hasPendingCompanionInvites = false } = {}) {
   return `
     <div style="font-family:Arial,sans-serif;line-height:1.5;color:#1F2937;max-width:680px;margin:0 auto;">
       <h1 style="color:#1A1A2E;">Prenotazione confermata</h1>
@@ -89,7 +94,10 @@ function buildUserHtml(summary, recipientName) {
       <p><strong>${escapeHtml(formatAdmissionLabel(summary))}:</strong> ${escapeHtml(formatPrice(summary.admissionPrice))}</p>
       <h2 style="color:#1A1A2E;">Prenotazioni confermate</h2>
       <ul style="padding-left:20px;">${buildSlotsHtml(summary)}</ul>
-      <p style="font-size:18px;font-weight:700;color:#1A1A2E;">Totale prenotazione: ${escapeHtml(formatPrice(summary.totalPrice))}</p>
+      <p style="font-size:18px;font-weight:700;color:#1A1A2E;">Totale prenotazione (solo per te): ${escapeHtml(formatPrice(summary.totalPrice))}</p>
+      ${hasPendingCompanionInvites
+        ? '<p style="background:#FFF7E0;border-radius:8px;padding:12px;">Hai invitato degli amici: abbiamo appena inviato loro una email con un codice per registrarsi e confermare il proprio posto entro 1 ora. Il loro posto e il relativo costo non sono inclusi nel totale sopra: saranno a loro carico una volta completata la registrazione.</p>'
+        : ''}
       <p>Conserva questa email come riepilogo della prenotazione.</p>
       <p>Gioco In Loco</p>
     </div>
@@ -139,7 +147,7 @@ function buildAdminHtml(summary, user) {
   `
 }
 
-export async function sendEventBookingConfirmationEmails({ summary, user }) {
+export async function sendEventBookingConfirmationEmails({ summary, user, hasPendingCompanionInvites = false }) {
   if (!summary || !user?.email) {
     return
   }
@@ -149,8 +157,8 @@ export async function sendEventBookingConfirmationEmails({ summary, user }) {
     {
       to: user.email,
       subject: `Prenotazione confermata · ${summary.event.name}`,
-      text: buildUserText(summary, user.name),
-      html: buildUserHtml(summary, user.name),
+      text: buildUserText(summary, user.name, { hasPendingCompanionInvites }),
+      html: buildUserHtml(summary, user.name, { hasPendingCompanionInvites }),
     },
     ...(adminEmail
       ? [{
@@ -209,5 +217,106 @@ export async function sendWaitlistSpotAvailableEmail({ user, event, day, routeBa
     await sendMail({ to: user.email, subject, text, html })
   } catch (error) {
     console.error(`Failed to send waitlist notification to ${user.email}:`, error)
+  }
+}
+
+function buildCompanionInviteText({ invite, event, host, claimLink }) {
+  return [
+    `Ciao ${invite.name || ''},`,
+    '',
+    `${host?.name || host?.email || 'Un amico'} ti ha invitato a ${invite.activityTitle} durante ${event?.name || 'un evento'}${event?.location ? ` (${event.location})` : ''}.`,
+    '',
+    `${invite.day || ''} · ${invite.slot || ''}${invite.table ? ` · ${invite.table}` : ''}`,
+    '',
+    `Per confermare il tuo posto devi registrarti (o accedere, se hai già un account) entro ${COMPANION_INVITE_MINUTES} minuti usando il link qui sotto. Il posto è riservato a questa email: dopo la scadenza verrà rilasciato.`,
+    '',
+    claimLink ? `Conferma il tuo posto qui: ${claimLink}` : 'Contatta chi ti ha invitato per il link di conferma.',
+    '',
+    'Gioco In Loco',
+  ].join('\n')
+}
+
+function buildCompanionInviteHtml({ invite, event, host, claimLink }) {
+  return `
+    <div style="font-family:Arial,sans-serif;line-height:1.5;color:#1F2937;max-width:680px;margin:0 auto;">
+      <h1 style="color:#1A1A2E;">${escapeHtml(host?.name || host?.email || 'Un amico')} ti ha invitato!</h1>
+      <p>Ciao ${escapeHtml(invite.name || '')},</p>
+      <p>sei stato invitato a <strong>${escapeHtml(invite.activityTitle)}</strong> durante <strong>${escapeHtml(event?.name || 'un evento')}</strong>${event?.location ? ` (${escapeHtml(event.location)})` : ''}.</p>
+      <div style="border:1px solid #D1D5DB;border-radius:12px;padding:16px;margin:24px 0;background:#F9FAFB;">
+        <div>${escapeHtml(invite.day || '')} · ${escapeHtml(invite.slot || '')}${invite.table ? ` · ${escapeHtml(invite.table)}` : ''}</div>
+      </div>
+      <p>Per confermare il tuo posto devi <strong>registrarti (o accedere)</strong> entro <strong>${COMPANION_INVITE_MINUTES} minuti</strong> con questo link. Il posto è riservato a questa email: dopo la scadenza verrà rilasciato.</p>
+      ${claimLink ? `<p><a href="${escapeHtml(claimLink)}" style="color:#B45309;font-weight:700;">Conferma il tuo posto</a></p>` : ''}
+      <p>Gioco In Loco</p>
+    </div>
+  `
+}
+
+export async function sendCompanionInviteEmails({ host, eventId, invites }) {
+  if (!Array.isArray(invites) || invites.length === 0) {
+    return
+  }
+
+  const eventIds = [...new Set(invites.map((invite) => invite.eventId || eventId).filter(Boolean))]
+  const events = eventIds.length > 0
+    ? await prisma.event.findMany({ where: { id: { in: eventIds } }, select: { id: true, name: true, location: true } })
+    : []
+  const eventById = new Map(events.map((event) => [event.id, event]))
+  const siteUrl = getConfiguredSiteUrl()
+
+  const results = await Promise.allSettled(invites.map((invite) => {
+    const event = eventById.get(invite.eventId || eventId)
+    const claimLink = siteUrl ? buildAbsoluteUrl(`/invito/${invite.inviteCode}`, siteUrl) : null
+
+    return sendMail({
+      to: invite.email,
+      subject: `${host?.name || 'Un amico'} ti ha invitato · ${event?.name || 'Gioco In Loco'}`,
+      text: buildCompanionInviteText({ invite, event, host, claimLink }),
+      html: buildCompanionInviteHtml({ invite, event, host, claimLink }),
+    })
+  }))
+
+  results.forEach((result, index) => {
+    if (result.status === 'rejected') {
+      console.error(`Failed to send companion invite email to ${invites[index].email}:`, result.reason)
+    }
+  })
+}
+
+export async function sendCompanionClaimConfirmationEmail({ email, name, event, activityTitle, day, slot, table, price }) {
+  if (!email) return
+
+  const subject = `Posto confermato · ${activityTitle}`
+  const priceLabel = formatPrice(price)
+
+  const text = [
+    `Ciao ${name || 'giocatore'},`,
+    '',
+    `hai confermato il tuo posto per ${activityTitle}${event?.name ? ` durante ${event.name}` : ''}.`,
+    '',
+    `${day || ''} · ${slot || ''}${table ? ` · ${table}` : ''}`,
+    '',
+    `Importo dovuto per il tuo posto: ${priceLabel}`,
+    '',
+    'Gioco In Loco',
+  ].join('\n')
+
+  const html = `
+    <div style="font-family:Arial,sans-serif;line-height:1.5;color:#1F2937;max-width:680px;margin:0 auto;">
+      <h1 style="color:#1A1A2E;">Posto confermato</h1>
+      <p>Ciao ${escapeHtml(name || 'giocatore')},</p>
+      <p>hai confermato il tuo posto per <strong>${escapeHtml(activityTitle)}</strong>${event?.name ? ` durante <strong>${escapeHtml(event.name)}</strong>` : ''}.</p>
+      <div style="border:1px solid #D1D5DB;border-radius:12px;padding:16px;margin:24px 0;background:#F9FAFB;">
+        <div>${escapeHtml(day || '')} · ${escapeHtml(slot || '')}${table ? ` · ${escapeHtml(table)}` : ''}</div>
+      </div>
+      <p><strong>Importo dovuto per il tuo posto:</strong> ${escapeHtml(priceLabel)}</p>
+      <p>Gioco In Loco</p>
+    </div>
+  `
+
+  try {
+    await sendMail({ to: email, subject, text, html })
+  } catch (error) {
+    console.error(`Failed to send companion claim confirmation email to ${email}:`, error)
   }
 }

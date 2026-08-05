@@ -72,7 +72,7 @@ export default function SlotCellDialog({
 
   useEffect(() => {
     if (!open || !slot) return
-    setSlotForm({ day: slot.day, slot: slot.slot, table: slot.table, maxPlayers: slot.maxPlayers, adminOnly: Boolean(slot.adminOnly), isVisible: slot.isVisible !== false })
+    setSlotForm({ day: slot.day, slot: slot.slot, table: slot.table, maxPlayers: slot.maxPlayers, adminOnly: Boolean(slot.adminOnly), isVisible: slot.isVisible !== false, bookingEnabled: slot.bookingEnabled !== false })
     setSlotError('')
     setOneshotError('')
     setMainEventError('')
@@ -428,6 +428,14 @@ export default function SlotCellDialog({
                   onChange={(e) => setSlotForm((current) => ({ ...current, isVisible: e.target.checked }))}
                 />
                 Visibile agli utenti per la prenotazione
+              </label>
+              <label className="flex items-center gap-2 font-body text-sm text-editorial-text">
+                <input
+                  type="checkbox"
+                  checked={slotForm.bookingEnabled}
+                  onChange={(e) => setSlotForm((current) => ({ ...current, bookingEnabled: e.target.checked }))}
+                />
+                Attiva prenotazione (se spento, lo slot resta visibile ma non prenotabile)
               </label>
               <div className="flex flex-wrap gap-2 pt-1">
                 <button type="submit" disabled={savingSlot} className="rounded-lg bg-editorial-terra px-4 py-2 font-body text-sm font-semibold text-white transition-colors hover:bg-editorial-terra/90 disabled:cursor-not-allowed disabled:opacity-50">

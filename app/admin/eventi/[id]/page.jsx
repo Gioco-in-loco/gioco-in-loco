@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import ManagementPageHeader from '../../../../src/components/management/ManagementPageHeader'
-import EventForm, { toInputDate } from '../../../../src/components/management/EventForm'
+import EventForm, { toInputDate, toInputDateTime } from '../../../../src/components/management/EventForm'
 import EventTableMapPanel from '../../../../src/components/management/EventTableMapPanel'
 import EventWaitlistPanel from '../../../../src/components/management/EventWaitlistPanel'
 import EventReservationsPanel from '../../../../src/components/management/EventReservationsPanel'
@@ -165,6 +165,8 @@ export default function AdminEventDetailPage({ params }) {
                   timeSlots: event.timeSlots || [],
                   startDate: toInputDate(event.startDate),
                   endDate: toInputDate(event.endDate),
+                  bookingOpensAt: toInputDateTime(event.bookingOpensAt),
+                  showComingSoon: Boolean(event.showComingSoon),
                 }}
                 onSave={handleSave}
                 onCancel={() => setIsEditing(false)}
@@ -213,6 +215,16 @@ export default function AdminEventDetailPage({ params }) {
                       <dd className="mt-1 font-body text-sm text-editorial-text">
                         {formatDate(event.startDate)}{event.endDate ? ` → ${formatDate(event.endDate)}` : ''}
                       </dd>
+                    </div>
+                    <div>
+                      <dt className="font-body text-xs font-semibold uppercase tracking-wider text-editorial-text-muted">Apertura prenotazioni</dt>
+                      <dd className="mt-1 font-body text-sm text-editorial-text">
+                        {event.bookingOpensAt ? new Date(event.bookingOpensAt).toLocaleString('it-IT', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Nessun limite'}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="font-body text-xs font-semibold uppercase tracking-wider text-editorial-text-muted">Coming soon</dt>
+                      <dd className="mt-1 font-body text-sm text-editorial-text">{event.showComingSoon ? 'Attivo — le pagine mostrano "in arrivo"' : 'Non attivo'}</dd>
                     </div>
                     <div>
                       <dt className="font-body text-xs font-semibold uppercase tracking-wider text-editorial-text-muted">Giorni evento</dt>

@@ -8,6 +8,7 @@ import EditOneShotDialog from './EditOneShotDialog'
 import MainEventFormDialog from './MainEventFormDialog'
 import EditMainEventDialog from './EditMainEventDialog'
 import SlotCellDialog from './SlotCellDialog'
+import ActionsMenu, { ActionsMenuItem } from './ActionsMenu'
 import { useToast } from '../../context/ToastContext'
 
 const EMPTY_FILTERS = { association: '', game: '', master: '' }
@@ -160,57 +161,34 @@ export default function EventTableMapPanel({
             Clicca su una cella libera per assegnare una one shot{canManageMainEvents ? ' o un main event' : ''}, su una occupata per vederne i dettagli e le prenotazioni.
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <ActionsMenu label="Azioni">
           {canAddSlot ? (
-            <button
-              type="button"
-              onClick={() => setShowAddSlot(true)}
-              className="rounded-lg bg-editorial-terra px-3 py-2 font-body text-xs font-semibold text-white transition-colors hover:bg-editorial-terra/90"
-            >
+            <ActionsMenuItem onClick={() => setShowAddSlot(true)}>
               + Aggiungi slot
-            </button>
+            </ActionsMenuItem>
           ) : null}
-          <button
-            type="button"
-            onClick={() => setShowCreateOneshot(true)}
-            className="rounded-lg border border-editorial-border px-3 py-2 font-body text-xs font-semibold text-editorial-text transition-colors hover:border-editorial-terra"
-          >
+          <ActionsMenuItem onClick={() => setShowCreateOneshot(true)}>
             + Crea one shot
-          </button>
-          <button
-            type="button"
-            onClick={() => setShowEditOneshot(true)}
-            className="rounded-lg border border-editorial-border px-3 py-2 font-body text-xs font-semibold text-editorial-text transition-colors hover:border-editorial-terra"
-          >
+          </ActionsMenuItem>
+          <ActionsMenuItem onClick={() => setShowEditOneshot(true)}>
             Modifica one shot
-          </button>
+          </ActionsMenuItem>
           {canManageMainEvents ? (
             <>
-              <button
-                type="button"
-                onClick={() => setShowCreateMainEvent(true)}
-                className="rounded-lg border border-editorial-border px-3 py-2 font-body text-xs font-semibold text-editorial-text transition-colors hover:border-editorial-terra"
-              >
+              <ActionsMenuItem onClick={() => setShowCreateMainEvent(true)}>
                 + Crea main event
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowEditMainEvent(true)}
-                className="rounded-lg border border-editorial-border px-3 py-2 font-body text-xs font-semibold text-editorial-text transition-colors hover:border-editorial-terra"
-              >
+              </ActionsMenuItem>
+              <ActionsMenuItem onClick={() => setShowEditMainEvent(true)}>
                 Modifica main event
-              </button>
+              </ActionsMenuItem>
             </>
           ) : null}
           {canManageSlot ? (
-            <a
-              href={`${slotsEndpointBase}/${eventId}/slots/export`}
-              className="rounded-lg border border-editorial-forest px-3 py-2 font-body text-xs font-semibold text-editorial-forest transition-colors hover:bg-editorial-forest/10"
-            >
+            <ActionsMenuItem as="a" href={`${slotsEndpointBase}/${eventId}/slots/export`} className="text-editorial-forest">
               Esporta Excel
-            </a>
+            </ActionsMenuItem>
           ) : null}
-        </div>
+        </ActionsMenu>
       </div>
 
       <div className="flex flex-wrap items-end gap-3 rounded-lg border border-editorial-border bg-editorial-bg/30 p-3">

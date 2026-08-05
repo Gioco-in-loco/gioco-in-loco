@@ -13,10 +13,12 @@ export const metadata = {
 }
 
 export default async function DiceFestBookingRoute() {
-  const staff = await requireAdminOrResponsabile()
-  if (!staff) redirect('/dice-fest/coming-soon')
-
   const event = await getDiceFestBookableData()
+
+  if (event?.showComingSoon) {
+    const staff = await requireAdminOrResponsabile()
+    if (!staff) redirect('/dice-fest/coming-soon')
+  }
 
   if (!event) {
     return (

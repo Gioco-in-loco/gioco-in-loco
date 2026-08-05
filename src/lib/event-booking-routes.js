@@ -9,6 +9,7 @@ import {
   getSlotKey,
   getUserEventBookingStatus,
   getUserEventCartState,
+  isBookingWindowOpen,
   isConfirmedReservationStatus,
   refreshUserEventCartHolds,
   releaseExpiredEventHolds,
@@ -20,8 +21,9 @@ import {
   refreshUserMainEventCartHolds,
   releaseExpiredMainEventHolds,
 } from './main-event-booking'
-import { sendEventBookingConfirmationEmails } from './event-booking-notifications'
+import { sendEventBookingConfirmationEmails, sendCompanionInviteEmails } from './event-booking-notifications'
 import { getUserWaitlistDays } from './event-waitlist'
+import { generateInviteCode, getCompanionInviteExpiration, normalizeCompanions } from './invite-tokens'
 
 // Default Prisma interactive transaction timeout is 5000ms. Cart mutations only
 // hold the transaction for the critical atomic writes; cleanup and final state
@@ -64,6 +66,24 @@ async function refreshAllEventCartHolds({ eventId, tx, userId, holdExpiresAt }) 
   await Promise.all([
     refreshUserEventCartHolds({ eventId, db: tx, userId, holdExpiresAt }),
     refreshUserMainEventCartHolds({ eventId, db: tx, userId, holdExpiresAt }),
+    // Companion invites don't have a userId of their own (invitedByUserId
+    // instead), so they need their own refresh alongside the host's holds.
+    tx.reservation.updateMany({
+      where: {
+        invitedByUserId: userId,
+        status: EVENT_CART_HOLD_STATUS,
+        slot: { oneshot: { eventLinks: { some: { eventId } } } },
+      },
+      data: { holdExpiresAt },
+    }),
+    tx.mainEventReservation.updateMany({
+      where: {
+        invitedByUserId: userId,
+        status: EVENT_CART_HOLD_STATUS,
+        ...getMainEventScopeWhere(eventId),
+      },
+      data: { holdExpiresAt },
+    }),
   ])
 }
 
@@ -263,13 +283,20 @@ export async function handleAddEventCartSlot(request, { eventId, displayName }) 
     return NextResponse.json({ error: 'Slot non valido.' }, { status: 400 })
   }
 
+  let companions
+  try {
+    companions = normalizeCompanions(body?.companions)
+  } catch (validationError) {
+    return NextResponse.json({ error: validationError.message }, { status: 400 })
+  }
+
   try {
     await releaseExpiredHolds({ eventId, userId: user.id })
 
     // Pre-load event metadata (read-only, doesn't need to be in tx)
     const event = await prisma.event.findUnique({
       where: { id: eventId },
-      select: { id: true, price: true, dailyPrice: true },
+      select: { id: true, price: true, dailyPrice: true, bookingOpensAt: true },
     })
 
     if (!event) {
@@ -293,6 +320,7 @@ export async function handleAddEventCartSlot(request, { eventId, displayName }) 
           slot: true,
           table: true,
           maxPlayers: true,
+          bookingEnabled: true,
           oneshot: {
             select: {
               title: true,
@@ -305,6 +333,10 @@ export async function handleAddEventCartSlot(request, { eventId, displayName }) 
         throw new Error('La sessione selezionata non è disponibile per questo evento.')
       }
 
+      if (!selectedSlot.bookingEnabled || !isBookingWindowOpen(event)) {
+        throw new Error('Le prenotazioni per questa sessione non sono ancora aperte.')
+      }
+
       const existingReservation = await tx.reservation.findUnique({
         where: { userId_slotId: { userId: user.id, slotId } },
         select: {
@@ -314,19 +346,16 @@ export async function handleAddEventCartSlot(request, { eventId, displayName }) 
         },
       })
 
-      // Fast path: hold still valid, just refresh the timer
-      if (existingReservation?.status === EVENT_CART_HOLD_STATUS && existingReservation.holdExpiresAt && existingReservation.holdExpiresAt > new Date()) {
-        const holdExpiresAt = getNextHoldExpiration()
-        await refreshAllEventCartHolds({ eventId, tx, userId: user.id, holdExpiresAt })
-        return
-      }
-
       if (existingReservation && isConfirmedReservationStatus(existingReservation.status)) {
         throw new Error(`Hai già prenotato la sessione ${selectedSlot.oneshot.title}.`)
       }
 
+      // Own hold still valid — counted in currentReservations below, so it must be
+      // excluded from the "seats taken by others" tally.
+      const holdStillValid = Boolean(existingReservation?.status === EVENT_CART_HOLD_STATUS && existingReservation.holdExpiresAt && existingReservation.holdExpiresAt > new Date())
+
       const selectedSlotKey = getSlotKey(selectedSlot)
-      const [userActiveReservations, userActiveMainEventReservations, currentReservations] = await Promise.all([
+      const [userActiveReservations, userActiveMainEventReservations, currentReservations, existingCompanionsCount] = await Promise.all([
         tx.reservation.findMany({
           where: {
             userId: user.id,
@@ -361,6 +390,9 @@ export async function handleAddEventCartSlot(request, { eventId, displayName }) 
             ...getActiveReservationFilter(),
           },
         }),
+        tx.reservation.count({
+          where: { invitedByUserId: user.id, slotId: selectedSlot.id, status: EVENT_CART_HOLD_STATUS },
+        }),
       ])
 
       const conflictingReservation = userActiveReservations.find((reservation) => reservation.slotId !== selectedSlot.id && getSlotKey(reservation.slot) === selectedSlotKey)
@@ -370,8 +402,13 @@ export async function handleAddEventCartSlot(request, { eventId, displayName }) 
         throw new Error(`Hai già una sessione nello stesso giorno e fascia oraria: ${selectedSlot.day} ${selectedSlot.slot}.`)
       }
 
-      if (currentReservations >= selectedSlot.maxPlayers) {
-        throw new Error(`La sessione ${selectedSlot.oneshot.title} è al completo.`)
+      // Seats taken by other people, excluding this host's own row and their
+      // own (about-to-be-replaced) companion invites for this slot.
+      const seatsTakenByOthers = currentReservations - (holdStillValid ? 1 : 0) - existingCompanionsCount
+      const seatsNeeded = 1 + companions.length
+
+      if (seatsTakenByOthers + seatsNeeded > selectedSlot.maxPlayers) {
+        throw new Error(`Non ci sono abbastanza posti liberi per te e i tuoi amici nella sessione ${selectedSlot.oneshot.title}.`)
       }
 
       const holdExpiresAt = getNextHoldExpiration()
@@ -400,6 +437,26 @@ export async function handleAddEventCartSlot(request, { eventId, displayName }) 
             consentGiven: true,
             consentDate: new Date(),
           },
+        })
+      }
+
+      // Replace this host's companion invites for this slot with the submitted list.
+      await tx.reservation.deleteMany({
+        where: { invitedByUserId: user.id, slotId: selectedSlot.id, status: EVENT_CART_HOLD_STATUS },
+      })
+
+      if (companions.length > 0) {
+        await tx.reservation.createMany({
+          data: companions.map((companion) => ({
+            slotId: selectedSlot.id,
+            status: EVENT_CART_HOLD_STATUS,
+            holdExpiresAt,
+            playerName: companion.fullName,
+            playerEmail: companion.email,
+            invitedByUserId: user.id,
+            inviteCode: generateInviteCode(),
+            consentGiven: false,
+          })),
         })
       }
 
@@ -451,6 +508,9 @@ export async function handleRemoveEventCartSlot({ eventId, slotId }) {
       }
 
       await tx.reservation.delete({ where: { id: reservation.id } })
+      await tx.reservation.deleteMany({
+        where: { invitedByUserId: user.id, slotId, status: EVENT_CART_HOLD_STATUS },
+      })
       await clearEventAdmissionHoldIfEmpty({ eventId, tx, userId: user.id, day: reservation.slot.day })
     }, CART_TX_OPTIONS)
 
@@ -477,12 +537,19 @@ export async function handleAddEventCartMainEventSlot(request, { eventId, displa
     return NextResponse.json({ error: 'Sessione main event non valida.' }, { status: 400 })
   }
 
+  let companions
+  try {
+    companions = normalizeCompanions(body?.companions)
+  } catch (validationError) {
+    return NextResponse.json({ error: validationError.message }, { status: 400 })
+  }
+
   try {
     await releaseExpiredHolds({ eventId, userId: user.id })
 
     const event = await prisma.event.findUnique({
       where: { id: eventId },
-      select: { id: true, price: true, dailyPrice: true },
+      select: { id: true, price: true, dailyPrice: true, bookingOpensAt: true },
     })
 
     if (!event) {
@@ -497,12 +564,19 @@ export async function handleAddEventCartMainEventSlot(request, { eventId, displa
 
       const sessionSlots = await tx.eventSlot.findMany({
         where: { mainEventId, eventId: event.id, day, slot, isVisible: true },
-        select: { maxPlayers: true },
+        select: { maxPlayers: true, bookingEnabled: true },
       })
       const sessionCapacity = sessionSlots.reduce((sum, s) => sum + s.maxPlayers, 0)
 
       if (sessionCapacity === 0) {
         throw new Error('La sessione main event selezionata non è disponibile per questo evento.')
+      }
+
+      // The session spans every table assigned to this day+slot group — it's
+      // only bookable once ALL of them have booking turned on.
+      const sessionBookingEnabled = sessionSlots.every((s) => s.bookingEnabled)
+      if (!sessionBookingEnabled || !isBookingWindowOpen(event)) {
+        throw new Error(`Le prenotazioni per il main event ${mainEvent.title} non sono ancora aperte.`)
       }
 
       const existingReservation = await tx.mainEventReservation.findUnique({
@@ -514,18 +588,16 @@ export async function handleAddEventCartMainEventSlot(request, { eventId, displa
         },
       })
 
-      if (existingReservation?.status === EVENT_CART_HOLD_STATUS && existingReservation.holdExpiresAt && existingReservation.holdExpiresAt > new Date()) {
-        const holdExpiresAt = getNextHoldExpiration()
-        await refreshAllEventCartHolds({ eventId, tx, userId: user.id, holdExpiresAt })
-        return
-      }
-
       if (existingReservation && isConfirmedReservationStatus(existingReservation.status)) {
         throw new Error(`Hai già prenotato il main event ${mainEvent.title}.`)
       }
 
+      // Own hold still valid — counted in currentReservations below, so it must be
+      // excluded from the "seats taken by others" tally.
+      const holdStillValid = Boolean(existingReservation?.status === EVENT_CART_HOLD_STATUS && existingReservation.holdExpiresAt && existingReservation.holdExpiresAt > new Date())
+
       const selectedSlotKey = getSlotKey({ day, slot })
-      const [userActiveReservations, userActiveMainEventReservations, currentReservations] = await Promise.all([
+      const [userActiveReservations, userActiveMainEventReservations, currentReservations, existingCompanionsCount] = await Promise.all([
         tx.reservation.findMany({
           where: {
             userId: user.id,
@@ -564,6 +636,9 @@ export async function handleAddEventCartMainEventSlot(request, { eventId, displa
             ...getActiveMainEventReservationFilter(),
           },
         }),
+        tx.mainEventReservation.count({
+          where: { invitedByUserId: user.id, mainEventId, eventId: event.id, day, slot, status: EVENT_CART_HOLD_STATUS },
+        }),
       ])
 
       const conflictingReservation = userActiveReservations.find((reservation) => getSlotKey(reservation.slot) === selectedSlotKey)
@@ -573,8 +648,13 @@ export async function handleAddEventCartMainEventSlot(request, { eventId, displa
         throw new Error(`Hai già una sessione nello stesso giorno e fascia oraria: ${day} ${slot}.`)
       }
 
-      if (currentReservations >= sessionCapacity) {
-        throw new Error(`Il main event ${mainEvent.title} è al completo.`)
+      // Seats taken by other people, excluding this host's own row and their
+      // own (about-to-be-replaced) companion invites for this session.
+      const seatsTakenByOthers = currentReservations - (holdStillValid ? 1 : 0) - existingCompanionsCount
+      const seatsNeeded = 1 + companions.length
+
+      if (seatsTakenByOthers + seatsNeeded > sessionCapacity) {
+        throw new Error(`Non ci sono abbastanza posti liberi per te e i tuoi amici nel main event ${mainEvent.title}.`)
       }
 
       const holdExpiresAt = getNextHoldExpiration()
@@ -606,6 +686,29 @@ export async function handleAddEventCartMainEventSlot(request, { eventId, displa
             consentGiven: true,
             consentDate: new Date(),
           },
+        })
+      }
+
+      // Replace this host's companion invites for this session with the submitted list.
+      await tx.mainEventReservation.deleteMany({
+        where: { invitedByUserId: user.id, mainEventId, eventId: event.id, day, slot, status: EVENT_CART_HOLD_STATUS },
+      })
+
+      if (companions.length > 0) {
+        await tx.mainEventReservation.createMany({
+          data: companions.map((companion) => ({
+            mainEventId,
+            eventId: event.id,
+            day,
+            slot,
+            status: EVENT_CART_HOLD_STATUS,
+            holdExpiresAt,
+            playerName: companion.fullName,
+            playerEmail: companion.email,
+            invitedByUserId: user.id,
+            inviteCode: generateInviteCode(),
+            consentGiven: false,
+          })),
         })
       }
 
@@ -653,6 +756,9 @@ export async function handleRemoveEventCartMainEventSlot({ eventId, mainEventId,
       }
 
       await tx.mainEventReservation.delete({ where: { id: reservation.id } })
+      await tx.mainEventReservation.deleteMany({
+        where: { invitedByUserId: user.id, mainEventId, eventId, day, slot, status: EVENT_CART_HOLD_STATUS },
+      })
       await clearEventAdmissionHoldIfEmpty({ eventId, tx, userId: user.id, day: reservation.day })
     }, CART_TX_OPTIONS)
 
@@ -677,7 +783,7 @@ export async function handleClearEventCart(eventId) {
       await Promise.all([
         tx.reservation.deleteMany({
           where: {
-            userId: user.id,
+            OR: [{ userId: user.id }, { invitedByUserId: user.id }],
             status: EVENT_CART_HOLD_STATUS,
             slot: {
               oneshot: {
@@ -690,7 +796,7 @@ export async function handleClearEventCart(eventId) {
         }),
         tx.mainEventReservation.deleteMany({
           where: {
-            userId: user.id,
+            OR: [{ userId: user.id }, { invitedByUserId: user.id }],
             status: EVENT_CART_HOLD_STATUS,
             ...getMainEventScopeWhere(eventId),
           },
@@ -855,7 +961,11 @@ export async function handleConfirmEventCart(eventId) {
               },
             },
           },
-          select: { id: true },
+          select: {
+            id: true,
+            slotId: true,
+            slot: { select: { day: true, slot: true, table: true, oneshot: { select: { title: true } } } },
+          },
         }),
         tx.mainEventReservation.findMany({
           where: {
@@ -864,7 +974,13 @@ export async function handleConfirmEventCart(eventId) {
             holdExpiresAt: { gt: new Date() },
             ...getMainEventScopeWhere(eventId),
           },
-          select: { id: true },
+          select: {
+            id: true,
+            mainEventId: true,
+            day: true,
+            slot: true,
+            mainEvent: { select: { title: true } },
+          },
         }),
       ])
 
@@ -908,10 +1024,87 @@ export async function handleConfirmEventCart(eventId) {
         })
       }
 
+      // Companions the host invited on these same slots/sessions move from
+      // HOLD (still just a cart draft) to INVITED — reserved for 1h while
+      // they register/claim it. They are never part of the host's own paid
+      // total: each stays userId-less and un-confirmed until claimed.
+      const companionInviteExpiresAt = getCompanionInviteExpiration()
+      const companionInvites = []
+
+      if (holdReservations.length > 0) {
+        const oneshotCompanions = await tx.reservation.findMany({
+          where: {
+            invitedByUserId: user.id,
+            slotId: { in: holdReservations.map((reservation) => reservation.slotId) },
+            status: EVENT_CART_HOLD_STATUS,
+          },
+          select: { id: true, playerName: true, playerEmail: true, inviteCode: true, slotId: true },
+        })
+
+        if (oneshotCompanions.length > 0) {
+          await tx.reservation.updateMany({
+            where: { id: { in: oneshotCompanions.map((companion) => companion.id) } },
+            data: { status: 'INVITED', holdExpiresAt: companionInviteExpiresAt },
+          })
+
+          const slotById = new Map(holdReservations.map((reservation) => [reservation.slotId, reservation.slot]))
+          for (const companion of oneshotCompanions) {
+            const slot = slotById.get(companion.slotId)
+            companionInvites.push({
+              name: companion.playerName,
+              email: companion.playerEmail,
+              inviteCode: companion.inviteCode,
+              activityTitle: slot?.oneshot?.title || 'One shot',
+              day: slot?.day || null,
+              slot: slot?.slot || null,
+              table: slot?.table || null,
+            })
+          }
+        }
+      }
+
+      if (holdMainEventReservations.length > 0) {
+        const mainEventCompanions = await tx.mainEventReservation.findMany({
+          where: {
+            invitedByUserId: user.id,
+            status: EVENT_CART_HOLD_STATUS,
+            OR: holdMainEventReservations.map((reservation) => ({
+              mainEventId: reservation.mainEventId,
+              eventId,
+              day: reservation.day,
+              slot: reservation.slot,
+            })),
+          },
+          select: { id: true, playerName: true, playerEmail: true, inviteCode: true, mainEventId: true, day: true, slot: true },
+        })
+
+        if (mainEventCompanions.length > 0) {
+          await tx.mainEventReservation.updateMany({
+            where: { id: { in: mainEventCompanions.map((companion) => companion.id) } },
+            data: { status: 'INVITED', holdExpiresAt: companionInviteExpiresAt },
+          })
+
+          const sessionByKey = new Map(holdMainEventReservations.map((reservation) => [`${reservation.mainEventId}__${reservation.day}__${reservation.slot}`, reservation.mainEvent]))
+          for (const companion of mainEventCompanions) {
+            const mainEvent = sessionByKey.get(`${companion.mainEventId}__${companion.day}__${companion.slot}`)
+            companionInvites.push({
+              name: companion.playerName,
+              email: companion.playerEmail,
+              inviteCode: companion.inviteCode,
+              activityTitle: mainEvent?.title || 'Main event',
+              day: companion.day,
+              slot: companion.slot,
+              table: null,
+            })
+          }
+        }
+      }
+
       return {
         confirmedReservationIds,
         confirmedMainEventReservationIds,
         shouldIncludeAdmissionInSummary: hasAdmissionHold,
+        companionInvites,
       }
     }, CART_TX_OPTIONS)
 
@@ -931,9 +1124,22 @@ export async function handleConfirmEventCart(eventId) {
       await sendEventBookingConfirmationEmails({
         summary: bookingSummary,
         user,
+        hasPendingCompanionInvites: confirmation.companionInvites.length > 0,
       })
     } catch (notificationError) {
       console.error('Failed to send booking confirmation emails:', notificationError)
+    }
+
+    if (confirmation.companionInvites.length > 0) {
+      try {
+        await sendCompanionInviteEmails({
+          host: user,
+          eventId,
+          invites: confirmation.companionInvites,
+        })
+      } catch (notificationError) {
+        console.error('Failed to send companion invite emails:', notificationError)
+      }
     }
 
     return NextResponse.json({ ok: true, ...cartState })
