@@ -113,9 +113,9 @@ export default function DiceFestBookingPage({ event }) {
   const handleAddOneshot = useCallback(async (slot, companions = []) => {
     if (!user) {
       window.location.href = '/auth/login?next=/dice-fest/sessioni'
-      return
+      return false
     }
-    if (inFlightRef.current) return
+    if (inFlightRef.current) return false
     inFlightRef.current = true
     setPendingSlotId(slot.id)
     setRequestError('')
@@ -129,10 +129,15 @@ export default function DiceFestBookingPage({ event }) {
       const payload = await response.json().catch(() => ({}))
       if (!response.ok) throw new Error(payload.error || 'Impossibile prenotare il tavolo.')
       setCartState({ loading: false, ...payload })
+      toast.success(companions.length > 0
+        ? `Tavolo prenotato. ${companions.length === 1 ? 'Il tuo amico ha ricevuto' : 'I tuoi amici hanno ricevuto'} un\'email per confermare il posto.`
+        : `Tavolo prenotato: ${slot.day} · ${slot.slot}.`)
+      return true
     } catch (err) {
       const msg = err.message || 'Impossibile prenotare il tavolo.'
       setRequestError(msg)
       toast.error(msg)
+      return false
     } finally {
       setPendingSlotId(null)
       inFlightRef.current = false
@@ -211,9 +216,9 @@ export default function DiceFestBookingPage({ event }) {
   const handleAddMainToCart = useCallback(async (session, companions = []) => {
     if (!user) {
       window.location.href = '/auth/login?next=/dice-fest/sessioni'
-      return
+      return false
     }
-    if (inFlightRef.current) return
+    if (inFlightRef.current) return false
     inFlightRef.current = true
     setPendingMainSessionKey(mainSessionKey(session.mainEventId, session.day, session.slot))
     setRequestError('')
@@ -228,10 +233,15 @@ export default function DiceFestBookingPage({ event }) {
       if (!response.ok) throw new Error(payload.error || 'Impossibile prenotare il posto.')
       setCartState({ loading: false, ...payload })
       updateMainEventSessionCount(session, 1)
+      toast.success(companions.length > 0
+        ? `Posto prenotato. ${companions.length === 1 ? 'Il tuo amico ha ricevuto' : 'I tuoi amici hanno ricevuto'} un\'email per confermare il posto.`
+        : `Posto prenotato: ${session.day} · ${session.slot}.`)
+      return true
     } catch (err) {
       const msg = err.message || 'Impossibile prenotare il posto.'
       setRequestError(msg)
       toast.error(msg)
+      return false
     } finally {
       setPendingMainSessionKey(null)
       inFlightRef.current = false
@@ -1031,13 +1041,22 @@ const FOCUSABLE_SELECTOR = 'a[href], button:not([disabled]), textarea, input, se
 function ModalShell({ children, onClose }) {
   const modalRef = useRef(null)
   const closeButtonRef = useRef(null)
+  // onClose is often an inline arrow function that gets a new identity on
+  // every parent re-render (e.g. the cart hold countdown ticks every
+  // second) — reading it from a ref keeps the effect below from re-running
+  // (and re-stealing focus onto the close button) on every parent render.
+  const onCloseRef = useRef(onClose)
+
+  useEffect(() => {
+    onCloseRef.current = onClose
+  }, [onClose])
 
   useEffect(() => {
     const triggerElement = document.activeElement
 
     const handler = (e) => {
       if (e.key === 'Escape') {
-        onClose()
+        onCloseRef.current()
         return
       }
       if (e.key !== 'Tab' || !modalRef.current) return
@@ -1065,7 +1084,7 @@ function ModalShell({ children, onClose }) {
       window.removeEventListener('keydown', handler)
       if (triggerElement instanceof HTMLElement) triggerElement.focus()
     }
-  }, [onClose])
+  }, [])
 
   return (
     <div
@@ -1173,17 +1192,21 @@ function OneShotDetailsModal({ session, cartState, pendingSlotId, busy, onAdd, o
   const hostSeatTaken = state.confirmed || state.inCart
   const invite = useCompanionInvites(hostSeatTaken ? state.remaining : state.remaining - 1)
 
-  const handleAction = () => {
+  const handleAction = async () => {
     if (state.actionKind === 'login') {
       window.location.href = '/auth/login?next=/dice-fest/sessioni'
     } else if (state.actionKind === 'add') {
-      onAdd(slot, invite.validCompanions)
+      const ok = await onAdd(slot, invite.validCompanions)
+      if (ok) invite.setCompanions([])
     } else if (state.actionKind === 'remove') {
       onRemove(slot)
     }
   }
 
-  const handleInviteOnly = () => onAdd(slot, invite.validCompanions)
+  const handleInviteOnly = async () => {
+    const ok = await onAdd(slot, invite.validCompanions)
+    if (ok) invite.setCompanions([])
+  }
 
   const actionClass = state.actionKind === 'add' && !state.disabled ? 'dicefest-btn-primary w-full' : 'dicefest-btn-secondary w-full'
 
@@ -1273,13 +1296,17 @@ function MainEventDetailsModal({ session, sessionKey, reservation, inCart, hasRe
   const hostSeatTaken = Boolean(reservation) || inCart
   const invite = useCompanionInvites(hostSeatTaken ? state.remaining : state.remaining - 1)
 
-  const handleInviteOnly = () => onAdd({ mainEventId: mainEvent.id, day: slot.day, slot: slot.slot }, invite.validCompanions)
+  const handleInviteOnly = async () => {
+    const ok = await onAdd({ mainEventId: mainEvent.id, day: slot.day, slot: slot.slot }, invite.validCompanions)
+    if (ok) invite.setCompanions([])
+  }
 
-  const handleAction = () => {
+  const handleAction = async () => {
     if (state.actionKind === 'login') {
       window.location.href = '/auth/login?next=/dice-fest/sessioni'
     } else if (state.actionKind === 'add') {
-      onAdd({ mainEventId: mainEvent.id, day: slot.day, slot: slot.slot }, invite.validCompanions)
+      const ok = await onAdd({ mainEventId: mainEvent.id, day: slot.day, slot: slot.slot }, invite.validCompanions)
+      if (ok) invite.setCompanions([])
     } else if (state.actionKind === 'remove') {
       onRemove({ mainEventId: mainEvent.id, day: slot.day, slot: slot.slot })
     } else if (state.actionKind === 'cancel') {
