@@ -542,7 +542,7 @@ const PendingOrderLayout = memo(function PendingOrderLayout({
                         disabled={busy}
                         className="shrink-0 font-df-mono text-xs font-semibold uppercase tracking-widest text-dicefest-paper/50 underline-offset-2 hover:text-dicefest-pink hover:underline disabled:cursor-not-allowed disabled:opacity-50"
                       >
-                        Ritira invito
+                        Annulla invito
                       </button>
                     </div>
                   </li>

@@ -70,7 +70,7 @@ function buildUserText(summary, recipientName, { hasPendingCompanionInvites = fa
     'Prenotazioni confermate',
     buildSlotsText(summary),
     '',
-    `Totale prenotazione (solo per te): ${formatPrice(summary.totalPrice)}`,
+    `Totale prenotazione: ${formatPrice(summary.totalPrice)}`,
     ...(hasPendingCompanionInvites
       ? ['', 'Hai invitato degli amici: abbiamo appena inviato loro una email con un codice per registrarsi e confermare il proprio posto entro 1 ora. Il loro posto e il relativo costo non sono inclusi nel totale sopra: saranno a loro carico una volta completata la registrazione.']
       : []),
@@ -95,7 +95,7 @@ function buildUserHtml(summary, recipientName, { hasPendingCompanionInvites = fa
       <p><strong>${escapeHtml(formatAdmissionLabel(summary))}:</strong> ${escapeHtml(formatPrice(summary.admissionPrice))}</p>
       <h2 style="color:#1A1A2E;">Prenotazioni confermate</h2>
       <ul style="padding-left:20px;">${buildSlotsHtml(summary)}</ul>
-      <p style="font-size:18px;font-weight:700;color:#1A1A2E;">Totale prenotazione (solo per te): ${escapeHtml(formatPrice(summary.totalPrice))}</p>
+      <p style="font-size:18px;font-weight:700;color:#1A1A2E;">Totale prenotazione: ${escapeHtml(formatPrice(summary.totalPrice))}</p>
       ${hasPendingCompanionInvites
         ? '<p style="background:#FFF7E0;border-radius:8px;padding:12px;">Hai invitato degli amici: abbiamo appena inviato loro una email con un codice per registrarsi e confermare il proprio posto entro 1 ora. Il loro posto e il relativo costo non sono inclusi nel totale sopra: saranno a loro carico una volta completata la registrazione.</p>'
         : ''}

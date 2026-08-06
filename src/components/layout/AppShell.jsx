@@ -1,5 +1,10 @@
 'use client'
 
+// Side-effect import: patches window.fetch for /api/ calls so the loading
+// overlay below tracks every request without touching individual call
+// sites. Must run before any child component can call fetch.
+import '../../lib/apiFetchTracking'
+
 import { useEffect, useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import Sidebar from './Sidebar'
@@ -10,6 +15,7 @@ import PWAUpdateBanner from '../ui/PWAUpdateBanner'
 import { AuthProvider } from '../../context/AuthContext'
 import { ToastProvider } from '../../context/ToastContext'
 import ToastContainer from '../ui/ToastContainer'
+import LoadingOverlay from '../ui/LoadingOverlay'
 
 export default function AppShell({ children, upcomingEvent }) {
   const pathname = usePathname()
@@ -129,6 +135,7 @@ export default function AppShell({ children, upcomingEvent }) {
           </main>
         </div>
         <ToastContainer />
+        <LoadingOverlay />
       </ToastProvider>
     </AuthProvider>
   )
