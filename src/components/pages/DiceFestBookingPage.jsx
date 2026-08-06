@@ -130,7 +130,7 @@ export default function DiceFestBookingPage({ event }) {
       if (!response.ok) throw new Error(payload.error || 'Impossibile prenotare il tavolo.')
       setCartState({ loading: false, ...payload })
       toast.success(companions.length > 0
-        ? `Tavolo prenotato. ${companions.length === 1 ? 'Il tuo amico ha ricevuto' : 'I tuoi amici hanno ricevuto'} un\'email per confermare il posto.`
+        ? `Tavolo prenotato. ${companions.length === 1 ? 'Il tuo amico riceverà' : 'I tuoi amici riceveranno'} l\'email di invito quando confermi l\'ordine.`
         : `Tavolo prenotato: ${slot.day} · ${slot.slot}.`)
       return true
     } catch (err) {
@@ -234,7 +234,7 @@ export default function DiceFestBookingPage({ event }) {
       setCartState({ loading: false, ...payload })
       updateMainEventSessionCount(session, 1)
       toast.success(companions.length > 0
-        ? `Posto prenotato. ${companions.length === 1 ? 'Il tuo amico ha ricevuto' : 'I tuoi amici hanno ricevuto'} un\'email per confermare il posto.`
+        ? `Posto prenotato. ${companions.length === 1 ? 'Il tuo amico riceverà' : 'I tuoi amici riceveranno'} l\'email di invito quando confermi l\'ordine.`
         : `Posto prenotato: ${session.day} · ${session.slot}.`)
       return true
     } catch (err) {
