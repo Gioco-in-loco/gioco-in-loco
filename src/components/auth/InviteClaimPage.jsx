@@ -5,10 +5,21 @@ import Link from 'next/link'
 import AuthShell from './AuthShell'
 import AuthMessage from './AuthMessage'
 import { useAuth } from '../../context/AuthContext'
+import { getBookableEventConfigByEventId } from '../../lib/bookable-events'
 
 function formatPrice(value) {
   if (value == null) return 'Gratis'
   return new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR' }).format(value)
+}
+
+// The cart with the live 10-minute countdown lives on the event's own
+// booking route (e.g. /dice-fest/carrello), not on the generic account
+// bookings page — resolve it from whichever event the claimed sessions
+// belong to, falling back to the account page if it isn't a known one.
+function resolveCartHref(sessions) {
+  const eventId = sessions?.find((session) => session.event?.id)?.event?.id
+  const routeBasePath = eventId ? getBookableEventConfigByEventId(eventId)?.routeBasePath : null
+  return routeBasePath ? `${routeBasePath}/carrello` : '/account/prenotazioni'
 }
 
 function SessionSummary({ session }) {
@@ -122,8 +133,8 @@ export default function InviteClaimPage({ code }) {
             {declined.map((session) => <SessionSummary key={session.id} session={session} />)}
           </div>
         )}
-        <Link href="/account/prenotazioni" className="btn-primary w-full mt-2 inline-block text-center">
-          Vai al carrello e completa il checkout
+        <Link href={accepted.length > 0 ? resolveCartHref(accepted) : '/account/prenotazioni'} className="btn-primary w-full mt-2 inline-block text-center">
+          {accepted.length > 0 ? 'Vai al carrello e completa il checkout' : 'Vai alle tue prenotazioni'}
         </Link>
       </AuthShell>
     )
@@ -170,7 +181,7 @@ export default function InviteClaimPage({ code }) {
             {declinedSessions.map((session) => <SessionSummary key={session.id} session={session} />)}
           </div>
         )}
-        <Link href="/account/prenotazioni" className="btn-primary w-full inline-block text-center">
+        <Link href={acceptedSessions.length > 0 ? resolveCartHref(acceptedSessions) : '/account/prenotazioni'} className="btn-primary w-full inline-block text-center">
           Vai alle tue prenotazioni
         </Link>
       </AuthShell>

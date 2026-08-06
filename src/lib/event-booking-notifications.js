@@ -236,7 +236,7 @@ function buildInviteSessionsHtml(sessions) {
   `).join('')
 }
 
-function buildCompanionInviteText({ name, sessions, host, claimLink, claimPageLink, inviteCode }) {
+function buildCompanionInviteText({ name, email, sessions, host, claimLink, claimPageLink, inviteCode }) {
   return [
     `Ciao ${name || ''},`,
     '',
@@ -245,6 +245,8 @@ function buildCompanionInviteText({ name, sessions, host, claimLink, claimPageLi
     buildInviteSessionsText(sessions),
     '',
     `Apri il link e scegli a quali vuoi partecipare, entro ${COMPANION_INVITE_MINUTES} minuti (1 ora). I posti sono riservati a questa email: dopo la scadenza verranno rilasciati.`,
+    '',
+    `Se non hai ancora un account, registrati usando proprio questa email${email ? ` (${email})` : ''}: è l'unico modo per confermare il tuo posto.`,
     '',
     claimLink ? `Scegli qui: ${claimLink}` : 'Contatta chi ti ha invitato per il link di conferma.',
     '',
@@ -256,7 +258,7 @@ function buildCompanionInviteText({ name, sessions, host, claimLink, claimPageLi
   ].join('\n')
 }
 
-function buildCompanionInviteHtml({ name, sessions, host, claimLink, claimPageLink, inviteCode }) {
+function buildCompanionInviteHtml({ name, email, sessions, host, claimLink, claimPageLink, inviteCode }) {
   return `
     <div style="font-family:Arial,sans-serif;line-height:1.5;color:#1F2937;max-width:680px;margin:0 auto;">
       <h1 style="color:#1A1A2E;">${escapeHtml(host?.name || host?.email || 'Un amico')} ti ha invitato!</h1>
@@ -264,6 +266,7 @@ function buildCompanionInviteHtml({ name, sessions, host, claimLink, claimPageLi
       <p>sei stato invitato a ${sessions.length} session${sessions.length === 1 ? 'e' : 'i'}:</p>
       <ul style="padding-left:20px;">${buildInviteSessionsHtml(sessions)}</ul>
       <p>Apri il link e scegli a quali vuoi partecipare, entro <strong>${COMPANION_INVITE_MINUTES} minuti (1 ora)</strong>. I posti sono riservati a questa email: dopo la scadenza verranno rilasciati.</p>
+      <p>Se non hai ancora un account, registrati usando proprio questa email${email ? ` (<strong>${escapeHtml(email)}</strong>)` : ''}: è l'unico modo per confermare il tuo posto.</p>
       ${claimLink ? `<p><a href="${escapeHtml(claimLink)}" style="color:#B45309;font-weight:700;">Scegli le sessioni</a></p>` : ''}
       <p>In alternativa${claimPageLink ? ` vai su <a href="${escapeHtml(claimPageLink)}">${escapeHtml(claimPageLink)}</a> e` : ','} inserisci questo codice:</p>
       <p style="font-family:monospace;font-size:16px;background:#F3F4F6;border-radius:8px;padding:10px 14px;display:inline-block;">${escapeHtml(inviteCode)}</p>
@@ -309,8 +312,8 @@ export async function sendCompanionInviteEmails({ host, eventId, invites }) {
     return sendMail({
       to: first.email,
       subject: `${host?.name || 'Un amico'} ti ha invitato · ${sessions.length} session${sessions.length === 1 ? 'e' : 'i'}`,
-      text: buildCompanionInviteText({ name: first.name, sessions, host, claimLink, claimPageLink, inviteCode }),
-      html: buildCompanionInviteHtml({ name: first.name, sessions, host, claimLink, claimPageLink, inviteCode }),
+      text: buildCompanionInviteText({ name: first.name, email: first.email, sessions, host, claimLink, claimPageLink, inviteCode }),
+      html: buildCompanionInviteHtml({ name: first.name, email: first.email, sessions, host, claimLink, claimPageLink, inviteCode }),
     })
   }))
 
