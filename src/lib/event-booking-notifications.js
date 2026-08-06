@@ -2,6 +2,7 @@ import { prisma } from './prisma'
 import { sendMail } from './mailer'
 import { buildAbsoluteUrl, getConfiguredSiteUrl } from './site-url'
 import { COMPANION_INVITE_MINUTES } from './invite-tokens'
+import { EVENT_CART_HOLD_MINUTES } from './event-booking'
 
 function formatPrice(value) {
   if (value == null) return 'Gratis'
@@ -220,39 +221,52 @@ export async function sendWaitlistSpotAvailableEmail({ user, event, day, routeBa
   }
 }
 
-function buildCompanionInviteText({ invite, event, host, claimLink, claimPageLink }) {
+function buildInviteSessionsText(sessions) {
+  return sessions.map((session, index) => (
+    `${index + 1}. ${session.activityTitle}\n   ${session.day || ''} · ${session.slot || ''}${session.table ? ` · ${session.table}` : ''}${session.event?.name ? ` · ${session.event.name}` : ''}`
+  )).join('\n\n')
+}
+
+function buildInviteSessionsHtml(sessions) {
+  return sessions.map((session) => `
+    <li style="margin-bottom:16px;">
+      <div style="font-weight:700;color:#1A1A2E;">${escapeHtml(session.activityTitle)}</div>
+      <div style="color:#4B5563;">${escapeHtml(session.day || '')} · ${escapeHtml(session.slot || '')}${session.table ? ` · ${escapeHtml(session.table)}` : ''}${session.event?.name ? ` · ${escapeHtml(session.event.name)}` : ''}</div>
+    </li>
+  `).join('')
+}
+
+function buildCompanionInviteText({ name, sessions, host, claimLink, claimPageLink, inviteCode }) {
   return [
-    `Ciao ${invite.name || ''},`,
+    `Ciao ${name || ''},`,
     '',
-    `${host?.name || host?.email || 'Un amico'} ti ha invitato a ${invite.activityTitle} durante ${event?.name || 'un evento'}${event?.location ? ` (${event.location})` : ''}.`,
+    `${host?.name || host?.email || 'Un amico'} ti ha invitato a ${sessions.length} session${sessions.length === 1 ? 'e' : 'i'}:`,
     '',
-    `${invite.day || ''} · ${invite.slot || ''}${invite.table ? ` · ${invite.table}` : ''}`,
+    buildInviteSessionsText(sessions),
     '',
-    `Per confermare il tuo posto devi registrarti (o accedere, se hai già un account) entro ${COMPANION_INVITE_MINUTES} minuti (1 ora). Il posto è riservato a questa email: dopo la scadenza verrà rilasciato.`,
+    `Apri il link e scegli a quali vuoi partecipare, entro ${COMPANION_INVITE_MINUTES} minuti (1 ora). I posti sono riservati a questa email: dopo la scadenza verranno rilasciati.`,
     '',
-    claimLink ? `Puoi confermare cliccando qui: ${claimLink}` : 'Contatta chi ti ha invitato per il link di conferma.',
+    claimLink ? `Scegli qui: ${claimLink}` : 'Contatta chi ti ha invitato per il link di conferma.',
     '',
     claimPageLink
-      ? `In alternativa, vai su ${claimPageLink} e inserisci questo codice: ${invite.inviteCode}`
-      : `In alternativa puoi usare questo codice: ${invite.inviteCode}`,
+      ? `In alternativa, vai su ${claimPageLink} e inserisci questo codice: ${inviteCode}`
+      : `In alternativa puoi usare questo codice: ${inviteCode}`,
     '',
     'Gioco In Loco',
   ].join('\n')
 }
 
-function buildCompanionInviteHtml({ invite, event, host, claimLink, claimPageLink }) {
+function buildCompanionInviteHtml({ name, sessions, host, claimLink, claimPageLink, inviteCode }) {
   return `
     <div style="font-family:Arial,sans-serif;line-height:1.5;color:#1F2937;max-width:680px;margin:0 auto;">
       <h1 style="color:#1A1A2E;">${escapeHtml(host?.name || host?.email || 'Un amico')} ti ha invitato!</h1>
-      <p>Ciao ${escapeHtml(invite.name || '')},</p>
-      <p>sei stato invitato a <strong>${escapeHtml(invite.activityTitle)}</strong> durante <strong>${escapeHtml(event?.name || 'un evento')}</strong>${event?.location ? ` (${escapeHtml(event.location)})` : ''}.</p>
-      <div style="border:1px solid #D1D5DB;border-radius:12px;padding:16px;margin:24px 0;background:#F9FAFB;">
-        <div>${escapeHtml(invite.day || '')} · ${escapeHtml(invite.slot || '')}${invite.table ? ` · ${escapeHtml(invite.table)}` : ''}</div>
-      </div>
-      <p>Per confermare il tuo posto devi <strong>registrarti (o accedere)</strong> entro <strong>${COMPANION_INVITE_MINUTES} minuti (1 ora)</strong>. Il posto è riservato a questa email: dopo la scadenza verrà rilasciato.</p>
-      ${claimLink ? `<p><a href="${escapeHtml(claimLink)}" style="color:#B45309;font-weight:700;">Conferma il tuo posto</a></p>` : ''}
+      <p>Ciao ${escapeHtml(name || '')},</p>
+      <p>sei stato invitato a ${sessions.length} session${sessions.length === 1 ? 'e' : 'i'}:</p>
+      <ul style="padding-left:20px;">${buildInviteSessionsHtml(sessions)}</ul>
+      <p>Apri il link e scegli a quali vuoi partecipare, entro <strong>${COMPANION_INVITE_MINUTES} minuti (1 ora)</strong>. I posti sono riservati a questa email: dopo la scadenza verranno rilasciati.</p>
+      ${claimLink ? `<p><a href="${escapeHtml(claimLink)}" style="color:#B45309;font-weight:700;">Scegli le sessioni</a></p>` : ''}
       <p>In alternativa${claimPageLink ? ` vai su <a href="${escapeHtml(claimPageLink)}">${escapeHtml(claimPageLink)}</a> e` : ','} inserisci questo codice:</p>
-      <p style="font-family:monospace;font-size:16px;background:#F3F4F6;border-radius:8px;padding:10px 14px;display:inline-block;">${escapeHtml(invite.inviteCode)}</p>
+      <p style="font-family:monospace;font-size:16px;background:#F3F4F6;border-radius:8px;padding:10px 14px;display:inline-block;">${escapeHtml(inviteCode)}</p>
       <p>Gioco In Loco</p>
     </div>
   `
@@ -271,52 +285,75 @@ export async function sendCompanionInviteEmails({ host, eventId, invites }) {
   const siteUrl = getConfiguredSiteUrl()
   const claimPageLink = siteUrl ? buildAbsoluteUrl('/invito', siteUrl) : null
 
-  const results = await Promise.allSettled(invites.map((invite) => {
-    const event = eventById.get(invite.eventId || eventId)
-    const claimLink = siteUrl ? buildAbsoluteUrl(`/invito/${invite.inviteCode}`, siteUrl) : null
+  // Every invite already shares one inviteCode per companion email (assigned
+  // when the host's cart is confirmed) — group here so the friend gets a
+  // single email listing every session, instead of one email per session.
+  const groups = new Map()
+  for (const invite of invites) {
+    const key = invite.inviteCode
+    if (!groups.has(key)) groups.set(key, [])
+    groups.get(key).push(invite)
+  }
+
+  const results = await Promise.allSettled(Array.from(groups.entries()).map(([inviteCode, groupInvites]) => {
+    const first = groupInvites[0]
+    const sessions = groupInvites.map((invite) => ({
+      activityTitle: invite.activityTitle,
+      day: invite.day,
+      slot: invite.slot,
+      table: invite.table,
+      event: eventById.get(invite.eventId || eventId) || null,
+    }))
+    const claimLink = siteUrl ? buildAbsoluteUrl(`/invito/${inviteCode}`, siteUrl) : null
 
     return sendMail({
-      to: invite.email,
-      subject: `${host?.name || 'Un amico'} ti ha invitato · ${event?.name || 'Gioco In Loco'}`,
-      text: buildCompanionInviteText({ invite, event, host, claimLink, claimPageLink }),
-      html: buildCompanionInviteHtml({ invite, event, host, claimLink, claimPageLink }),
+      to: first.email,
+      subject: `${host?.name || 'Un amico'} ti ha invitato · ${sessions.length} session${sessions.length === 1 ? 'e' : 'i'}`,
+      text: buildCompanionInviteText({ name: first.name, sessions, host, claimLink, claimPageLink, inviteCode }),
+      html: buildCompanionInviteHtml({ name: first.name, sessions, host, claimLink, claimPageLink, inviteCode }),
     })
   }))
 
   results.forEach((result, index) => {
     if (result.status === 'rejected') {
-      console.error(`Failed to send companion invite email to ${invites[index].email}:`, result.reason)
+      const [, groupInvites] = Array.from(groups.entries())[index]
+      console.error(`Failed to send companion invite email to ${groupInvites[0].email}:`, result.reason)
     }
   })
 }
 
-export async function sendCompanionClaimConfirmationEmail({ email, name, event, activityTitle, day, slot, table, price }) {
+export async function sendCompanionInviteRedeemedEmail({ email, name, accepted = [], declined = [] }) {
   if (!email) return
 
-  const subject = `Posto confermato · ${activityTitle}`
-  const priceLabel = formatPrice(price)
+  const subject = accepted.length > 0
+    ? `Invito riscattato · ${accepted.length} sessione${accepted.length === 1 ? '' : 'i'} nel carrello`
+    : 'Invito riscattato'
 
   const text = [
     `Ciao ${name || 'giocatore'},`,
     '',
-    `hai confermato il tuo posto per ${activityTitle}${event?.name ? ` durante ${event.name}` : ''}.`,
+    'hai riscattato il tuo invito.',
     '',
-    `${day || ''} · ${slot || ''}${table ? ` · ${table}` : ''}`,
+    accepted.length > 0
+      ? `Sessioni accettate (ora nel tuo carrello, hai ${EVENT_CART_HOLD_MINUTES} minuti per completare il checkout):\n\n${buildInviteSessionsText(accepted)}`
+      : 'Non hai accettato nessuna sessione.',
+    ...(declined.length > 0 ? ['', `Sessioni rifiutate:\n\n${buildInviteSessionsText(declined)}`] : []),
     '',
-    `Importo dovuto per il tuo posto: ${priceLabel}`,
+    'Questo codice invito è stato utilizzato e non è più valido.',
     '',
     'Gioco In Loco',
   ].join('\n')
 
   const html = `
     <div style="font-family:Arial,sans-serif;line-height:1.5;color:#1F2937;max-width:680px;margin:0 auto;">
-      <h1 style="color:#1A1A2E;">Posto confermato</h1>
+      <h1 style="color:#1A1A2E;">Invito riscattato</h1>
       <p>Ciao ${escapeHtml(name || 'giocatore')},</p>
-      <p>hai confermato il tuo posto per <strong>${escapeHtml(activityTitle)}</strong>${event?.name ? ` durante <strong>${escapeHtml(event.name)}</strong>` : ''}.</p>
-      <div style="border:1px solid #D1D5DB;border-radius:12px;padding:16px;margin:24px 0;background:#F9FAFB;">
-        <div>${escapeHtml(day || '')} · ${escapeHtml(slot || '')}${table ? ` · ${escapeHtml(table)}` : ''}</div>
-      </div>
-      <p><strong>Importo dovuto per il tuo posto:</strong> ${escapeHtml(priceLabel)}</p>
+      <p>hai riscattato il tuo invito.</p>
+      ${accepted.length > 0
+        ? `<p><strong>Sessioni accettate</strong> (ora nel tuo carrello, hai ${EVENT_CART_HOLD_MINUTES} minuti per completare il checkout):</p><ul style="padding-left:20px;">${buildInviteSessionsHtml(accepted)}</ul>`
+        : '<p>Non hai accettato nessuna sessione.</p>'}
+      ${declined.length > 0 ? `<p><strong>Sessioni rifiutate:</strong></p><ul style="padding-left:20px;">${buildInviteSessionsHtml(declined)}</ul>` : ''}
+      <p style="color:#4B5563;">Questo codice invito è stato utilizzato e non è più valido.</p>
       <p>Gioco In Loco</p>
     </div>
   `
@@ -324,6 +361,6 @@ export async function sendCompanionClaimConfirmationEmail({ email, name, event, 
   try {
     await sendMail({ to: email, subject, text, html })
   } catch (error) {
-    console.error(`Failed to send companion claim confirmation email to ${email}:`, error)
+    console.error(`Failed to send companion invite redeemed email to ${email}:`, error)
   }
 }

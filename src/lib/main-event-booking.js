@@ -1,5 +1,5 @@
 import { prisma } from './prisma'
-import { generateInviteCode, getCompanionInviteExpiration } from './invite-tokens'
+import { generateInviteCode, getCompanionInviteExpiration, groupCompanionsByEmail } from './invite-tokens'
 
 export const MAIN_EVENT_ACTIVE_STATUSES = ['PENDING', 'CONFIRMED', 'ATTENDED']
 export const MAIN_EVENT_CART_HOLD_STATUS = 'HOLD'
@@ -639,14 +639,26 @@ export async function confirmMainEventCart({ userId, eventId, db = prisma }) {
           slot: reservation.slot,
         })),
       },
-      select: { id: true, playerName: true, playerEmail: true, inviteCode: true, mainEventId: true, eventId: true, day: true, slot: true },
+      select: { id: true, playerName: true, playerEmail: true, mainEventId: true, eventId: true, day: true, slot: true },
     })
 
     if (companions.length > 0) {
-      await tx.mainEventReservation.updateMany({
-        where: { id: { in: companions.map((companion) => companion.id) } },
-        data: { status: 'INVITED', holdExpiresAt: companionInviteExpiresAt },
-      })
+      // One invite code per companion email, shared across every session
+      // invited together in this checkout — the friend gets a single link
+      // listing all of them (see companion-invites.js).
+      const inviteCodeByRowId = new Map()
+      for (const group of groupCompanionsByEmail(companions)) {
+        const code = generateInviteCode()
+        const groupIds = group.map((companion) => {
+          inviteCodeByRowId.set(companion.id, code)
+          return companion.id
+        })
+
+        await tx.mainEventReservation.updateMany({
+          where: { id: { in: groupIds } },
+          data: { status: 'INVITED', holdExpiresAt: companionInviteExpiresAt, inviteCode: code },
+        })
+      }
 
       const sessionByKey = new Map(holdReservations.map((reservation) => [`${reservation.mainEventId}__${reservation.eventId}__${reservation.day}__${reservation.slot}`, reservation.mainEvent]))
       for (const companion of companions) {
@@ -654,7 +666,7 @@ export async function confirmMainEventCart({ userId, eventId, db = prisma }) {
         invites.push({
           name: companion.playerName,
           email: companion.playerEmail,
-          inviteCode: companion.inviteCode,
+          inviteCode: inviteCodeByRowId.get(companion.id),
           activityTitle: mainEvent?.title || 'Main event',
           day: companion.day,
           slot: companion.slot,

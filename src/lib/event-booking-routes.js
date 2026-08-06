@@ -24,7 +24,7 @@ import {
 } from './main-event-booking'
 import { sendEventBookingConfirmationEmails, sendCompanionInviteEmails } from './event-booking-notifications'
 import { getUserWaitlistDays } from './event-waitlist'
-import { generateInviteCode, getCompanionInviteExpiration, normalizeCompanions } from './invite-tokens'
+import { generateInviteCode, getCompanionInviteExpiration, groupCompanionsByEmail, normalizeCompanions } from './invite-tokens'
 
 // Default Prisma interactive transaction timeout is 5000ms. Cart mutations only
 // hold the transaction for the critical atomic writes; cleanup and final state
@@ -1209,72 +1209,91 @@ export async function handleConfirmEventCart(eventId) {
       const companionInviteExpiresAt = getCompanionInviteExpiration()
       const companionInvites = []
 
-      if (holdReservations.length > 0) {
-        const oneshotCompanions = await tx.reservation.findMany({
-          where: {
-            invitedByUserId: user.id,
-            slotId: { in: holdReservations.map((reservation) => reservation.slotId) },
-            status: EVENT_CART_HOLD_STATUS,
-          },
-          select: { id: true, playerName: true, playerEmail: true, inviteCode: true, slotId: true },
-        })
+      const oneshotCompanions = holdReservations.length > 0
+        ? (await tx.reservation.findMany({
+            where: {
+              invitedByUserId: user.id,
+              slotId: { in: holdReservations.map((reservation) => reservation.slotId) },
+              status: EVENT_CART_HOLD_STATUS,
+            },
+            select: { id: true, playerName: true, playerEmail: true, slotId: true },
+          })).map((companion) => ({ ...companion, __table: 'reservation' }))
+        : []
 
-        if (oneshotCompanions.length > 0) {
+      const mainEventCompanions = holdMainEventReservations.length > 0
+        ? (await tx.mainEventReservation.findMany({
+            where: {
+              invitedByUserId: user.id,
+              status: EVENT_CART_HOLD_STATUS,
+              OR: holdMainEventReservations.map((reservation) => ({
+                mainEventId: reservation.mainEventId,
+                eventId,
+                day: reservation.day,
+                slot: reservation.slot,
+              })),
+            },
+            select: { id: true, playerName: true, playerEmail: true, mainEventId: true, day: true, slot: true },
+          })).map((companion) => ({ ...companion, __table: 'mainEventReservation' }))
+        : []
+
+      // One invite code per companion email, shared across every oneshot/main
+      // event row invited together in this checkout — the friend gets a
+      // single link listing all of them (see companion-invites.js).
+      const inviteCodeByRowId = new Map()
+      for (const group of groupCompanionsByEmail([...oneshotCompanions, ...mainEventCompanions])) {
+        const code = generateInviteCode()
+        const groupOneshotIds = []
+        const groupMainEventIds = []
+
+        for (const companion of group) {
+          inviteCodeByRowId.set(companion.id, code)
+          if (companion.__table === 'reservation') groupOneshotIds.push(companion.id)
+          else groupMainEventIds.push(companion.id)
+        }
+
+        if (groupOneshotIds.length > 0) {
           await tx.reservation.updateMany({
-            where: { id: { in: oneshotCompanions.map((companion) => companion.id) } },
-            data: { status: 'INVITED', holdExpiresAt: companionInviteExpiresAt },
+            where: { id: { in: groupOneshotIds } },
+            data: { status: 'INVITED', holdExpiresAt: companionInviteExpiresAt, inviteCode: code },
           })
-
-          const slotById = new Map(holdReservations.map((reservation) => [reservation.slotId, reservation.slot]))
-          for (const companion of oneshotCompanions) {
-            const slot = slotById.get(companion.slotId)
-            companionInvites.push({
-              name: companion.playerName,
-              email: companion.playerEmail,
-              inviteCode: companion.inviteCode,
-              activityTitle: slot?.oneshot?.title || 'One shot',
-              day: slot?.day || null,
-              slot: slot?.slot || null,
-              table: slot?.table || null,
-            })
-          }
+        }
+        if (groupMainEventIds.length > 0) {
+          await tx.mainEventReservation.updateMany({
+            where: { id: { in: groupMainEventIds } },
+            data: { status: 'INVITED', holdExpiresAt: companionInviteExpiresAt, inviteCode: code },
+          })
         }
       }
 
-      if (holdMainEventReservations.length > 0) {
-        const mainEventCompanions = await tx.mainEventReservation.findMany({
-          where: {
-            invitedByUserId: user.id,
-            status: EVENT_CART_HOLD_STATUS,
-            OR: holdMainEventReservations.map((reservation) => ({
-              mainEventId: reservation.mainEventId,
-              eventId,
-              day: reservation.day,
-              slot: reservation.slot,
-            })),
-          },
-          select: { id: true, playerName: true, playerEmail: true, inviteCode: true, mainEventId: true, day: true, slot: true },
-        })
-
-        if (mainEventCompanions.length > 0) {
-          await tx.mainEventReservation.updateMany({
-            where: { id: { in: mainEventCompanions.map((companion) => companion.id) } },
-            data: { status: 'INVITED', holdExpiresAt: companionInviteExpiresAt },
+      if (oneshotCompanions.length > 0) {
+        const slotById = new Map(holdReservations.map((reservation) => [reservation.slotId, reservation.slot]))
+        for (const companion of oneshotCompanions) {
+          const slot = slotById.get(companion.slotId)
+          companionInvites.push({
+            name: companion.playerName,
+            email: companion.playerEmail,
+            inviteCode: inviteCodeByRowId.get(companion.id),
+            activityTitle: slot?.oneshot?.title || 'One shot',
+            day: slot?.day || null,
+            slot: slot?.slot || null,
+            table: slot?.table || null,
           })
+        }
+      }
 
-          const sessionByKey = new Map(holdMainEventReservations.map((reservation) => [`${reservation.mainEventId}__${reservation.day}__${reservation.slot}`, reservation.mainEvent]))
-          for (const companion of mainEventCompanions) {
-            const mainEvent = sessionByKey.get(`${companion.mainEventId}__${companion.day}__${companion.slot}`)
-            companionInvites.push({
-              name: companion.playerName,
-              email: companion.playerEmail,
-              inviteCode: companion.inviteCode,
-              activityTitle: mainEvent?.title || 'Main event',
-              day: companion.day,
-              slot: companion.slot,
-              table: null,
-            })
-          }
+      if (mainEventCompanions.length > 0) {
+        const sessionByKey = new Map(holdMainEventReservations.map((reservation) => [`${reservation.mainEventId}__${reservation.day}__${reservation.slot}`, reservation.mainEvent]))
+        for (const companion of mainEventCompanions) {
+          const mainEvent = sessionByKey.get(`${companion.mainEventId}__${companion.day}__${companion.slot}`)
+          companionInvites.push({
+            name: companion.playerName,
+            email: companion.playerEmail,
+            inviteCode: inviteCodeByRowId.get(companion.id),
+            activityTitle: mainEvent?.title || 'Main event',
+            day: companion.day,
+            slot: companion.slot,
+            table: null,
+          })
         }
       }
 

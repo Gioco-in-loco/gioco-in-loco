@@ -12,6 +12,23 @@ export function getCompanionInviteExpiration() {
   return new Date(Date.now() + COMPANION_INVITE_MINUTES * 60 * 1000)
 }
 
+// Groups companion rows (from one or more tables) by normalized playerEmail
+// so a single invite code can be assigned per group — a friend invited to
+// several sessions in the same checkout gets one code, one email.
+export function groupCompanionsByEmail(companions) {
+  const groups = new Map()
+
+  for (const companion of companions) {
+    const email = String(companion.playerEmail || '').trim().toLowerCase()
+    if (!groups.has(email)) {
+      groups.set(email, [])
+    }
+    groups.get(email).push(companion)
+  }
+
+  return Array.from(groups.values())
+}
+
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 export function normalizeCompanions(rawCompanions, { maxCount } = {}) {

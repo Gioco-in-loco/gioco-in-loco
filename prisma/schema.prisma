@@ -264,8 +264,10 @@ model MainEventReservation {
   notes         String?
   consentGiven  Boolean   @default(false)
   consentDate   DateTime?
+  // inviteCode is shared across every row invited together for the same
+  // playerEmail in one checkout (see companion-invites.js) — not unique.
   invitedByUserId String?
-  inviteCode      String?   @unique
+  inviteCode      String?
   claimedAt       DateTime?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
@@ -281,6 +283,7 @@ model MainEventReservation {
   @@index([mainEventId, eventId, day, slot, status, holdExpiresAt])
   @@index([userId, status, holdExpiresAt])
   @@index([invitedByUserId])
+  @@index([inviteCode])
   @@map("main_event_reservations")
 }
 
@@ -357,9 +360,11 @@ model Reservation {
   consentGiven  Boolean   @default(false)
   consentDate   DateTime?
 
-  // Companion invite (booking made by another user on this person's behalf)
+  // Companion invite (booking made by another user on this person's behalf).
+  // inviteCode is shared across every row invited together for the same
+  // playerEmail in one checkout (see companion-invites.js) — not unique.
   invitedByUserId String?
-  inviteCode       String?   @unique
+  inviteCode       String?
   claimedAt        DateTime?
 
   // Relations
@@ -372,6 +377,7 @@ model Reservation {
   @@index([slotId, status, holdExpiresAt])
   @@index([userId, status, holdExpiresAt])
   @@index([invitedByUserId])
+  @@index([inviteCode])
   @@map("reservations")
 }
 
