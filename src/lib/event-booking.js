@@ -6,8 +6,6 @@ export const EVENT_CART_HOLD_MINUTES = 10
 export const EVENT_CART_HOLD_STATUS = 'HOLD'
 export const EVENT_ACTIVE_RESERVATION_STATUSES = ['PENDING', 'CONFIRMED', 'ATTENDED']
 
-const globalForEventBooking = globalThis
-
 const DAY_ORDER = ['Lunedi', 'Martedi', 'Mercoledi', 'Giovedi', 'Venerdi', 'Sabato', 'Domenica', 'Giovedì', 'Venerdì']
 
 function sortSlots(left, right) {
@@ -34,63 +32,6 @@ export function isBookingWindowOpen(event, now = new Date()) {
   return !event?.bookingOpensAt || now >= new Date(event.bookingOpensAt)
 }
 
-async function detectEventCartHoldSupport(db = prisma) {
-  if (db === prisma && typeof globalForEventBooking.__eventCartHoldSupport === 'boolean') {
-    return globalForEventBooking.__eventCartHoldSupport
-  }
-
-  try {
-    const [columns, enumValues] = await Promise.all([
-      db.$queryRaw`
-        SELECT
-          table_name AS "tableName",
-          column_name AS "columnName"
-        FROM information_schema.columns
-        WHERE table_schema = current_schema()
-          AND (
-            (table_name = 'event_admissions' AND column_name = 'holdExpiresAt')
-            OR (table_name = 'reservations' AND column_name = 'holdExpiresAt')
-          )
-      `,
-      db.$queryRaw`
-        SELECT enumlabel
-        FROM pg_enum
-        INNER JOIN pg_type ON pg_enum.enumtypid = pg_type.oid
-        WHERE pg_type.typname = 'ReservationStatus'
-          AND enumlabel IN ('HOLD', 'EXPIRED')
-      `,
-    ])
-
-    const availableColumns = new Set(columns.map((column) => `${column.tableName}.${column.columnName}`))
-    const availableEnumValues = new Set(enumValues.map((entry) => entry.enumlabel))
-    const cartHoldsSupported = availableColumns.has('event_admissions.holdExpiresAt')
-      && availableColumns.has('reservations.holdExpiresAt')
-      && availableEnumValues.has('HOLD')
-      && availableEnumValues.has('EXPIRED')
-
-    if (db === prisma) {
-      globalForEventBooking.__eventCartHoldSupport = cartHoldsSupported
-    }
-
-    return cartHoldsSupported
-  } catch (error) {
-    if (db === prisma && !globalForEventBooking.__eventCartHoldSupportErrorLogged) {
-      console.warn('Failed to detect event cart hold support:', error?.message || error)
-      globalForEventBooking.__eventCartHoldSupportErrorLogged = true
-    }
-
-    if (db === prisma) {
-      globalForEventBooking.__eventCartHoldSupport = false
-    }
-
-    return false
-  }
-}
-
-export async function supportsEventCartHolds({ db = prisma } = {}) {
-  return detectEventCartHoldSupport(db)
-}
-
 export function normalizeSlotValue(value) {
   return String(value || '').trim().toLowerCase()
 }
@@ -103,13 +44,7 @@ export function getNextHoldExpiration() {
   return new Date(Date.now() + EVENT_CART_HOLD_MINUTES * 60 * 1000)
 }
 
-export function getActiveReservationFilter(now = new Date(), { cartHoldsSupported = true } = {}) {
-  if (!cartHoldsSupported) {
-    return {
-      status: { in: EVENT_ACTIVE_RESERVATION_STATUSES },
-    }
-  }
-
+export function getActiveReservationFilter(now = new Date()) {
   return {
     OR: [
       { status: { in: EVENT_ACTIVE_RESERVATION_STATUSES } },
@@ -135,12 +70,6 @@ export function getEventScopedSlotWhere(eventId) {
 }
 
 export async function releaseExpiredEventHolds({ eventId, db = prisma, userId }) {
-  const cartHoldsSupported = await supportsEventCartHolds({ db })
-
-  if (!cartHoldsSupported) {
-    return
-  }
-
   const now = new Date()
 
   // Companion daily passes (status INVITED, no userId of their own) expire
@@ -183,118 +112,77 @@ export async function releaseExpiredEventHolds({ eventId, db = prisma, userId })
 
 export async function getUserEventCartState({ eventId, userId, db = prisma }) {
   const now = new Date()
-  const cartHoldsSupported = await supportsEventCartHolds({ db })
-
-  if (cartHoldsSupported) {
-    await releaseExpiredEventHolds({ eventId, db, userId })
-  }
+  await releaseExpiredEventHolds({ eventId, db, userId })
 
   const [admissions, reservations, mainEventCartState, companionReservations] = await Promise.all([
     db.eventAdmission.findMany({
       where: { userId, eventId },
-      select: cartHoldsSupported
-        ? {
-            id: true,
-            day: true,
-            status: true,
-            pricePaid: true,
-            holdExpiresAt: true,
-          }
-        : {
-            id: true,
-            day: true,
-            status: true,
-            pricePaid: true,
-          },
+      select: {
+        id: true,
+        day: true,
+        status: true,
+        pricePaid: true,
+        holdExpiresAt: true,
+      },
     }),
     db.reservation.findMany({
       where: {
         userId,
-        ...getActiveReservationFilter(now, { cartHoldsSupported }),
+        ...getActiveReservationFilter(now),
         ...getEventScopedSlotWhere(eventId),
       },
-      select: cartHoldsSupported
-        ? {
+      select: {
+        id: true,
+        slotId: true,
+        status: true,
+        holdExpiresAt: true,
+        slot: {
+          select: {
             id: true,
-            slotId: true,
-            status: true,
-            holdExpiresAt: true,
-            slot: {
+            day: true,
+            slot: true,
+            table: true,
+            maxPlayers: true,
+            oneshot: {
               select: {
                 id: true,
-                day: true,
-                slot: true,
-                table: true,
-                maxPlayers: true,
-                oneshot: {
-                  select: {
-                    id: true,
-                    title: true,
-                    price: true,
-                  },
-                },
-              },
-            },
-          }
-        : {
-            id: true,
-            slotId: true,
-            status: true,
-            slot: {
-              select: {
-                id: true,
-                day: true,
-                slot: true,
-                table: true,
-                maxPlayers: true,
-                oneshot: {
-                  select: {
-                    id: true,
-                    title: true,
-                    price: true,
-                  },
-                },
+                title: true,
+                price: true,
               },
             },
           },
+        },
+      },
       orderBy: [
         { slot: { day: 'asc' } },
         { slot: { slot: 'asc' } },
       ],
     }),
     getUserMainEventCartState({ userId, eventId, db }),
-    cartHoldsSupported
-      ? db.reservation.findMany({
-          where: {
-            invitedByUserId: userId,
-            status: EVENT_CART_HOLD_STATUS,
-            holdExpiresAt: { gt: now },
-            ...getEventScopedSlotWhere(eventId),
-          },
-          select: {
-            id: true,
-            playerName: true,
-            playerEmail: true,
-            slot: { select: { day: true, slot: true, table: true, oneshot: { select: { title: true } } } },
-          },
-        })
-      : [],
+    db.reservation.findMany({
+      where: {
+        invitedByUserId: userId,
+        status: EVENT_CART_HOLD_STATUS,
+        holdExpiresAt: { gt: now },
+        ...getEventScopedSlotWhere(eventId),
+      },
+      select: {
+        id: true,
+        playerName: true,
+        playerEmail: true,
+        slot: { select: { day: true, slot: true, table: true, oneshot: { select: { title: true } } } },
+      },
+    }),
   ])
 
-  const confirmedReservations = cartHoldsSupported
-    ? reservations.filter((reservation) => reservation.status !== EVENT_CART_HOLD_STATUS)
-    : reservations
-  const cartReservations = cartHoldsSupported
-    ? reservations.filter((reservation) => reservation.status === EVENT_CART_HOLD_STATUS)
-    : []
+  const confirmedReservations = reservations.filter((reservation) => reservation.status !== EVENT_CART_HOLD_STATUS)
+  const cartReservations = reservations.filter((reservation) => reservation.status === EVENT_CART_HOLD_STATUS)
   const confirmedAdmissions = admissions.filter((admission) => isConfirmedReservationStatus(admission.status))
-  const cartAdmissions = cartHoldsSupported
-    ? admissions.filter((admission) => (
-        admission.status === EVENT_CART_HOLD_STATUS
-        && admission.holdExpiresAt
-        && admission.holdExpiresAt > now
-      ))
-    : []
+  const cartAdmissions = admissions.filter((admission) => (
+    admission.status === EVENT_CART_HOLD_STATUS
+    && admission.holdExpiresAt
+    && admission.holdExpiresAt > now
+  ))
 
   const activeHoldDates = [
     ...cartAdmissions.map((admission) => admission.holdExpiresAt),
@@ -355,12 +243,6 @@ export async function getUserEventCartState({ eventId, userId, db = prisma }) {
 }
 
 export async function refreshUserEventCartHolds({ eventId, db, userId, holdExpiresAt }) {
-  const cartHoldsSupported = await supportsEventCartHolds({ db })
-
-  if (!cartHoldsSupported) {
-    return
-  }
-
   await db.eventAdmission.updateMany({
     where: {
       userId,
@@ -564,11 +446,7 @@ export async function getConfirmedEventBookingSummary({
 }
 
 export const getBookableEventData = cache(async function getBookableEventData(eventId) {
-  const cartHoldsSupported = await supportsEventCartHolds({ db: prisma })
-
-  if (cartHoldsSupported) {
-    await releaseExpiredEventHolds({ eventId, db: prisma })
-  }
+  await releaseExpiredEventHolds({ eventId, db: prisma })
 
   const event = await prisma.event.findUnique({
     where: { id: eventId },
@@ -634,7 +512,7 @@ export const getBookableEventData = cache(async function getBookableEventData(ev
         by: ['slotId'],
         where: {
           slotId: { in: slotIds },
-          ...getActiveReservationFilter(new Date(), { cartHoldsSupported }),
+          ...getActiveReservationFilter(),
         },
         _count: { _all: true },
       })
@@ -696,8 +574,6 @@ export const getBookableEventData = cache(async function getBookableEventData(ev
 // True only when every one-shot slot for this event+day is at capacity. Used
 // to decide whether to offer a waitlist signup for that day.
 export async function isDayFullyBooked(eventId, day) {
-  const cartHoldsSupported = await supportsEventCartHolds({ db: prisma })
-
   const slots = await prisma.eventSlot.findMany({
     where: {
       eventId,
@@ -717,7 +593,7 @@ export async function isDayFullyBooked(eventId, day) {
     by: ['slotId'],
     where: {
       slotId: { in: slotIds },
-      ...getActiveReservationFilter(new Date(), { cartHoldsSupported }),
+      ...getActiveReservationFilter(),
     },
     _count: { _all: true },
   })

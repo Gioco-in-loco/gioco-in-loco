@@ -14,7 +14,6 @@ import {
   isConfirmedReservationStatus,
   refreshUserEventCartHolds,
   releaseExpiredEventHolds,
-  supportsEventCartHolds,
 } from './event-booking'
 import {
   getActiveMainEventReservationFilter,
@@ -37,19 +36,6 @@ const CART_TX_OPTIONS = {
 
 function getEventNotFoundMessage(displayName) {
   return displayName ? `Evento ${displayName} non trovato.` : 'Evento non trovato.'
-}
-
-async function getUnavailableCartHoldResponse() {
-  const cartHoldsSupported = await supportsEventCartHolds()
-
-  if (cartHoldsSupported) {
-    return null
-  }
-
-  return NextResponse.json(
-    { error: 'Le tue Prenotazioni GDR temporanee non sono disponibili finché la migrazione Prisma 20260511_add_gdr_day_cart_holds non viene applicata.' },
-    { status: 503 },
-  )
 }
 
 /**
@@ -348,9 +334,6 @@ export async function handleGetEventBookingStatus(eventId) {
 }
 
 export async function handleAddEventCartSlot(request, { eventId, displayName }) {
-  const unavailableCartHoldResponse = await getUnavailableCartHoldResponse()
-  if (unavailableCartHoldResponse) return unavailableCartHoldResponse
-
   const { user, error, status } = await requireAuthenticatedApi()
   if (error) return NextResponse.json({ error }, { status })
 
@@ -559,9 +542,6 @@ export async function handleAddEventCartSlot(request, { eventId, displayName }) 
 }
 
 export async function handleRemoveEventCartSlot({ eventId, slotId }) {
-  const unavailableCartHoldResponse = await getUnavailableCartHoldResponse()
-  if (unavailableCartHoldResponse) return unavailableCartHoldResponse
-
   const { user, error, status } = await requireAuthenticatedApi()
   if (error) return NextResponse.json({ error }, { status })
 
@@ -613,9 +593,6 @@ export async function handleRemoveEventCartSlot({ eventId, slotId }) {
 // suo account: la riga dell'invitato non ha un userId proprio (invitedByUserId
 // al posto suo), quindi va cercata per id + invitedByUserId, non per userId.
 export async function handleRemoveEventCartCompanion({ eventId, reservationId }) {
-  const unavailableCartHoldResponse = await getUnavailableCartHoldResponse()
-  if (unavailableCartHoldResponse) return unavailableCartHoldResponse
-
   const { user, error, status } = await requireAuthenticatedApi()
   if (error) return NextResponse.json({ error }, { status })
 
@@ -652,9 +629,6 @@ export async function handleRemoveEventCartCompanion({ eventId, reservationId })
 
 // Stesso ritiro invito, ma per una sessione Main Event.
 export async function handleRemoveEventCartMainEventCompanion({ eventId, reservationId }) {
-  const unavailableCartHoldResponse = await getUnavailableCartHoldResponse()
-  if (unavailableCartHoldResponse) return unavailableCartHoldResponse
-
   const { user, error, status } = await requireAuthenticatedApi()
   if (error) return NextResponse.json({ error }, { status })
 
@@ -690,9 +664,6 @@ export async function handleRemoveEventCartMainEventCompanion({ eventId, reserva
 }
 
 export async function handleAddEventCartMainEventSlot(request, { eventId, displayName }) {
-  const unavailableCartHoldResponse = await getUnavailableCartHoldResponse()
-  if (unavailableCartHoldResponse) return unavailableCartHoldResponse
-
   const { user, error, status } = await requireAuthenticatedApi()
   if (error) return NextResponse.json({ error }, { status })
 
@@ -901,9 +872,6 @@ export async function handleAddEventCartMainEventSlot(request, { eventId, displa
 }
 
 export async function handleRemoveEventCartMainEventSlot({ eventId, mainEventId, day, slot }) {
-  const unavailableCartHoldResponse = await getUnavailableCartHoldResponse()
-  if (unavailableCartHoldResponse) return unavailableCartHoldResponse
-
   const { user, error, status } = await requireAuthenticatedApi()
   if (error) return NextResponse.json({ error }, { status })
 
@@ -948,9 +916,6 @@ export async function handleRemoveEventCartMainEventSlot({ eventId, mainEventId,
 }
 
 export async function handleClearEventCart(eventId) {
-  const unavailableCartHoldResponse = await getUnavailableCartHoldResponse()
-  if (unavailableCartHoldResponse) return unavailableCartHoldResponse
-
   const { user, error, status } = await requireAuthenticatedApi()
   if (error) return NextResponse.json({ error }, { status })
 
@@ -997,9 +962,6 @@ export async function handleClearEventCart(eventId) {
 }
 
 export async function handleCreateEventAdmission(request, eventId, { displayName } = {}) {
-  const unavailableCartHoldResponse = await getUnavailableCartHoldResponse()
-  if (unavailableCartHoldResponse) return unavailableCartHoldResponse
-
   const { user, error, status } = await requireAuthenticatedApi()
   if (error) return NextResponse.json({ error }, { status })
 
@@ -1111,9 +1073,6 @@ export async function handleDeleteEventAdmission(request, eventId) {
 }
 
 export async function handleConfirmEventCart(eventId) {
-  const unavailableCartHoldResponse = await getUnavailableCartHoldResponse()
-  if (unavailableCartHoldResponse) return unavailableCartHoldResponse
-
   const { user, error, status } = await requireAuthenticatedApi()
   if (error) return NextResponse.json({ error }, { status })
 

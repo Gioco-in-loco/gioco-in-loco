@@ -206,7 +206,7 @@ export default function TableScheduleMap({ slots, loading, onCellClick, isCellCl
                         </>
                       ) : (
                         <p className="font-body text-xs text-editorial-text-muted">
-                          Libero · {cell.maxPlayers} posti{cell.adminOnly ? ' · Riservato admin' : ''}{cell.isVisible === false ? ' · Nascosto' : ''}{cell.bookingEnabled === false ? ' · Prenotazioni chiuse' : ''}
+                          Libero · {cell.maxPlayers} posti liberi {cell.adminOnly ? ' · Riservato admin' : ''}{cell.isVisible === false ? ' · Nascosto' : ''}{cell.bookingEnabled === false ? ' · Prenotazioni chiuse' : ''}
                         </p>
                       )}
                     </button>
