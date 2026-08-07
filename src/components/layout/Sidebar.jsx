@@ -11,6 +11,11 @@ const navItems = [
     id: 'dice-fest',
     label: 'DICE FEST',
     href: '/dice-fest',
+    children: [
+      { id: 'dice-fest-home', label: 'Homepage', href: '/dice-fest' },
+      { id: 'dice-fest-sessioni', label: 'Sessioni', href: '/dice-fest/sessioni' },
+      { id: 'dice-fest-carrello', label: 'Ordine', href: '/dice-fest/carrello' },
+    ],
   },
   {
     id: 'comicon-2026',
@@ -28,6 +33,10 @@ const navItems = [
     href: '/contattaci',
   },
 ]
+
+function isWithinSection(pathname, item) {
+  return pathname === item.href || pathname.startsWith(`${item.href}/`)
+}
 
 // One variant map for the whole navigation chrome (mobile bar, mobile
 // overlay, desktop aside). /comicon-2026 is the only route that keeps the
@@ -169,6 +178,7 @@ function getEventHref(event) {
 
 export default function Sidebar({ onNavigate, upcomingEvent }) {
   const [isOpen, setIsOpen] = useState(false)
+  const [expandedId, setExpandedId] = useState(null)
   const [resolvedUpcomingEvent, setResolvedUpcomingEvent] = useState(upcomingEvent)
   const location = useLocation()
   const isComicRoute = location.pathname === '/comicon-2026'
@@ -185,6 +195,11 @@ export default function Sidebar({ onNavigate, upcomingEvent }) {
   useEffect(() => {
     setResolvedUpcomingEvent(upcomingEvent)
   }, [upcomingEvent])
+
+  useEffect(() => {
+    const activeParent = navItems.find((item) => item.children && isWithinSection(location.pathname, item))
+    setExpandedId(activeParent ? activeParent.id : null)
+  }, [location.pathname])
 
   useEffect(() => {
     if (isPasswordRecovery && location.pathname !== '/auth/update-password' && location.pathname !== '/') {
@@ -232,6 +247,10 @@ export default function Sidebar({ onNavigate, upcomingEvent }) {
       onNavigate(href)
     }
     setIsOpen(false)
+  }
+
+  const toggleExpand = (id) => {
+    setExpandedId((prev) => (prev === id ? null : id))
   }
 
   const upcomingEventHref = getEventHref(resolvedUpcomingEvent)
@@ -284,15 +303,55 @@ export default function Sidebar({ onNavigate, upcomingEvent }) {
         >
           <nav className="flex-1 overflow-y-auto p-5">
             <div className="space-y-3">
-              {navItems.map((item) => (
-                <button
-                  key={item.id}
-                  onClick={() => handleNavigation(item.href)}
-                  className={`group w-full flex items-center px-5 py-4 min-h-[44px] ${theme.mobileNavButton}`}
-                >
-                  {item.label}
-                </button>
-              ))}
+              {navItems.map((item) => {
+                const hasChildren = Boolean(item.children)
+                const isExpanded = expandedId === item.id
+
+                if (!hasChildren) {
+                  return (
+                    <button
+                      key={item.id}
+                      onClick={() => handleNavigation(item.href)}
+                      className={`group w-full flex items-center px-5 py-4 min-h-[44px] ${theme.mobileNavButton}`}
+                    >
+                      {item.label}
+                    </button>
+                  )
+                }
+
+                return (
+                  <div key={item.id}>
+                    <button
+                      onClick={() => toggleExpand(item.id)}
+                      aria-expanded={isExpanded}
+                      className={`group w-full flex items-center justify-between px-5 py-4 min-h-[44px] ${theme.mobileNavButton}`}
+                    >
+                      <span>{item.label}</span>
+                      <svg
+                        className={`w-4 h-4 flex-shrink-0 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </button>
+                    {isExpanded && (
+                      <div className="mt-2 ml-4 space-y-2">
+                        {item.children.map((child) => (
+                          <button
+                            key={child.id}
+                            onClick={() => handleNavigation(child.href)}
+                            className={`w-full flex items-center px-5 py-3 min-h-[44px] text-sm ${theme.mobileNavButton}`}
+                          >
+                            {child.label}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
             </div>
 
             {isConfigured && (
@@ -372,15 +431,55 @@ export default function Sidebar({ onNavigate, upcomingEvent }) {
 
         <nav className="flex-1 px-4 pt-4 pb-4">
           <div className="space-y-2">
-            {navItems.map((item) => (
-              <button
-                key={item.id}
-                onClick={() => handleNavigation(item.href)}
-                className={`group w-full flex items-center px-4 py-3 ${theme.navButton}`}
-              >
-                <span className={theme.navButtonText}>{item.label}</span>
-              </button>
-            ))}
+            {navItems.map((item) => {
+              const hasChildren = Boolean(item.children)
+              const isExpanded = expandedId === item.id
+
+              if (!hasChildren) {
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => handleNavigation(item.href)}
+                    className={`group w-full flex items-center px-4 py-3 ${theme.navButton}`}
+                  >
+                    <span className={theme.navButtonText}>{item.label}</span>
+                  </button>
+                )
+              }
+
+              return (
+                <div key={item.id}>
+                  <button
+                    onClick={() => toggleExpand(item.id)}
+                    aria-expanded={isExpanded}
+                    className={`group w-full flex items-center justify-between px-4 py-3 ${theme.navButton}`}
+                  >
+                    <span className={theme.navButtonText}>{item.label}</span>
+                    <svg
+                      className={`w-4 h-4 flex-shrink-0 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
+                  {isExpanded && (
+                    <div className="mt-2 ml-4 space-y-2">
+                      {item.children.map((child) => (
+                        <button
+                          key={child.id}
+                          onClick={() => handleNavigation(child.href)}
+                          className={`w-full flex items-center px-4 py-2.5 text-sm ${theme.navButton}`}
+                        >
+                          <span className={theme.navButtonText}>{child.label}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )
+            })}
           </div>
         </nav>
 

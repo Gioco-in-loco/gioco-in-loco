@@ -58,7 +58,7 @@ export function isMailerConfigured() {
   return Boolean(getMailerConfig())
 }
 
-export async function sendMail({ to, subject, text, html }) {
+export async function sendMail({ to, subject, text, html, attachments }) {
   const config = getMailerConfig()
 
   if (!config) {
@@ -80,6 +80,7 @@ export async function sendMail({ to, subject, text, html }) {
       subject,
       text,
       html,
+      ...(attachments ? { attachments } : {}),
     })
     console.log('[mailer] Email inviata', { to, messageId: info?.messageId, response: info?.response })
     return info

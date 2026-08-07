@@ -1,9 +1,10 @@
 import { prisma } from './prisma'
 import { cancelUserMainEventReservation } from './main-event-booking'
+import { resolveBookingScheduleRange } from './booking-schedule'
 
 const DAY_ORDER = ['Lunedi', 'Martedi', 'Mercoledi', 'Giovedi', 'Venerdi', 'Sabato', 'Domenica', 'Giovedì', 'Venerdì']
 const ACCOUNT_BOOKING_VISIBLE_STATUSES = ['PENDING', 'CONFIRMED', 'ATTENDED', 'CANCELLED']
-const ACCOUNT_BOOKING_ACTIVE_STATUSES = ['PENDING', 'CONFIRMED', 'ATTENDED']
+export const ACCOUNT_BOOKING_ACTIVE_STATUSES = ['PENDING', 'CONFIRMED', 'ATTENDED']
 
 function getUpcomingEventWhere(now) {
   return {
@@ -130,8 +131,26 @@ function serializeCompanion(companion) {
   }
 }
 
-function serializeOneShotBooking(reservation, { cancellationReason = null, companions = [] } = {}) {
+// Resolves the real UTC start/end for a booking using the raw (un-serialized)
+// event and schedule — must run before getEventSummary/normalizeDate turn
+// the event's dates into ISO strings, since the resolver needs real Date
+// objects. Shared by the timeline, the .ics export and the calendar email.
+function getScheduleFields(event, schedule, dayCache) {
+  const range = resolveBookingScheduleRange({ event, schedule }, { cache: dayCache })
+  return {
+    scheduleStart: range ? range.start.toISOString() : null,
+    scheduleEnd: range ? range.end.toISOString() : null,
+    scheduleAllDay: range ? range.allDay : false,
+  }
+}
+
+function serializeOneShotBooking(reservation, { cancellationReason = null, companions = [], dayCache } = {}) {
   const event = getUpcomingLinkedEvent(reservation.slot.oneshot.eventLinks)
+  const schedule = {
+    day: reservation.slot.day,
+    slot: reservation.slot.slot,
+    table: reservation.slot.table,
+  }
 
   return {
     id: reservation.id,
@@ -150,16 +169,19 @@ function serializeOneShotBooking(reservation, { cancellationReason = null, compa
       hostLabel: reservation.slot.oneshot.master ? `Master: ${reservation.slot.oneshot.master}` : null,
       associationName: reservation.slot.oneshot.association?.name || null,
     },
-    schedule: {
-      day: reservation.slot.day,
-      slot: reservation.slot.slot,
-      table: reservation.slot.table,
-    },
+    schedule,
+    ...getScheduleFields(event, schedule, dayCache),
     companions: companions.map(serializeCompanion),
   }
 }
 
-function serializeMainEventBooking(reservation, { cancellationReason = null, companions = [] } = {}) {
+function serializeMainEventBooking(reservation, { cancellationReason = null, companions = [], dayCache } = {}) {
+  const schedule = {
+    day: reservation.day,
+    slot: reservation.slot,
+    table: null,
+  }
+
   return {
     id: reservation.id,
     bookingType: 'main-event',
@@ -177,18 +199,20 @@ function serializeMainEventBooking(reservation, { cancellationReason = null, com
       hostLabel: null,
       associationName: null,
     },
-    schedule: {
-      day: reservation.day,
-      slot: reservation.slot,
-      table: null,
-    },
+    schedule,
+    ...getScheduleFields(reservation.event, schedule, dayCache),
     companions: companions.map(serializeCompanion),
   }
 }
 
-function serializeEventAdmissionBooking(admission, { hasOtherActiveBookings, cancellationReason = null }) {
+function serializeEventAdmissionBooking(admission, { hasOtherActiveBookings, cancellationReason = null, dayCache }) {
   const eventSummary = getEventSummary(admission.event)
   const canCancel = getCanCancelStatus(admission.status) && !hasOtherActiveBookings
+  const schedule = {
+    day: admission.day || null,
+    slot: null,
+    table: null,
+  }
 
   return {
     id: admission.id,
@@ -209,11 +233,8 @@ function serializeEventAdmissionBooking(admission, { hasOtherActiveBookings, can
       hostLabel: admission.pricePaid == null || admission.pricePaid <= 0 ? 'Ingresso gratuito' : `Importo: ${new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR' }).format(admission.pricePaid)}`,
       associationName: null,
     },
-    schedule: {
-      day: admission.day || null,
-      slot: null,
-      table: null,
-    },
+    schedule,
+    ...getScheduleFields(admission.event, schedule, dayCache),
   }
 }
 
@@ -428,22 +449,43 @@ export async function getUserAccountBookings({ userId, db = prisma }) {
     companionsBySessionKey.get(key).push(companion)
   }
 
+  const dayCache = new Map()
+
   return [
     ...oneShotReservations.map((reservation) => serializeOneShotBooking(reservation, {
       cancellationReason: cancellationReasonByReservationId.get(reservation.id) || null,
       companions: companionsBySlotId.get(reservation.slotId) || [],
+      dayCache,
     })),
     ...mainEventReservations.map((reservation) => serializeMainEventBooking(reservation, {
       cancellationReason: cancellationReasonByMainEventReservationId.get(reservation.id) || null,
       companions: companionsBySessionKey.get(`${reservation.mainEventId}__${reservation.event.id}__${reservation.day}__${reservation.slot}`) || [],
+      dayCache,
     })),
     ...eventAdmissions.map((admission) => serializeEventAdmissionBooking(admission, {
       hasOtherActiveBookings: admission.day
         ? (activeBookingsByEventDay.get(`${admission.event.id}__${admission.day}`) || 0) > 0
         : (activeBookingsByEventId.get(admission.event.id) || 0) > 0,
       cancellationReason: cancellationReasonByAdmissionId.get(admission.id) || null,
+      dayCache,
     })),
   ].sort(sortBookings)
+}
+
+// Bookings ready to become calendar events: active status + a resolvable
+// real date. Used by both the .ics download and the calendar email — a
+// cancelled or undated booking has no business being on a calendar.
+export function getIcsReadyBookings(bookings) {
+  return bookings
+    .filter((booking) => ACCOUNT_BOOKING_ACTIVE_STATUSES.includes(booking.status) && booking.scheduleStart)
+    .map((booking) => ({
+      booking,
+      schedule: {
+        start: new Date(booking.scheduleStart),
+        end: new Date(booking.scheduleEnd),
+        allDay: booking.scheduleAllDay,
+      },
+    }))
 }
 
 export async function cancelUserAccountBooking({ bookingType, bookingId, userId, db = prisma }) {
