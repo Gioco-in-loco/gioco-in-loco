@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { formatRomeDateTimeLocal } from '../../lib/rome-datetime'
 
 const WEEK_DAYS = ['Lunedi', 'Martedi', 'Mercoledi', 'Giovedi', 'Venerdi', 'Sabato', 'Domenica']
 const TIME_SLOT_PATTERN = '^([01]\\d|2[0-3]):[0-5]\\d-([01]\\d|2[0-3]):[0-5]\\d$'
@@ -19,9 +20,7 @@ export function toInputDate(dateStr) {
 }
 
 export function toInputDateTime(dateStr) {
-  if (!dateStr) return ''
-  const iso = new Date(dateStr).toISOString()
-  return iso.slice(0, 16)
+  return formatRomeDateTimeLocal(dateStr)
 }
 
 export default function EventForm({ initial = EMPTY_FORM, onSave, onCancel, isNew }) {

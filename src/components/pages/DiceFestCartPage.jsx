@@ -34,12 +34,12 @@ export default function DiceFestCartPage({ event }) {
     }
     try {
       const response = await fetch(`${DICE_FEST_BOOKING_CONFIG.apiBasePath}/cart`, { cache: 'no-store', credentials: 'same-origin' })
-      if (!response.ok) throw new Error('Impossibile caricare le tue Prenotazioni.')
+      if (!response.ok) throw new Error('Impossibile caricare il tuo ordine.')
       const payload = await response.json()
       setCartState({ loading: false, ...payload })
     } catch (err) {
       setCartState({ ...createEmptyGdrEventCartState(), loading: false })
-      setRequestState({ loading: false, error: err.message || 'Impossibile caricare le tue Prenotazioni.' })
+      setRequestState({ loading: false, error: err.message || 'Impossibile caricare il tuo ordine.' })
     }
   }, [user])
 
@@ -200,7 +200,7 @@ export default function DiceFestCartPage({ event }) {
       setCartState({ loading: false, ...payload })
       setRequestState({ loading: false, error: '' })
       setJustConfirmed(true)
-      toast.success('Prepara i dadi! Le tue prenotazioni sono confermate, ci vediamo tavolo!')
+      toast.success('Prepara i dadi! Il tuo ordine è confermato, ci vediamo al tavolo!')
     } catch (err) {
       const msg = err.message || 'Impossibile confermare la prenotazione.'
       setRequestState({ loading: false, error: msg })
@@ -272,7 +272,7 @@ export default function DiceFestCartPage({ event }) {
                 Solo i nomi in prenotazione
               </h1>
               <p className="mx-auto mt-3 max-w-md font-df-body text-[15px] leading-relaxed text-dicefest-paper/75">
-                Le tue Prenotazioni sono personali e le prenotazioni durano 10 minuti. Accedi per vedere i tavoli che hai bloccato e confermare la tua prenotazione.
+                Il tuo ordine è personale e le prenotazioni durano 10 minuti. Accedi per vedere i tavoli che hai bloccato e confermare la tua prenotazione.
               </p>
               <div className="mt-7 flex flex-wrap justify-center gap-3">
                 <Link href="/auth/login?next=/dice-fest/carrello" className="dicefest-btn-primary">Accedi</Link>
@@ -301,7 +301,7 @@ export default function DiceFestCartPage({ event }) {
           <div>
             <p className="dicefest-eyebrow">Conferma Prenotazioni</p>
             <h1 className="mt-3 font-df-display text-4xl uppercase text-dicefest-paper sm:text-5xl">
-              Le tue Prenotazioni
+              Il tuo ordine
             </h1>
             <p className="mt-3 max-w-xl font-df-body text-[15px] leading-relaxed text-dicefest-paper/75">
               I tavoli che hai prenotato rimangono bloccati per dieci minuti. Confermali per renderli definitivi.
@@ -332,10 +332,10 @@ export default function DiceFestCartPage({ event }) {
                 Prepara i Dadi!
               </h2>
               <p className="mx-auto mt-3 max-w-md font-df-body text-[15px] leading-relaxed text-dicefest-paper/75">
-                Le tue prenotazioni sono confermate. Ci vediamo al tavolo.
+                Il tuo ordine è confermato. Ci vediamo al tavolo.
               </p>
               <div className="mt-7 flex flex-wrap justify-center gap-3">
-                <Link href="/account" className="dicefest-btn-primary">Vedi le tue prenotazioni</Link>
+                <Link href="/account/prenotazioni" className="dicefest-btn-primary">Vedi le tue prenotazioni</Link>
                 <Link href="/dice-fest" className="dicefest-btn-secondary">Torna all&apos;evento</Link>
               </div>
             </div>
@@ -448,7 +448,7 @@ const PendingOrderLayout = memo(function PendingOrderLayout({
         {filteredMainCartSlots.length > 0 ? (
           <ParchmentCard>
             <div className="px-6 py-5 sm:px-7">
-              <p className="dicefest-eyebrow">Evento principale nelle tue Prenotazioni</p>
+              <p className="dicefest-eyebrow">Evento principale nel tuo ordine</p>
               <ul className="mt-4 space-y-3">
                 {filteredMainCartSlots.map((slot) => (
                   <li key={`${slot.mainEventId}-${slot.day}-${slot.slot}`} className="dicefest-slot-card dicefest-slot-card--in-cart">
@@ -557,7 +557,7 @@ const PendingOrderLayout = memo(function PendingOrderLayout({
         <ParchmentCard className="dicefest-surface--accent">
           <div className="px-6 py-6 sm:px-7">
             <p className="dicefest-eyebrow">Riepilogo</p>
-            <h2 className="mt-3 font-df-display text-2xl uppercase text-dicefest-paper">Conferma le tue prenotazioni</h2>
+            <h2 className="mt-3 font-df-display text-2xl uppercase text-dicefest-paper">Conferma il tuo ordine</h2>
             <p className="mt-2 font-df-body text-sm leading-relaxed text-dicefest-paper/75">
               Finché il timer è attivo, tutte le scelte selezionate sono bloccate ma non confermate. Alla conferma diventano definitive.
             </p>
@@ -610,7 +610,7 @@ const ConfirmedMainReservationsSection = memo(function ConfirmedMainReservations
       <SigilDivider className="my-12" />
       <section>
         <p className="dicefest-eyebrow">Evento Principale</p>
-        <h2 className="mt-3 font-df-display text-2xl uppercase text-dicefest-paper sm:text-3xl">Le tue prenotazioni Main Event</h2>
+        <h2 className="mt-3 font-df-display text-2xl uppercase text-dicefest-paper sm:text-3xl">Le tue prenotazioni di Main Event</h2>
         <p className="mt-2 max-w-2xl font-df-body text-sm leading-relaxed text-dicefest-paper/75">
           Le prenotazioni del Main Event sono già confermate. Da qui puoi cancellarle se non potrai più partecipare.
         </p>

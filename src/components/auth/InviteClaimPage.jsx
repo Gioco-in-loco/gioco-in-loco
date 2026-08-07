@@ -134,7 +134,7 @@ export default function InviteClaimPage({ code }) {
           </div>
         )}
         <Link href={accepted.length > 0 ? resolveCartHref(accepted) : '/account/prenotazioni'} className="btn-primary w-full mt-2 inline-block text-center">
-          {accepted.length > 0 ? 'Vai al carrello e completa il checkout' : 'Vai alle tue prenotazioni'}
+          {accepted.length > 0 ? 'Vai al carrello e completa il checkout' : 'Vai al tuo ordine'}
         </Link>
       </AuthShell>
     )

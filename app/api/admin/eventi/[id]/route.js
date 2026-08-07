@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { prisma } from '../../../../../src/lib/prisma'
 import { requireAdminApi } from '../../../../../src/lib/admin-guard'
 import { normalizeEventDays, normalizeEventTimeSlots } from '../../../../../src/lib/oneshots-management'
+import { parseRomeDateTimeLocal } from '../../../../../src/lib/rome-datetime'
 
 const EVENT_VISIBILITY_VALUES = new Set(['PREVIEW', 'REVEALED'])
 
@@ -53,7 +54,7 @@ export async function PATCH(request, { params }) {
         ...(timeSlots !== undefined && { timeSlots }),
         ...(startDate !== undefined && { startDate: startDate ? new Date(startDate) : null }),
         ...(endDate !== undefined && { endDate: endDate ? new Date(endDate) : null }),
-        ...(bookingOpensAt !== undefined && { bookingOpensAt: bookingOpensAt ? new Date(bookingOpensAt) : null }),
+        ...(bookingOpensAt !== undefined && { bookingOpensAt: bookingOpensAt ? parseRomeDateTimeLocal(bookingOpensAt) : null }),
         ...(visibility !== undefined && { visibility }),
       },
     })

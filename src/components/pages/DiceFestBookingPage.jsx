@@ -40,9 +40,16 @@ export default function DiceFestBookingPage({ event }) {
   const [requestError, setRequestError] = useState('')
   const [filters, setFilters] = useState(EMPTY_FILTERS)
   const [activeDay, setActiveDay] = useState('')
-  const [openedEntry, setOpenedEntry] = useState(null)
+  // Stores a stable key rather than the entry object itself: the object
+  // captured at click time would freeze the modal's seat count (remaining/
+  // maxPlayers) at whatever it was when opened, so it wouldn't reflect a
+  // reservation added/removed while the modal stays open (e.g. booking the
+  // host's own seat, then inviting companions based on stale capacity).
+  // Re-deriving from the live allEntries on every render keeps it current.
+  const [openedEntryKey, setOpenedEntryKey] = useState(null)
 
   const [mainEventItems, setMainEventItems] = useState(event.mainEvents || [])
+  const [oneshotItems, setOneshotItems] = useState(event.oneshots || [])
   const [pendingMainSessionKey, setPendingMainSessionKey] = useState(null)
   const [pendingWaitlistDay, setPendingWaitlistDay] = useState(null)
   const [showSummary, setShowSummary] = useState(false)
@@ -58,10 +65,14 @@ export default function DiceFestBookingPage({ event }) {
   // a wrong server call or mislead the user with stale UI.
   const busy = Boolean(cartState.loading || pendingSlotId || pendingMainSessionKey)
 
-  // Sync main events when event prop changes
+  // Sync main events / one-shots when event prop changes
   useEffect(() => {
     setMainEventItems(event.mainEvents || [])
   }, [event.mainEvents])
+
+  useEffect(() => {
+    setOneshotItems(event.oneshots || [])
+  }, [event.oneshots])
 
   // Load unified event cart state
   useEffect(() => {
@@ -110,6 +121,17 @@ export default function DiceFestBookingPage({ event }) {
     }))
   }, [])
 
+  const updateOneshotSlotCount = useCallback((slotId, delta) => {
+    setOneshotItems((current) => current.map((oneshot) => {
+      const nextSlots = (oneshot.slots || []).map((s) => {
+        if (s.id !== slotId) return s
+        const next = Math.max(0, (s.currentReservations || 0) + delta)
+        return { ...s, currentReservations: next, available: next < s.maxPlayers }
+      })
+      return { ...oneshot, slots: nextSlots }
+    }))
+  }, [])
+
   const handleAddOneshot = useCallback(async (slot, companions = []) => {
     if (!user) {
       window.location.href = '/auth/login?next=/dice-fest/sessioni'
@@ -129,9 +151,10 @@ export default function DiceFestBookingPage({ event }) {
       const payload = await response.json().catch(() => ({}))
       if (!response.ok) throw new Error(payload.error || 'Impossibile prenotare il tavolo.')
       setCartState({ loading: false, ...payload })
+      updateOneshotSlotCount(slot.id, 1)
       toast.success(companions.length > 0
-        ? `Tavolo prenotato. ${companions.length === 1 ? 'Il tuo amico riceverà' : 'I tuoi amici riceveranno'} l\'email di invito quando confermi l\'ordine.`
-        : `Tavolo prenotato: ${slot.day} · ${slot.slot}.`)
+        ? `Tavolo aggiunto all’ordine. ${companions.length === 1 ? 'Il tuo amico riceverà' : 'I tuoi amici riceveranno'} l\'email di invito quando confermi l\'ordine.`
+        : `Tavolo aggiunto all’ordine: ${slot.day} · ${slot.slot}.`)
       return true
     } catch (err) {
       const msg = err.message || 'Impossibile prenotare il tavolo.'
@@ -142,7 +165,7 @@ export default function DiceFestBookingPage({ event }) {
       setPendingSlotId(null)
       inFlightRef.current = false
     }
-  }, [toast, user])
+  }, [toast, updateOneshotSlotCount, user])
 
   const handleRemoveOneshot = useCallback(async (slot) => {
     if (!user) return
@@ -158,6 +181,7 @@ export default function DiceFestBookingPage({ event }) {
       const payload = await response.json().catch(() => ({}))
       if (!response.ok) throw new Error(payload.error || 'Impossibile rimuovere il tavolo.')
       setCartState({ loading: false, ...payload })
+      updateOneshotSlotCount(slot.id, -1)
       toast.success(`Tavolo abbandonato: ${slot.day} · ${slot.slot}.`)
     } catch (err) {
       const msg = err.message || 'Impossibile rimuovere il tavolo.'
@@ -167,7 +191,7 @@ export default function DiceFestBookingPage({ event }) {
       setPendingSlotId(null)
       inFlightRef.current = false
     }
-  }, [toast, user])
+  }, [toast, updateOneshotSlotCount, user])
 
   const handleJoinWaitlist = useCallback(async (day) => {
     if (!user) {
@@ -333,26 +357,38 @@ export default function DiceFestBookingPage({ event }) {
   )
 
   const filterOptions = useMemo(() => ({
-    associations: buildTextFilterOptions((event.oneshots || []).map((item) => item.association?.name)),
+    associations: buildTextFilterOptions(oneshotItems.map((item) => item.association?.name)),
     games: buildTextFilterOptions([
-      ...(event.oneshots || []).map((item) => item.game),
+      ...oneshotItems.map((item) => item.game),
       ...mainEventItems.map((item) => item.game),
     ]),
-    masters: buildTextFilterOptions((event.oneshots || []).map((item) => item.master)),
-  }), [event.oneshots, mainEventItems])
+    masters: buildTextFilterOptions(oneshotItems.map((item) => item.master)),
+  }), [oneshotItems, mainEventItems])
 
   // Tutti i tavoli della sala, uniti in un'unica lista: la mappa mostra sempre
   // la struttura completa, i filtri attenuano invece di nascondere le celle
   // (altrimenti la griglia righe/colonne si romperebbe).
   const allEntries = useMemo(() => {
-    const oneshotEntries = (event.oneshots || []).flatMap((oneshot) =>
+    const oneshotEntries = oneshotItems.flatMap((oneshot) =>
       (oneshot.slots || []).map((slot) => ({ type: 'oneshot', oneshot, slot }))
     )
     const mainEventEntries = mainEventItems.flatMap((mainEvent) =>
       (mainEvent.tables || []).map((slot) => ({ type: 'mainEvent', mainEvent, slot }))
     )
     return [...oneshotEntries, ...mainEventEntries]
-  }, [event.oneshots, mainEventItems])
+  }, [oneshotItems, mainEventItems])
+
+  const getEntryKey = useCallback((entry) => (
+    entry.type === 'oneshot'
+      ? `oneshot:${entry.slot.id}`
+      : `mainEvent:${mainSessionKey(entry.mainEvent.id, entry.slot.day, entry.slot.slot)}`
+  ), [mainSessionKey])
+
+  // Re-derived every render from the live allEntries — see openedEntryKey comment above.
+  const openedEntry = useMemo(
+    () => (openedEntryKey ? allEntries.find((entry) => getEntryKey(entry) === openedEntryKey) || null : null),
+    [allEntries, openedEntryKey, getEntryKey]
+  )
 
   const hiddenSlots = event.hiddenSlots || []
 
@@ -380,7 +416,7 @@ export default function DiceFestBookingPage({ event }) {
 
   const matchingCount = useMemo(() => allEntries.filter((entry) => !isDimmed(entry)).length, [allEntries, isDimmed])
 
-  const fullyBookedDays = useMemo(() => computeFullyBookedDays(event.oneshots), [event.oneshots])
+  const fullyBookedDays = useMemo(() => computeFullyBookedDays(oneshotItems), [oneshotItems])
 
   const cartItemsCount = cartState.cartSlots.length
   const mainCartItemsCount = filteredMainCartSlots.length
@@ -437,7 +473,7 @@ export default function DiceFestBookingPage({ event }) {
         {cartState.loading && user ? (
           <p className="mt-5 inline-flex items-center gap-2 border border-dicefest-green/40 bg-dicefest-green/10 px-4 py-2.5 font-df-body text-sm text-dicefest-paper">
             <span className="inline-block h-2.5 w-2.5 animate-pulse bg-dicefest-green" aria-hidden="true" />
-            Carico le tue sessioni…
+            Carico il tuo ordine…
           </p>
         ) : null}
 
@@ -506,9 +542,8 @@ export default function DiceFestBookingPage({ event }) {
                           cartState={cartState}
                           pendingSlotId={pendingSlotId}
                           busy={busy}
-                          onAdd={handleAddOneshot}
                           onRemove={handleRemoveOneshot}
-                          onOpenDetails={() => setOpenedEntry(entry)}
+                          onOpenDetails={() => setOpenedEntryKey(getEntryKey(entry))}
                           isLoggedIn={Boolean(user)}
                           isAdmin={Boolean(user?.isAdmin)}
                         />
@@ -526,10 +561,9 @@ export default function DiceFestBookingPage({ event }) {
                         hasOneshotConflict={oneshotConflictKeys.has(getSlotKey(entry.slot))}
                         pendingSessionKey={pendingMainSessionKey}
                         busy={busy}
-                        onAdd={handleAddMainToCart}
                         onRemove={handleRemoveMainFromCart}
                         onCancel={handleCancelMain}
-                        onOpenDetails={() => setOpenedEntry(entry)}
+                        onOpenDetails={() => setOpenedEntryKey(getEntryKey(entry))}
                         isLoggedIn={Boolean(user)}
                         isAdmin={Boolean(user?.isAdmin)}
                       />
@@ -554,7 +588,7 @@ export default function DiceFestBookingPage({ event }) {
             className="flex items-center gap-3 border-2 border-dicefest-ink bg-dicefest-pink px-5 py-3 font-df-mono text-sm font-bold uppercase tracking-wide text-dicefest-ink shadow-df-hard transition-transform hover:-translate-y-0.5"
           >
             <span className="dicefest-badge dicefest-badge--neutral">{pendingOrderCount}</span>
-            <span>Riepilogo sessioni</span>
+            <span>Clicca qui per confermare</span>
             {timeRemaining ? <span className="font-df-display text-dicefest-ink">{timeRemaining}</span> : null}
           </button>
         </div>
@@ -587,7 +621,7 @@ export default function DiceFestBookingPage({ event }) {
             busy={busy}
             onAdd={handleAddOneshot}
             onRemove={handleRemoveOneshot}
-            onClose={() => setOpenedEntry(null)}
+            onClose={() => setOpenedEntryKey(null)}
             isLoggedIn={Boolean(user)}
             isAdmin={Boolean(user?.isAdmin)}
           />
@@ -607,7 +641,7 @@ export default function DiceFestBookingPage({ event }) {
               onAdd={handleAddMainToCart}
               onRemove={handleRemoveMainFromCart}
               onCancel={handleCancelMain}
-              onClose={() => setOpenedEntry(null)}
+              onClose={() => setOpenedEntryKey(null)}
               isLoggedIn={Boolean(user)}
               isAdmin={Boolean(user?.isAdmin)}
             />
@@ -821,16 +855,16 @@ function computeOneShotState({ slot, cartState, isLoggedIn, isAdmin = false, isP
     disabled = isPending
     variant = 'in-cart'
   } else if (conflictConfirmed) {
-    label = 'Slot occupato'
-    verboseLabel = 'Hai già un\'altra sessione in questa fascia'
+    label = 'Orario occupato'
+    verboseLabel = 'Hai un\'altra sessione a questo orario'
     disabled = true
   } else if (conflictCart) {
-    label = 'Slot occupato'
-    verboseLabel = 'Hai già un\'altra sessione in questa fascia'
+    label = 'Orario occupato'
+    verboseLabel = 'Hai un\'altra sessione a questo orario'
     disabled = true
   } else {
-    label = isPending ? 'Prenoto…' : 'Prenota'
-    verboseLabel = isPending ? 'Prenoto…' : 'Prenota il posto'
+    label = 'Scopri di più'
+    verboseLabel = isPending ? 'Aggiungo…' : 'Aggiungi all\'ordine'
     disabled = isPending
   }
 
@@ -842,7 +876,7 @@ function computeOneShotState({ slot, cartState, isLoggedIn, isAdmin = false, isP
   return { confirmed, inCart, full, notYetOpen, fewLeft, remaining, label, verboseLabel, actionKind, disabled, variant }
 }
 
-function OneShotMapCell({ session, cartState, pendingSlotId, busy, onAdd, onRemove, onOpenDetails, isLoggedIn, isAdmin }) {
+function OneShotMapCell({ session, cartState, pendingSlotId, busy, onRemove, onOpenDetails, isLoggedIn, isAdmin }) {
   const { oneshot, slot } = session
   const isPending = pendingSlotId === slot.id
   const state = computeOneShotState({ slot, cartState, isLoggedIn, isAdmin, isPending, busy })
@@ -852,7 +886,7 @@ function OneShotMapCell({ session, cartState, pendingSlotId, busy, onAdd, onRemo
     if (state.actionKind === 'login') {
       window.location.href = '/auth/login?next=/dice-fest/sessioni'
     } else if (state.actionKind === 'add') {
-      onAdd(slot)
+      onOpenDetails()
     } else if (state.actionKind === 'remove') {
       onRemove(slot)
     }
@@ -888,7 +922,7 @@ function OneShotMapCell({ session, cartState, pendingSlotId, busy, onAdd, onRemo
         ) : null}
       </div>
       <div className="dicefest-slot-card__footer">
-        <span className="dicefest-slot-card__seats">{state.remaining}/{slot.maxPlayers} posti</span>
+        <span className="dicefest-slot-card__seats">{state.remaining} posti</span>
         <button
           type="button"
           onClick={handleAction}
@@ -949,16 +983,16 @@ function computeMainEventState({ slot, reservation, inCart, hasReservedKey, hasC
     actionKind = 'remove'
     disabled = isPending
   } else if (hasConflict) {
-    label = 'Slot occupato'
-    verboseLabel = 'Hai già un altro tavolo in questa fascia'
+    label = 'Orario occupato'
+    verboseLabel = 'Hai un\'altra sessione a questo orario'
     disabled = true
   } else if (hasCartConflict) {
-    label = 'Slot occupato'
-    verboseLabel = 'Hai già un altro tavolo in questa fascia'
+    label = 'Orario occupato'
+    verboseLabel = 'Hai un\'altra sessione a questo orario'
     disabled = true
   } else {
-    label = isPending ? 'Aggiungo…' : 'Prenota'
-    verboseLabel = isPending ? 'Aggiungo…' : 'Prenota il posto'
+    label = 'Scopri di più'
+    verboseLabel = isPending ? 'Aggiungo…' : 'Aggiungi all\'ordine'
     disabled = isPending
   }
 
@@ -969,7 +1003,7 @@ function computeMainEventState({ slot, reservation, inCart, hasReservedKey, hasC
   return { remaining, fewLeft, full, notYetOpen, hasConflict, hasCartConflict, label, verboseLabel, actionKind, disabled, variant }
 }
 
-function MainEventMapCell({ session, sessionKey, reservation, inCart, hasReservedKey, hasCartKey, hasOneshotConflict, pendingSessionKey, busy, onAdd, onRemove, onCancel, onOpenDetails, isLoggedIn, isAdmin }) {
+function MainEventMapCell({ session, sessionKey, reservation, inCart, hasReservedKey, hasCartKey, hasOneshotConflict, pendingSessionKey, busy, onRemove, onCancel, onOpenDetails, isLoggedIn, isAdmin }) {
   const { mainEvent, slot } = session
   const isPending = pendingSessionKey === sessionKey
   const state = computeMainEventState({ slot, reservation, inCart, hasReservedKey, hasCartKey, isLoggedIn, isAdmin, isPending, busy })
@@ -979,7 +1013,7 @@ function MainEventMapCell({ session, sessionKey, reservation, inCart, hasReserve
     if (state.actionKind === 'login') {
       window.location.href = '/auth/login?next=/dice-fest/sessioni'
     } else if (state.actionKind === 'add') {
-      onAdd({ mainEventId: mainEvent.id, day: slot.day, slot: slot.slot })
+      onOpenDetails()
     } else if (state.actionKind === 'remove') {
       onRemove({ mainEventId: mainEvent.id, day: slot.day, slot: slot.slot })
     } else if (state.actionKind === 'cancel') {
@@ -1020,7 +1054,7 @@ function MainEventMapCell({ session, sessionKey, reservation, inCart, hasReserve
         </div>
       </div>
       <div className="dicefest-slot-card__footer">
-        <span className="dicefest-slot-card__seats">{state.remaining}/{slot.maxPlayers} posti</span>
+        <span className="dicefest-slot-card__seats">{state.remaining} posti</span>
         <button
           type="button"
           onClick={handleAction}
@@ -1136,7 +1170,7 @@ const TUTORIAL_STEPS = [
   },
   {
     title: 'Prenota',
-    description: 'Il tavolo entra nel tuo carrello e resta bloccato per 10 minuti: il countdown è visibile nel pulsante "Riepilogo sessioni" in basso. Anche gli amici invitati restano bloccati con te.',
+    description: 'Il tavolo entra nel tuo carrello e resta bloccato per 10 minuti: il countdown è visibile nel pulsante "Clicca qui per confermare" in basso. Anche gli amici invitati restano bloccati con te.',
   },
   {
     title: 'Conferma nelle Prenotazioni',
@@ -1242,8 +1276,8 @@ function OneShotDetailsModal({ session, cartState, pendingSlotId, busy, onAdd, o
 
         <div className="mt-6 grid grid-cols-2 gap-3 border-t border-dashed border-dicefest-border pt-5">
           <div>
-            <p className="font-df-mono text-[10px] font-bold uppercase tracking-[0.22em] text-dicefest-paper/50">Posti</p>
-            <p className="mt-1 font-df-display text-lg text-dicefest-paper">{state.remaining}/{slot.maxPlayers}</p>
+            <p className="font-df-mono text-[10px] font-bold uppercase tracking-[0.22em] text-dicefest-paper/50">Posti disponibili</p>
+            <p className="mt-1 font-df-display text-lg text-dicefest-paper">{state.remaining}</p>
           </div>
           {typeof oneshot.price === 'number' && oneshot.price > 0 ? (
             <div>
@@ -1271,6 +1305,12 @@ function OneShotDetailsModal({ session, cartState, pendingSlotId, busy, onAdd, o
           >
             Invita amici
           </button>
+        ) : null}
+
+        {state.actionKind === 'add' ? (
+          <p className="mt-4 border border-dicefest-green/30 bg-dicefest-green/5 px-3 py-2 font-df-body text-xs leading-relaxed text-dicefest-paper">
+            Ricorda che l&apos;ordine va confermato entro 10 minuti.
+          </p>
         ) : null}
 
         <button
@@ -1354,8 +1394,8 @@ function MainEventDetailsModal({ session, sessionKey, reservation, inCart, hasRe
 
         <div className="mt-6 grid grid-cols-2 gap-3 border-t border-dashed border-dicefest-border pt-5">
           <div>
-            <p className="font-df-mono text-[10px] font-bold uppercase tracking-[0.22em] text-dicefest-paper/50">Posti</p>
-            <p className="mt-1 font-df-display text-lg text-dicefest-paper">{state.remaining}/{slot.maxPlayers}</p>
+            <p className="font-df-mono text-[10px] font-bold uppercase tracking-[0.22em] text-dicefest-paper/50">Posti disponibili</p>
+            <p className="mt-1 font-df-display text-lg text-dicefest-paper">{state.remaining}</p>
           </div>
           {typeof mainEvent.price === 'number' && mainEvent.price > 0 ? (
             <div>
@@ -1385,6 +1425,12 @@ function MainEventDetailsModal({ session, sessionKey, reservation, inCart, hasRe
           </button>
         ) : null}
 
+        {state.actionKind === 'add' ? (
+          <p className="mt-4 border border-dicefest-green/30 bg-dicefest-green/5 px-3 py-2 font-df-body text-xs leading-relaxed text-dicefest-paper">
+            Ricorda che l&apos;ordine va confermato entro 10 minuti.
+          </p>
+        ) : null}
+
         <button
           type="button"
           onClick={handleAction}
@@ -1411,7 +1457,7 @@ const BookingOrderSummary = memo(function BookingOrderSummary({ cartState, mainC
     return (
       <Wrapper {...wrapperProps}>
         <div className="px-6 py-6 text-center">
-          <h3 className="font-df-display text-lg uppercase text-dicefest-paper">Le tue prenotazioni</h3>
+          <h3 className="font-df-display text-lg uppercase text-dicefest-paper">Il tuo ordine</h3>
           <p className="mt-2 font-df-body text-sm leading-relaxed text-dicefest-paper/75">
             Accedi per prenotare il tuo posto al tavolo.
           </p>
@@ -1458,7 +1504,7 @@ const BookingOrderSummary = memo(function BookingOrderSummary({ cartState, mainC
     <Wrapper {...wrapperProps}>
       <div className="px-6 py-6">
         <div className="flex items-center justify-between gap-3">
-          <h3 className="font-df-display text-lg uppercase text-dicefest-paper">Le tue prenotazioni</h3>
+          <h3 className="font-df-display text-lg uppercase text-dicefest-paper">Il tuo ordine</h3>
           {timeRemaining ? (
             <span className={`font-df-display text-base ${lowTime ? 'text-dicefest-pink' : 'text-dicefest-green'}`}>
               {timeRemaining}

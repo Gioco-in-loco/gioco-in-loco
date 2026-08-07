@@ -54,7 +54,7 @@ function buildBookingsSummaryHtml(bookings) {
 }
 
 export async function sendAccountBookingsIcsEmail({ user, bookings, icsContent }) {
-  const subject = 'Le tue prenotazioni · Gioco In Loco'
+  const subject = 'Il tuo ordine · Gioco In Loco'
 
   const text = [
     `Ciao ${user.name || 'giocatore'},`,
@@ -69,7 +69,7 @@ export async function sendAccountBookingsIcsEmail({ user, bookings, icsContent }
 
   const html = `
     <div style="font-family:Arial,sans-serif;line-height:1.5;color:#1F2937;max-width:680px;margin:0 auto;">
-      <h1 style="color:#1A1A2E;">Le tue prenotazioni</h1>
+      <h1 style="color:#1A1A2E;">Il tuo ordine</h1>
       <p>Ciao ${escapeHtml(user.name || 'giocatore')},</p>
       <p>in allegato trovi il file <strong>.ics</strong> per importare tutte le tue prenotazioni attive nel calendario.</p>
       <h2 style="color:#1A1A2E;">Riepilogo</h2>

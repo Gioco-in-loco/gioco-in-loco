@@ -5,6 +5,7 @@
 // account bookings timeline, the .ics export, and the calendar email — all
 // three must agree on the same instant for the same booking.
 import { TIME_SLOT_REGEX } from './event-slots-management'
+import { zonedTimeToUtc } from './rome-datetime'
 
 const ROME_TIME_ZONE = 'Europe/Rome'
 const MAX_EVENT_SPAN_DAYS = 31
@@ -49,42 +50,6 @@ function addCalendarDays({ y, m, d }, amount) {
 
 function compareCalendarDates(a, b) {
   return Date.UTC(a.y, a.m - 1, a.d) - Date.UTC(b.y, b.m - 1, b.d)
-}
-
-// Timezone offset (in minutes) that Europe/Rome has at a given instant —
-// derived from the IANA database built into the JS runtime, so CET/CEST
-// transitions are always correct without hardcoding DST dates.
-function getRomeOffsetMinutes(instant) {
-  const parts = new Intl.DateTimeFormat('en-US', {
-    timeZone: ROME_TIME_ZONE,
-    hourCycle: 'h23',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-  }).formatToParts(instant).reduce((acc, part) => {
-    acc[part.type] = part.value
-    return acc
-  }, {})
-
-  const asIfUtc = Date.UTC(parts.year, parts.month - 1, parts.day, parts.hour, parts.minute, parts.second)
-  return (asIfUtc - instant.getTime()) / 60000
-}
-
-// Converts "HH:mm on {y,m,d}, Rome local time" into the real UTC instant.
-// Two passes: the first guess (treating wall-clock as UTC) gives an offset
-// close enough to compute a corrected instant, and re-deriving the offset
-// from that corrected instant removes any residual error right at a DST
-// transition. Event times are never scheduled overnight (2-4am), but this is
-// free to get right and removes the need to think about it further.
-function zonedTimeToUtc(y, m, d, hh, mm) {
-  const guess = Date.UTC(y, m - 1, d, hh, mm, 0)
-  const offset1 = getRomeOffsetMinutes(new Date(guess))
-  const corrected = guess - offset1 * 60000
-  const offset2 = getRomeOffsetMinutes(new Date(corrected))
-  return new Date(guess - offset2 * 60000)
 }
 
 // Phase A: find which real calendar date, within the event's span, matches a
