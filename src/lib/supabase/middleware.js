@@ -25,6 +25,17 @@ export async function updateSession(request) {
     },
   })
 
-  await supabase.auth.getUser()
+  const { data } = await supabase.auth.getUser()
+
+  // Protected area: bounce anonymous visitors to login, remembering where
+  // they were headed so LoginPage can send them back after signing in.
+  // Scoped to /account only — this middleware also runs on /auth/:path*,
+  // and guarding those too would create a redirect loop on /auth/login itself.
+  if (!data.user && request.nextUrl.pathname.startsWith('/account')) {
+    const loginUrl = new URL('/auth/login', request.url)
+    loginUrl.searchParams.set('redirect', request.nextUrl.pathname + request.nextUrl.search)
+    return NextResponse.redirect(loginUrl)
+  }
+
   return response
 }

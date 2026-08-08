@@ -87,7 +87,7 @@ export default function RsvpButton({ days: eventDays }) {
 
   const handleRsvp = async (day) => {
     if (!user) {
-      window.location.href = '/auth/login?next=/dice-fest'
+      window.location.href = '/auth/login?redirect=/dice-fest'
       return
     }
     setPendingDay(day)

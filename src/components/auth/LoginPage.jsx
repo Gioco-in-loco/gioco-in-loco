@@ -7,6 +7,7 @@ import AuthShell from './AuthShell'
 import AuthMessage from './AuthMessage'
 import PasswordInput from './PasswordInput'
 import { useAuth } from '../../context/AuthContext'
+import { sanitizeRedirectTarget } from '../../lib/safe-redirect'
 
 const AUTH_ERROR_MESSAGES = {
   expired: 'Il link di conferma è scaduto. Richiedine uno nuovo dalla pagina di login.',
@@ -16,7 +17,7 @@ const AUTH_ERROR_MESSAGES = {
 export default function LoginPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const redirectTo = searchParams.get('redirect') || ''
+  const redirectTo = sanitizeRedirectTarget(searchParams.get('redirect'), '')
   const { login, loginWithGoogle, isGoogleAuthEnabled, isConfigured } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -49,7 +50,7 @@ export default function LoginPage() {
   const handleGoogleLogin = async () => {
     setError('')
     setIsSubmitting(true)
-    const result = await loginWithGoogle()
+    const result = await loginWithGoogle(redirectTo || undefined)
 
     if (result.error) {
       setError(result.error)

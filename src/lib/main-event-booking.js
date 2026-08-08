@@ -690,6 +690,10 @@ export async function cancelUserMainEventReservation({ reservationId, userId, db
       id: true,
       userId: true,
       status: true,
+      mainEventId: true,
+      eventId: true,
+      day: true,
+      slot: true,
       mainEvent: { select: { title: true } },
     },
   })
@@ -717,8 +721,26 @@ export async function cancelUserMainEventReservation({ reservationId, userId, db
     },
   })
 
+  // Real occupancy after the cancellation, so the client can set the
+  // displayed seat count directly instead of guessing a delta.
+  const currentReservations = await db.mainEventReservation.count({
+    where: {
+      mainEventId: reservation.mainEventId,
+      day: reservation.day,
+      slot: reservation.slot,
+      ...getActiveMainEventReservationFilter(),
+      ...getMainEventScopeWhere(reservation.eventId),
+    },
+  })
+
   return {
     id: reservation.id,
     title: reservation.mainEvent.title,
+    sessionOccupancy: {
+      mainEventId: reservation.mainEventId,
+      day: reservation.day,
+      slot: reservation.slot,
+      currentReservations,
+    },
   }
 }

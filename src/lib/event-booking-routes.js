@@ -364,7 +364,7 @@ export async function handleAddEventCartSlot(request, { eventId, displayName }) 
       return NextResponse.json({ error: getEventNotFoundMessage(displayName) }, { status: 404 })
     }
 
-    await prisma.$transaction(async (tx) => {
+    const slotOccupancyResult = await prisma.$transaction(async (tx) => {
       const selectedSlot = await tx.eventSlot.findFirst({
         where: {
           id: slotId,
@@ -532,10 +532,20 @@ export async function handleAddEventCartSlot(request, { eventId, displayName }) 
       await ensureEventAdmissionHold({ event, tx, user, holdExpiresAt, day: selectedSlot.day })
       await reconcileCompanionAdmissionHolds({ tx, invitedByUserId: user.id, eventId, day: selectedSlot.day, holdExpiresAt })
       await refreshAllEventCartHolds({ eventId, tx, userId: user.id, holdExpiresAt })
+
+      // Real occupancy after every write above (host seat + companions), so
+      // the client can set the displayed seat count directly instead of
+      // guessing a delta — guessing broke as soon as companions were involved
+      // (a host+2-friends booking only ever decremented the shown count by 1).
+      const finalReservationCount = await tx.reservation.count({
+        where: { slotId: selectedSlot.id, ...getActiveReservationFilter() },
+      })
+
+      return { slotId: selectedSlot.id, currentReservations: finalReservationCount }
     }, CART_TX_OPTIONS)
 
     const cartState = await getUserEventCartState({ eventId, userId: user.id })
-    return NextResponse.json(cartState)
+    return NextResponse.json({ ...cartState, slotOccupancy: slotOccupancyResult })
   } catch (cartError) {
     return NextResponse.json({ error: cartError.message || 'Impossibile aggiornare le prenotazioni.' }, { status: 400 })
   }
@@ -552,7 +562,7 @@ export async function handleRemoveEventCartSlot({ eventId, slotId }) {
   try {
     await releaseExpiredHolds({ eventId, userId: user.id })
 
-    await prisma.$transaction(async (tx) => {
+    const slotOccupancyResult = await prisma.$transaction(async (tx) => {
       const reservation = await tx.reservation.findFirst({
         where: {
           userId: user.id,
@@ -580,10 +590,16 @@ export async function handleRemoveEventCartSlot({ eventId, slotId }) {
       })
       await clearEventAdmissionHoldIfEmpty({ eventId, tx, userId: user.id, day: reservation.slot.day })
       await reconcileCompanionAdmissionHolds({ tx, invitedByUserId: user.id, eventId, day: reservation.slot.day })
+
+      const currentReservations = await tx.reservation.count({
+        where: { slotId, ...getActiveReservationFilter() },
+      })
+
+      return { slotId, currentReservations }
     }, CART_TX_OPTIONS)
 
     const cartState = await getUserEventCartState({ eventId, userId: user.id })
-    return NextResponse.json(cartState)
+    return NextResponse.json({ ...cartState, slotOccupancy: slotOccupancyResult })
   } catch (cartError) {
     return NextResponse.json({ error: cartError.message || 'Impossibile rimuovere la prenotazione .' }, { status: 400 })
   }
@@ -695,7 +711,7 @@ export async function handleAddEventCartMainEventSlot(request, { eventId, displa
       return NextResponse.json({ error: getEventNotFoundMessage(displayName) }, { status: 404 })
     }
 
-    await prisma.$transaction(async (tx) => {
+    const sessionOccupancyResult = await prisma.$transaction(async (tx) => {
       const mainEvent = await tx.mainEvent.findUnique({ where: { id: mainEventId }, select: { id: true, title: true } })
       if (!mainEvent) {
         throw new Error('Main event non trovato.')
@@ -862,10 +878,25 @@ export async function handleAddEventCartMainEventSlot(request, { eventId, displa
       await ensureEventAdmissionHold({ event, tx, user, holdExpiresAt, day })
       await reconcileCompanionAdmissionHolds({ tx, invitedByUserId: user.id, eventId: event.id, day, holdExpiresAt })
       await refreshAllEventCartHolds({ eventId, tx, userId: user.id, holdExpiresAt })
+
+      // Real occupancy after every write above (host seat + companions), so
+      // the client can set the displayed seat count directly instead of
+      // guessing a delta.
+      const sessionReservations = await tx.mainEventReservation.count({
+        where: {
+          mainEventId,
+          eventId: event.id,
+          day,
+          slot,
+          ...getActiveMainEventReservationFilter(),
+        },
+      })
+
+      return { mainEventId, day, slot, currentReservations: sessionReservations }
     }, CART_TX_OPTIONS)
 
     const cartState = await getUserEventCartState({ eventId, userId: user.id })
-    return NextResponse.json(cartState)
+    return NextResponse.json({ ...cartState, sessionOccupancy: sessionOccupancyResult })
   } catch (cartError) {
     return NextResponse.json({ error: cartError.message || 'Impossibile aggiornare le prenotazioni.' }, { status: 400 })
   }
@@ -882,7 +913,7 @@ export async function handleRemoveEventCartMainEventSlot({ eventId, mainEventId,
   try {
     await releaseExpiredHolds({ eventId, userId: user.id })
 
-    await prisma.$transaction(async (tx) => {
+    const sessionOccupancyResult = await prisma.$transaction(async (tx) => {
       const reservation = await tx.mainEventReservation.findFirst({
         where: {
           userId: user.id,
@@ -906,10 +937,22 @@ export async function handleRemoveEventCartMainEventSlot({ eventId, mainEventId,
       })
       await clearEventAdmissionHoldIfEmpty({ eventId, tx, userId: user.id, day: reservation.day })
       await reconcileCompanionAdmissionHolds({ tx, invitedByUserId: user.id, eventId, day: reservation.day })
+
+      const sessionReservations = await tx.mainEventReservation.count({
+        where: {
+          mainEventId,
+          day,
+          slot,
+          ...getActiveMainEventReservationFilter(),
+          ...getMainEventScopeWhere(eventId),
+        },
+      })
+
+      return { mainEventId, day, slot, currentReservations: sessionReservations }
     }, CART_TX_OPTIONS)
 
     const cartState = await getUserEventCartState({ eventId, userId: user.id })
-    return NextResponse.json(cartState)
+    return NextResponse.json({ ...cartState, sessionOccupancy: sessionOccupancyResult })
   } catch (cartError) {
     return NextResponse.json({ error: cartError.message || 'Impossibile rimuovere il tavolo.' }, { status: 400 })
   }

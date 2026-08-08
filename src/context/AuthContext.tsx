@@ -25,7 +25,7 @@ interface AuthContextType {
   isConfigured: boolean
   isPasswordRecovery: boolean
   login: (email: string, password: string) => Promise<{ error: string | null }>
-  loginWithGoogle: () => Promise<{ error: string | null }>
+  loginWithGoogle: (next?: string) => Promise<{ error: string | null }>
   register: (input: { email: string; password: string; fullName: string; consentGiven: boolean }, options?: { next?: string }) => Promise<{ error: string | null; requiresEmailConfirmation: boolean }>
   forgotPassword: (email: string) => Promise<{ error: string | null }>
   updatePassword: (password: string) => Promise<{ error: string | null }>
@@ -175,14 +175,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error: error?.message || null }
   }
 
-  const loginWithGoogle = async () => {
+  const loginWithGoogle = async (next?: string) => {
     if (!isConfigured) {
       return { error: 'Supabase non configurato.' }
     }
 
     const supabase = createSupabaseBrowserClient()
     const siteUrl = getBrowserSiteUrl() || window.location.origin
-    const redirectTo = buildAbsoluteUrl('/auth/callback', siteUrl)
+    const callbackPath = next ? `/auth/callback?next=${encodeURIComponent(next)}` : '/auth/callback'
+    const redirectTo = buildAbsoluteUrl(callbackPath, siteUrl)
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: { redirectTo },

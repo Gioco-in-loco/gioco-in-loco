@@ -8,6 +8,7 @@ import AuthMessage from './AuthMessage'
 import PasswordInput from './PasswordInput'
 import { useAuth } from '../../context/AuthContext'
 import PrivacyModal from '../ui/PrivacyModal'
+import { sanitizeRedirectTarget } from '../../lib/safe-redirect'
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const PHONE_RE = /^[+\d][\d\s]{6,}$/
@@ -15,7 +16,7 @@ const PHONE_RE = /^[+\d][\d\s]{6,}$/
 export default function RegisterPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const redirectTo = searchParams.get('redirect') || ''
+  const redirectTo = sanitizeRedirectTarget(searchParams.get('redirect'), '')
   const prefillEmail = searchParams.get('email') || ''
   const { register, isConfigured } = useAuth()
   const [showPrivacy, setShowPrivacy] = useState(false)

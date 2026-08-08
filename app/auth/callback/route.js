@@ -4,6 +4,7 @@ import { cookies } from 'next/headers'
 import { prisma } from '../../../src/lib/prisma'
 import { isSupabaseConfigured, getSupabaseConfig } from '../../../src/lib/supabase/config'
 import { buildAbsoluteUrl, getRequestSiteUrl } from '../../../src/lib/site-url'
+import { sanitizeRedirectTarget } from '../../../src/lib/safe-redirect'
 
 function copyCookies(fromResponse, toResponse) {
   fromResponse.cookies.getAll().forEach((cookie) => {
@@ -12,7 +13,7 @@ function copyCookies(fromResponse, toResponse) {
 }
 
 function resolveEmailChangeRedirect(origin, next, user, to) {
-  const target = next || '/auth/email-change-progress'
+  const target = sanitizeRedirectTarget(next, '/auth/email-change-progress')
   const redirectUrl = new URL(target, origin)
 
   if (to) {
@@ -26,8 +27,8 @@ function resolveEmailChangeRedirect(origin, next, user, to) {
 }
 
 function resolveRedirectTarget(origin, type, next) {
-  if (type === 'signup') return buildAbsoluteUrl(next || '/auth/welcome?notice=account_activated', origin)
-  return buildAbsoluteUrl(next ?? '/', origin)
+  if (type === 'signup') return buildAbsoluteUrl(sanitizeRedirectTarget(next, '/auth/welcome?notice=account_activated'), origin)
+  return buildAbsoluteUrl(sanitizeRedirectTarget(next, '/'), origin)
 }
 
 export async function GET(request) {

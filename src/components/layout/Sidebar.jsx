@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useLocation } from '../../lib/router'
 import { useAuth } from '../../context/AuthContext'
 import { DICE_FEST_EVENT_ID, DICE_FEST_ROUTE } from '../../lib/event-constants'
+import { sanitizeRedirectTarget } from '../../lib/safe-redirect'
 
 const navItems = [
   {
@@ -191,6 +192,15 @@ export default function Sidebar({ onNavigate, upcomingEvent }) {
   const user = isPasswordRecovery ? null : authUser
   const isAdmin = Boolean(user?.isAdmin)
   const isResponsabile = user?.role?.toUpperCase() === 'RESPONSABILE'
+
+  // Carries the current page through to login so "Accedi" from the nav
+  // brings you back where you were, instead of always landing on /account.
+  // Never points back at an /auth/* page itself (e.g. avoids a pointless
+  // self-redirect if this is clicked while already on /auth/login).
+  const loginRedirectTarget = location.pathname && !location.pathname.startsWith('/auth')
+    ? sanitizeRedirectTarget(`${location.pathname}${location.search}`, '')
+    : ''
+  const loginHref = loginRedirectTarget ? `/auth/login?redirect=${encodeURIComponent(loginRedirectTarget)}` : '/auth/login'
 
   useEffect(() => {
     setResolvedUpcomingEvent(upcomingEvent)
@@ -384,7 +394,7 @@ export default function Sidebar({ onNavigate, upcomingEvent }) {
                     </div>
                   </div>
                 ) : (
-                  <Link href="/auth/login" onClick={() => setIsOpen(false)} className={`block w-full py-2.5 text-center ${theme.loginButtonMobile}`}>
+                  <Link href={loginHref} onClick={() => setIsOpen(false)} className={`block w-full py-2.5 text-center ${theme.loginButtonMobile}`}>
                     Accedi
                   </Link>
                 )}
@@ -511,7 +521,7 @@ export default function Sidebar({ onNavigate, upcomingEvent }) {
                 </div>
               </div>
             ) : (
-              <Link href="/auth/login" className={`block w-full py-2.5 text-center ${theme.loginButtonDesktop}`}>
+              <Link href={loginHref} className={`block w-full py-2.5 text-center ${theme.loginButtonDesktop}`}>
                 Accedi
               </Link>
             )}

@@ -275,7 +275,7 @@ export default function DiceFestCartPage({ event }) {
                 Il tuo ordine è personale e le prenotazioni durano 10 minuti. Accedi per vedere i tavoli che hai bloccato e confermare la tua prenotazione.
               </p>
               <div className="mt-7 flex flex-wrap justify-center gap-3">
-                <Link href="/auth/login?next=/dice-fest/carrello" className="dicefest-btn-primary">Accedi</Link>
+                <Link href="/auth/login?redirect=/dice-fest/carrello" className="dicefest-btn-primary">Accedi</Link>
               </div>
             </div>
           </ParchmentCard>

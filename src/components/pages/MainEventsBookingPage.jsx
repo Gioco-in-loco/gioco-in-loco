@@ -157,7 +157,7 @@ export default function MainEventsBookingPage({ mainEvents }) {
 
   const handleAddToCart = async (mainEvent, session) => {
     if (!user) {
-      window.location.href = '/auth/login'
+      window.location.href = '/auth/login?redirect=/main-events'
       return
     }
 
@@ -277,7 +277,7 @@ export default function MainEventsBookingPage({ mainEvents }) {
               Vai all&apos;area utente
             </Link>
             {!user && !isLoading ? (
-              <Link href="/auth/login" className="inline-flex items-center justify-center rounded-lg border border-editorial-border px-5 py-3 font-body text-sm font-semibold text-editorial-text transition-colors hover:border-editorial-terra">
+              <Link href="/auth/login?redirect=/main-events" className="inline-flex items-center justify-center rounded-lg border border-editorial-border px-5 py-3 font-body text-sm font-semibold text-editorial-text transition-colors hover:border-editorial-terra">
                 Accedi per prenotare
               </Link>
             ) : null}

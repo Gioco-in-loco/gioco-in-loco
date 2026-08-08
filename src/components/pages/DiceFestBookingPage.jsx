@@ -104,29 +104,35 @@ export default function DiceFestBookingPage({ event }) {
   // il gruppo giorno+fascia, identificato da mainEventId+day+slot.
   const mainSessionKey = useCallback((mainEventId, day, slot) => `${mainEventId}__${day}__${slot}`, [])
 
-  const updateMainEventSessionCount = useCallback(({ mainEventId, day, slot }, delta) => {
+  // Applies the real, server-computed occupancy for one session/slot instead
+  // of guessing a +1/-1 delta client-side — a delta broke as soon as
+  // companions were involved (a host+2-friends booking only ever moved the
+  // shown count by 1, understating how many seats were actually taken and
+  // making it look like a seat wasn't really held until final checkout).
+  const setMainEventSessionOccupancy = useCallback((occupancy) => {
+    if (!occupancy) return
+    const { mainEventId, day, slot, currentReservations } = occupancy
     setMainEventItems((current) => current.map((me) => {
       if (me.id !== mainEventId) return me
       const nextSessions = (me.sessions || []).map((s) => {
         if (s.day !== day || s.slot !== slot) return s
-        const next = Math.max(0, (s.currentReservations || 0) + delta)
-        return { ...s, currentReservations: next, available: next < s.maxPlayers }
+        return { ...s, currentReservations, available: currentReservations < s.maxPlayers }
       })
       const nextTables = (me.tables || []).map((t) => {
         if (t.day !== day || t.slot !== slot) return t
-        const next = Math.max(0, (t.currentReservations || 0) + delta)
-        return { ...t, currentReservations: next, available: next < t.maxPlayers }
+        return { ...t, currentReservations, available: currentReservations < t.maxPlayers }
       })
       return { ...me, sessions: nextSessions, tables: nextTables }
     }))
   }, [])
 
-  const updateOneshotSlotCount = useCallback((slotId, delta) => {
+  const setOneshotSlotOccupancy = useCallback((occupancy) => {
+    if (!occupancy) return
+    const { slotId, currentReservations } = occupancy
     setOneshotItems((current) => current.map((oneshot) => {
       const nextSlots = (oneshot.slots || []).map((s) => {
         if (s.id !== slotId) return s
-        const next = Math.max(0, (s.currentReservations || 0) + delta)
-        return { ...s, currentReservations: next, available: next < s.maxPlayers }
+        return { ...s, currentReservations, available: currentReservations < s.maxPlayers }
       })
       return { ...oneshot, slots: nextSlots }
     }))
@@ -134,7 +140,7 @@ export default function DiceFestBookingPage({ event }) {
 
   const handleAddOneshot = useCallback(async (slot, companions = []) => {
     if (!user) {
-      window.location.href = '/auth/login?next=/dice-fest/sessioni'
+      window.location.href = '/auth/login?redirect=/dice-fest/sessioni'
       return false
     }
     if (inFlightRef.current) return false
@@ -150,8 +156,9 @@ export default function DiceFestBookingPage({ event }) {
       })
       const payload = await response.json().catch(() => ({}))
       if (!response.ok) throw new Error(payload.error || 'Impossibile prenotare il tavolo.')
-      setCartState({ loading: false, ...payload })
-      updateOneshotSlotCount(slot.id, 1)
+      const { slotOccupancy, ...cartStatePayload } = payload
+      setCartState({ loading: false, ...cartStatePayload })
+      setOneshotSlotOccupancy(slotOccupancy)
       toast.success(companions.length > 0
         ? `Tavolo aggiunto all’ordine. ${companions.length === 1 ? 'Il tuo amico riceverà' : 'I tuoi amici riceveranno'} l\'email di invito quando confermi l\'ordine.`
         : `Tavolo aggiunto all’ordine: ${slot.day} · ${slot.slot}.`)
@@ -165,7 +172,7 @@ export default function DiceFestBookingPage({ event }) {
       setPendingSlotId(null)
       inFlightRef.current = false
     }
-  }, [toast, updateOneshotSlotCount, user])
+  }, [toast, setOneshotSlotOccupancy, user])
 
   const handleRemoveOneshot = useCallback(async (slot) => {
     if (!user) return
@@ -180,8 +187,9 @@ export default function DiceFestBookingPage({ event }) {
       })
       const payload = await response.json().catch(() => ({}))
       if (!response.ok) throw new Error(payload.error || 'Impossibile rimuovere il tavolo.')
-      setCartState({ loading: false, ...payload })
-      updateOneshotSlotCount(slot.id, -1)
+      const { slotOccupancy, ...cartStatePayload } = payload
+      setCartState({ loading: false, ...cartStatePayload })
+      setOneshotSlotOccupancy(slotOccupancy)
       toast.success(`Tavolo abbandonato: ${slot.day} · ${slot.slot}.`)
     } catch (err) {
       const msg = err.message || 'Impossibile rimuovere il tavolo.'
@@ -191,11 +199,11 @@ export default function DiceFestBookingPage({ event }) {
       setPendingSlotId(null)
       inFlightRef.current = false
     }
-  }, [toast, updateOneshotSlotCount, user])
+  }, [toast, setOneshotSlotOccupancy, user])
 
   const handleJoinWaitlist = useCallback(async (day) => {
     if (!user) {
-      window.location.href = '/auth/login?next=/dice-fest/sessioni'
+      window.location.href = '/auth/login?redirect=/dice-fest/sessioni'
       return
     }
     setPendingWaitlistDay(day)
@@ -239,7 +247,7 @@ export default function DiceFestBookingPage({ event }) {
 
   const handleAddMainToCart = useCallback(async (session, companions = []) => {
     if (!user) {
-      window.location.href = '/auth/login?next=/dice-fest/sessioni'
+      window.location.href = '/auth/login?redirect=/dice-fest/sessioni'
       return false
     }
     if (inFlightRef.current) return false
@@ -255,8 +263,9 @@ export default function DiceFestBookingPage({ event }) {
       })
       const payload = await response.json().catch(() => ({}))
       if (!response.ok) throw new Error(payload.error || 'Impossibile prenotare il posto.')
-      setCartState({ loading: false, ...payload })
-      updateMainEventSessionCount(session, 1)
+      const { sessionOccupancy, ...cartStatePayload } = payload
+      setCartState({ loading: false, ...cartStatePayload })
+      setMainEventSessionOccupancy(sessionOccupancy)
       toast.success(companions.length > 0
         ? `Posto prenotato. ${companions.length === 1 ? 'Il tuo amico riceverà' : 'I tuoi amici riceveranno'} l\'email di invito quando confermi l\'ordine.`
         : `Posto prenotato: ${session.day} · ${session.slot}.`)
@@ -270,7 +279,7 @@ export default function DiceFestBookingPage({ event }) {
       setPendingMainSessionKey(null)
       inFlightRef.current = false
     }
-  }, [mainSessionKey, toast, updateMainEventSessionCount, user])
+  }, [mainSessionKey, toast, setMainEventSessionOccupancy, user])
 
   const handleRemoveMainFromCart = useCallback(async (session) => {
     if (inFlightRef.current) return
@@ -286,8 +295,9 @@ export default function DiceFestBookingPage({ event }) {
       })
       const payload = await response.json().catch(() => ({}))
       if (!response.ok) throw new Error(payload.error || 'Impossibile rimuovere il posto.')
-      setCartState({ loading: false, ...payload })
-      updateMainEventSessionCount(session, -1)
+      const { sessionOccupancy, ...cartStatePayload } = payload
+      setCartState({ loading: false, ...cartStatePayload })
+      setMainEventSessionOccupancy(sessionOccupancy)
       toast.success('Prenotazione Main Event rimossa.')
     } catch (err) {
       const msg = err.message || 'Impossibile rimuovere il posto.'
@@ -297,7 +307,7 @@ export default function DiceFestBookingPage({ event }) {
       setPendingMainSessionKey(null)
       inFlightRef.current = false
     }
-  }, [mainSessionKey, toast, updateMainEventSessionCount])
+  }, [mainSessionKey, toast, setMainEventSessionOccupancy])
 
   const handleCancelMain = useCallback(async (reservation) => {
     if (inFlightRef.current) return
@@ -311,7 +321,7 @@ export default function DiceFestBookingPage({ event }) {
       const payload = await response.json().catch(() => ({}))
       if (!response.ok) throw new Error(payload.error || 'Impossibile cancellare la prenotazione.')
       setCartState((current) => removeConfirmedMainEventReservation(current, reservation.id))
-      updateMainEventSessionCount({ mainEventId: reservation.mainEventId, day: reservation.day, slot: reservation.slot }, -1)
+      setMainEventSessionOccupancy(payload.reservation?.sessionOccupancy)
       toast.success('Prenotazione cancellata.')
     } catch (err) {
       toast.error(err.message || 'Impossibile cancellare la prenotazione.')
@@ -319,7 +329,7 @@ export default function DiceFestBookingPage({ event }) {
       setPendingMainSessionKey(null)
       inFlightRef.current = false
     }
-  }, [mainSessionKey, toast, updateMainEventSessionCount])
+  }, [mainSessionKey, toast, setMainEventSessionOccupancy])
 
   const mainReservations = useMemo(
     () => (cartState.mainEventConfirmedReservations || []).filter((reservation) => reservation.eventId === event.id || !reservation.eventId),
@@ -884,7 +894,7 @@ function OneShotMapCell({ session, cartState, pendingSlotId, busy, onRemove, onO
   const handleAction = (e) => {
     e.stopPropagation()
     if (state.actionKind === 'login') {
-      window.location.href = '/auth/login?next=/dice-fest/sessioni'
+      window.location.href = '/auth/login?redirect=/dice-fest/sessioni'
     } else if (state.actionKind === 'add') {
       onOpenDetails()
     } else if (state.actionKind === 'remove') {
@@ -1011,7 +1021,7 @@ function MainEventMapCell({ session, sessionKey, reservation, inCart, hasReserve
   const handleAction = (e) => {
     e.stopPropagation()
     if (state.actionKind === 'login') {
-      window.location.href = '/auth/login?next=/dice-fest/sessioni'
+      window.location.href = '/auth/login?redirect=/dice-fest/sessioni'
     } else if (state.actionKind === 'add') {
       onOpenDetails()
     } else if (state.actionKind === 'remove') {
@@ -1228,7 +1238,7 @@ function OneShotDetailsModal({ session, cartState, pendingSlotId, busy, onAdd, o
 
   const handleAction = async () => {
     if (state.actionKind === 'login') {
-      window.location.href = '/auth/login?next=/dice-fest/sessioni'
+      window.location.href = '/auth/login?redirect=/dice-fest/sessioni'
     } else if (state.actionKind === 'add') {
       const ok = await onAdd(slot, invite.validCompanions)
       if (ok) invite.setCompanions([])
@@ -1343,7 +1353,7 @@ function MainEventDetailsModal({ session, sessionKey, reservation, inCart, hasRe
 
   const handleAction = async () => {
     if (state.actionKind === 'login') {
-      window.location.href = '/auth/login?next=/dice-fest/sessioni'
+      window.location.href = '/auth/login?redirect=/dice-fest/sessioni'
     } else if (state.actionKind === 'add') {
       const ok = await onAdd({ mainEventId: mainEvent.id, day: slot.day, slot: slot.slot }, invite.validCompanions)
       if (ok) invite.setCompanions([])
@@ -1461,7 +1471,7 @@ const BookingOrderSummary = memo(function BookingOrderSummary({ cartState, mainC
           <p className="mt-2 font-df-body text-sm leading-relaxed text-dicefest-paper/75">
             Accedi per prenotare il tuo posto al tavolo.
           </p>
-          <Link href="/auth/login?next=/dice-fest/sessioni" className="dicefest-btn-primary mt-5 w-full">
+          <Link href="/auth/login?redirect=/dice-fest/sessioni" className="dicefest-btn-primary mt-5 w-full">
             Accedi
           </Link>
         </div>
