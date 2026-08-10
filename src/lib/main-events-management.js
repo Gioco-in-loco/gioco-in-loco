@@ -27,6 +27,13 @@ function normalizeSlotIds(slotIds) {
   return slotIds.filter((value) => typeof value === 'string' && value.trim())
 }
 
+function normalizeMaxPlayers(value) {
+  if (value === '' || value === null || value === undefined) return NaN
+  const parsed = Number(value)
+  if (!Number.isInteger(parsed)) return NaN
+  return parsed
+}
+
 export function serializeMainEvent(mainEvent) {
   const eventsById = new Map()
   for (const slot of mainEvent.slots || []) {
@@ -42,6 +49,7 @@ export function serializeMainEvent(mainEvent) {
     game: mainEvent.game,
     image: mainEvent.image,
     price: mainEvent.price,
+    maxPlayers: mainEvent.maxPlayers,
     createdAt: mainEvent.createdAt,
     updatedAt: mainEvent.updatedAt,
     events: Array.from(eventsById, ([eventId, eventName]) => ({ eventId, eventName })),
@@ -149,9 +157,11 @@ async function assertSlotsAttachable(tx, slotIds) {
   }
 }
 
-// A differenza delle one-shot, un main event PUÒ tenere più tavoli sulla
-// stessa fascia oraria (aumenta semplicemente la capienza totale di quella
-// fascia) — nessun controllo di conflitto giorno+fascia qui.
+// I posti di un main event sono un valore fisso sul main event stesso
+// (maxPlayers), indipendente dai tavoli assegnati: i tavoli servono solo a
+// indicare dove si gioca fisicamente. Questo controllo evita solo di
+// lasciare una fascia con prenotazioni attive senza più nessun tavolo
+// assegnato (che romperebbe la mappa tavoli), non una questione di capienza.
 async function assertSlotDetachCapacity(tx, mainEventId, slotsToDetach) {
   if (slotsToDetach.length === 0) return
 
@@ -163,7 +173,7 @@ async function assertSlotDetachCapacity(tx, mainEventId, slotsToDetach) {
   }
 
   for (const group of groups.values()) {
-    const remainingSlots = await tx.eventSlot.findMany({
+    const remainingSlots = await tx.eventSlot.count({
       where: {
         mainEventId,
         eventId: group.eventId,
@@ -171,9 +181,9 @@ async function assertSlotDetachCapacity(tx, mainEventId, slotsToDetach) {
         slot: group.slot,
         id: { notIn: Array.from(detachIds) },
       },
-      select: { maxPlayers: true },
     })
-    const remainingCapacity = remainingSlots.reduce((sum, slot) => sum + slot.maxPlayers, 0)
+
+    if (remainingSlots > 0) continue
 
     const activeReservations = await tx.mainEventReservation.count({
       where: {
@@ -185,8 +195,8 @@ async function assertSlotDetachCapacity(tx, mainEventId, slotsToDetach) {
       },
     })
 
-    if (remainingCapacity < activeReservations) {
-      throw createHttpError(400, `Non puoi rimuovere questo tavolo: la fascia ${group.day} ${group.slot} ha ${activeReservations} prenotazioni attive, che non entrerebbero più nella capienza residua (${remainingCapacity}).`)
+    if (activeReservations > 0) {
+      throw createHttpError(400, `Non puoi rimuovere l'ultimo tavolo della fascia ${group.day} ${group.slot}: ci sono ${activeReservations} prenotazioni attive su quella fascia.`)
     }
   }
 }
@@ -202,6 +212,11 @@ export async function createMainEvent({ body }) {
     throw createHttpError(400, 'Prezzo non valido')
   }
 
+  const maxPlayers = normalizeMaxPlayers(body?.maxPlayers)
+  if (Number.isNaN(maxPlayers) || maxPlayers < 1) {
+    throw createHttpError(400, 'Posti massimi non validi')
+  }
+
   const requestedSlotIds = normalizeSlotIds(body?.slotIds) || []
 
   try {
@@ -213,6 +228,7 @@ export async function createMainEvent({ body }) {
           game: normalizeOptionalString(body?.game),
           image: normalizeOptionalString(body?.image),
           price,
+          maxPlayers,
         },
       })
 
@@ -266,6 +282,14 @@ export async function updateMainEvent({ id, body }) {
       throw createHttpError(400, 'Prezzo non valido')
     }
     data.price = price
+  }
+
+  if (body?.maxPlayers !== undefined) {
+    const maxPlayers = normalizeMaxPlayers(body.maxPlayers)
+    if (Number.isNaN(maxPlayers) || maxPlayers < 1) {
+      throw createHttpError(400, 'Posti massimi non validi')
+    }
+    data.maxPlayers = maxPlayers
   }
 
   const requestedSlotIds = normalizeSlotIds(body?.slotIds)

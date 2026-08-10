@@ -44,6 +44,7 @@ export default function MainEventDetail({
     game: detail.game || '',
     description: detail.description || '',
     price: detail.price ?? '',
+    maxPlayers: detail.maxPlayers ?? 8,
     image: detail.image || '',
   } : null), [detail])
 
@@ -124,6 +125,10 @@ export default function MainEventDetail({
                     <div>
                       <dt className="font-body text-xs font-semibold uppercase tracking-wider text-editorial-text-muted">Prezzo</dt>
                       <dd className="mt-1 font-body text-sm text-editorial-text">{formatMainEventPrice(detail.price)}</dd>
+                    </div>
+                    <div>
+                      <dt className="font-body text-xs font-semibold uppercase tracking-wider text-editorial-text-muted">Posti massimi</dt>
+                      <dd className="mt-1 font-body text-sm text-editorial-text">{detail.maxPlayers}</dd>
                     </div>
                     <div>
                       <dt className="font-body text-xs font-semibold uppercase tracking-wider text-editorial-text-muted">Eventi collegati</dt>

@@ -52,6 +52,7 @@ export default function MainEventFormDialog({
       game: detail.game || '',
       description: detail.description || '',
       price: detail.price ?? '',
+      maxPlayers: detail.maxPlayers ?? 8,
       image: detail.image || '',
     }
   }, [mode, detail])

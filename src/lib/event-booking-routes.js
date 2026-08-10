@@ -712,20 +712,24 @@ export async function handleAddEventCartMainEventSlot(request, { eventId, displa
     }
 
     const sessionOccupancyResult = await prisma.$transaction(async (tx) => {
-      const mainEvent = await tx.mainEvent.findUnique({ where: { id: mainEventId }, select: { id: true, title: true } })
+      const mainEvent = await tx.mainEvent.findUnique({ where: { id: mainEventId }, select: { id: true, title: true, maxPlayers: true } })
       if (!mainEvent) {
         throw new Error('Main event non trovato.')
       }
 
       const sessionSlots = await tx.eventSlot.findMany({
         where: { mainEventId, eventId: event.id, day, slot, isVisible: true },
-        select: { maxPlayers: true, bookingEnabled: true },
+        select: { bookingEnabled: true },
       })
-      const sessionCapacity = sessionSlots.reduce((sum, s) => sum + s.maxPlayers, 0)
 
-      if (sessionCapacity === 0) {
+      if (sessionSlots.length === 0) {
         throw new Error('La sessione main event selezionata non è disponibile per questo evento.')
       }
+
+      // La capienza è il maxPlayers fisso del main event, non la somma dei
+      // tavoli assegnati a questa fascia (che sono solo un'informazione sulla
+      // capienza fisica dei tavoli).
+      const sessionCapacity = mainEvent.maxPlayers
 
       // The session spans every table assigned to this day+slot group — it's
       // only bookable once ALL of them have booking turned on.

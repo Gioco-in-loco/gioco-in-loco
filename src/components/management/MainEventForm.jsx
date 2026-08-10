@@ -8,6 +8,7 @@ export const EMPTY_MAIN_EVENT_FORM = {
   description: '',
   image: '',
   price: '',
+  maxPlayers: 8,
 }
 
 export function formatMainEventPrice(price) {
@@ -58,6 +59,7 @@ export default function MainEventForm({ initial = EMPTY_MAIN_EVENT_FORM, onSave,
     const payload = {
       ...form,
       price: form.price === '' ? null : Number(form.price),
+      maxPlayers: Number(form.maxPlayers),
     }
 
     const result = await onSave(payload)
@@ -80,6 +82,13 @@ export default function MainEventForm({ initial = EMPTY_MAIN_EVENT_FORM, onSave,
           <label className={labelClass}>Gioco</label>
           <input className={inputClass} value={form.game} onChange={set('game')} placeholder="Splendor" />
         </div>
+      </div>
+      <div>
+        <label className={labelClass}>Posti massimi *</label>
+        <input type="number" min="1" step="1" className={inputClass} value={form.maxPlayers} onChange={set('maxPlayers')} required />
+        <p className="mt-1 font-body text-xs text-editorial-text-muted">
+          Numero massimo di giocatori prenotabili per il main event, indipendente dai posti dei singoli tavoli assegnati.
+        </p>
       </div>
       <div>
         <label className={labelClass}>Prezzo</label>

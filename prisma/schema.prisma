@@ -240,6 +240,11 @@ model MainEvent {
   game          String?   // rulebook/game name
   image         String?
   price         Float?
+  // Capienza massima del main event, indipendente dai tavoli assegnati: un
+  // main event può girare su più tavoli/slot, ma il tetto di prenotazioni è
+  // questo valore, non la somma dei maxPlayers dei tavoli (che restano solo
+  // un'informazione sulla capienza fisica del tavolo).
+  maxPlayers    Int      @default(8)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
