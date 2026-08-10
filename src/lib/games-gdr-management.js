@@ -19,6 +19,8 @@ export function serializeGameGDR(game) {
     id: game.id,
     nome: game.nome,
     descrizione: game.descrizione,
+    autore: game.autore,
+    editore: game.editore,
     createdAt: game.createdAt,
     updatedAt: game.updatedAt,
   }
@@ -75,6 +77,8 @@ export async function createGameGDR({ body }) {
     data: {
       nome,
       descrizione: normalizeOptionalString(body?.descrizione),
+      autore: normalizeOptionalString(body?.autore),
+      editore: normalizeOptionalString(body?.editore),
     },
   })
 
@@ -91,6 +95,8 @@ export async function updateGameGDR({ id, body }) {
   }
 
   if (body?.descrizione !== undefined) data.descrizione = normalizeOptionalString(body.descrizione)
+  if (body?.autore !== undefined) data.autore = normalizeOptionalString(body.autore)
+  if (body?.editore !== undefined) data.editore = normalizeOptionalString(body.editore)
 
   try {
     const game = await prisma.gameGDR.update({ where: { id }, data })

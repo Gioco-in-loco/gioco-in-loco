@@ -503,7 +503,7 @@ const PendingOrderLayout = memo(function PendingOrderLayout({
                           type="button"
                           onClick={() => onRemove(slot.id, `${slot.day} ${slot.slot}`)}
                           disabled={busy}
-                          className="mt-2 font-df-mono text-xs font-semibold uppercase tracking-widest text-dicefest-paper/50 underline-offset-2 hover:text-dicefest-pink hover:underline disabled:cursor-not-allowed disabled:opacity-50"
+                          className="mt-2 font-df-mono text-xs font-semibold uppercase tracking-widest text-red-500 underline-offset-2 hover:text-red-400 hover:underline disabled:cursor-not-allowed disabled:opacity-50"
                         >
                           Cancella prenotazione
                         </button>

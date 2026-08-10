@@ -1326,13 +1326,13 @@ function OneShotDetailsModal({ session, cartState, pendingSlotId, busy, onAdd, o
           className={`${actionClass} mt-6`}
         >
           {state.verboseLabel}
-
+        </button>
+        
           {state.actionKind === 'add' ? (
           <p className="mt-4 border border-dicefest-green/30 bg-dicefest-green/5 px-3 py-2 font-df-body text-xs leading-relaxed text-dicefest-paper">
             Ricorda che l&apos;ordine va confermato entro 10 minuti.
           </p>
         ) : null}
-        </button>
       </div>
     </ModalShell>
   )

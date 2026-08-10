@@ -128,6 +128,11 @@ export default function GamesGDRManager({
                 <tr key={game.id} className="cursor-pointer transition-colors hover:bg-editorial-bg/40" onClick={() => router.push(`${routeBasePath}/${game.id}`)}>
                   <td className="px-4 py-3">
                     <p className="font-body text-sm font-semibold text-editorial-text">{game.nome}</p>
+                    {game.autore || game.editore ? (
+                      <p className="mt-0.5 font-body text-xs text-editorial-text-muted">
+                        {[game.autore, game.editore].filter(Boolean).join(' · ')}
+                      </p>
+                    ) : null}
                     {game.descrizione ? (
                       <p className="mt-0.5 line-clamp-1 font-body text-xs text-editorial-text-muted">{game.descrizione}</p>
                     ) : null}

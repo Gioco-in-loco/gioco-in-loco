@@ -5,6 +5,8 @@ import { useEffect, useState } from 'react'
 export const EMPTY_GAME_GDR_FORM = {
   nome: '',
   descrizione: '',
+  autore: '',
+  editore: '',
 }
 
 export default function GameGDRForm({ initial = EMPTY_GAME_GDR_FORM, onSave, onCancel, isNew }) {
@@ -37,6 +39,16 @@ export default function GameGDRForm({ initial = EMPTY_GAME_GDR_FORM, onSave, onC
       <div>
         <label className={labelClass}>Nome *</label>
         <input className={inputClass} value={form.nome} onChange={set('nome')} placeholder="Dungeons & Dragons 5e" required />
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div>
+          <label className={labelClass}>Autore</label>
+          <input className={inputClass} value={form.autore} onChange={set('autore')} placeholder="Gary Gygax" />
+        </div>
+        <div>
+          <label className={labelClass}>Editore</label>
+          <input className={inputClass} value={form.editore} onChange={set('editore')} placeholder="Wizards of the Coast" />
+        </div>
       </div>
       <div>
         <label className={labelClass}>Descrizione</label>

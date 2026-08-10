@@ -41,6 +41,8 @@ export default function GameGDRDetail({
   const initial = useMemo(() => (detail ? {
     nome: detail.nome,
     descrizione: detail.descrizione || '',
+    autore: detail.autore || '',
+    editore: detail.editore || '',
   } : null), [detail])
 
   const handleSave = async (form) => {
@@ -110,6 +112,16 @@ export default function GameGDRDetail({
                 <div>
                   <dt className="font-body text-xs font-semibold uppercase tracking-wider text-editorial-text-muted">Nome</dt>
                   <dd className="mt-1 font-body text-sm text-editorial-text">{detail.nome}</dd>
+                </div>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div>
+                    <dt className="font-body text-xs font-semibold uppercase tracking-wider text-editorial-text-muted">Autore</dt>
+                    <dd className="mt-1 font-body text-sm text-editorial-text">{detail.autore || '—'}</dd>
+                  </div>
+                  <div>
+                    <dt className="font-body text-xs font-semibold uppercase tracking-wider text-editorial-text-muted">Editore</dt>
+                    <dd className="mt-1 font-body text-sm text-editorial-text">{detail.editore || '—'}</dd>
+                  </div>
                 </div>
                 <div>
                   <dt className="font-body text-xs font-semibold uppercase tracking-wider text-editorial-text-muted">Descrizione</dt>

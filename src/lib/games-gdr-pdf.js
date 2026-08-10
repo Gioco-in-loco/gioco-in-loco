@@ -4,7 +4,7 @@ import { prisma } from './prisma'
 export async function generateGamesGDRPdf() {
   const games = await prisma.gameGDR.findMany({
     orderBy: { nome: 'asc' },
-    select: { nome: true, descrizione: true },
+    select: { nome: true, descrizione: true, autore: true, editore: true },
   })
 
   const doc = new PDFDocument({ size: 'A4', margin: 50 })
@@ -21,6 +21,13 @@ export async function generateGamesGDRPdf() {
 
   for (const game of games) {
     doc.font('Helvetica-Bold').fontSize(13).text(game.nome)
+
+    const meta = [game.autore ? `Autore: ${game.autore}` : null, game.editore ? `Editore: ${game.editore}` : null].filter(Boolean).join('  ·  ')
+    if (meta) {
+      doc.moveDown(0.1)
+      doc.font('Helvetica-Oblique').fontSize(10).text(meta)
+    }
+
     if (game.descrizione) {
       doc.moveDown(0.2)
       doc.font('Helvetica').fontSize(11).text(game.descrizione, { align: 'justify' })

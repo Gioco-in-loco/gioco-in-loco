@@ -300,6 +300,8 @@ model GameGDR {
   id          String   @id @default(cuid())
   nome        String
   descrizione String?
+  autore      String?
+  editore     String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
