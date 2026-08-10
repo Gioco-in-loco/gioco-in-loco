@@ -9,6 +9,7 @@ const adminNavItems = [
   { href: '/admin/eventi', label: 'Eventi' },
   { href: '/admin/oneshots', label: 'One shot' },
   { href: '/admin/main-events', label: 'Main event' },
+  { href: '/admin/giochi', label: 'I Nostri Giochi' },
   { href: '/admin/utenti', label: 'Utenti' },
   { href: '/admin/analytics', label: 'Analytics' },
 ]

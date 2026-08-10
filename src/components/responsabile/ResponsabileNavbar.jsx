@@ -8,6 +8,7 @@ const responsabileNavItems = [
   { href: '/responsabile/associazione', label: 'Associazione' },
   { href: '/responsabile/eventi', label: 'Eventi' },
   { href: '/responsabile/oneshots', label: 'One shot' },
+  { href: '/responsabile/giochi', label: 'I Nostri Giochi' },
   { href: '/responsabile/analytics', label: 'Analytics' },
 ]
 

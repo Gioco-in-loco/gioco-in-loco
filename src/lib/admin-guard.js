@@ -152,3 +152,25 @@ export async function requireAdminOrResponsabile() {
 
   return toSessionUser(authUser, dbUser)
 }
+
+export async function requireAdminOrResponsabileApi() {
+  if (!isSupabaseConfigured()) {
+    return { user: null, error: 'Auth non configurata', status: 503 }
+  }
+
+  const { authUser, dbUser } = await getAuthenticatedDbUser()
+
+  if (!authUser?.id) {
+    return { user: null, error: 'Non autenticato', status: 401 }
+  }
+
+  if (!dbUser?.isAdmin && dbUser?.role !== 'RESPONSABILE') {
+    return { user: null, error: 'Accesso non autorizzato', status: 403 }
+  }
+
+  return {
+    user: toSessionUser(authUser, dbUser),
+    error: null,
+    status: 200,
+  }
+}
