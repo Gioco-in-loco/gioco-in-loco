@@ -55,12 +55,20 @@ export default function GamesGDRManager({
         title={title}
         description={description}
         actions={(
-          <Link
-            href={`${routeBasePath}/nuovo`}
-            className="rounded-lg bg-editorial-terra px-4 py-2 font-body text-sm font-semibold text-white transition-colors hover:bg-editorial-terra/90"
-          >
-            + Aggiungi
-          </Link>
+          <div className="flex flex-wrap gap-2">
+            <a
+              href="/api/games-gdr/export"
+              className="rounded-lg border border-editorial-border px-4 py-2 font-body text-sm font-semibold text-editorial-text transition-colors hover:border-editorial-terra"
+            >
+              Scarica PDF
+            </a>
+            <Link
+              href={`${routeBasePath}/nuovo`}
+              className="rounded-lg bg-editorial-terra px-4 py-2 font-body text-sm font-semibold text-white transition-colors hover:bg-editorial-terra/90"
+            >
+              + Aggiungi
+            </Link>
+          </div>
         )}
       />
 
