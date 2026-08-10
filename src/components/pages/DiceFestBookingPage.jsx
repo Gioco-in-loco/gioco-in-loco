@@ -1317,11 +1317,7 @@ function OneShotDetailsModal({ session, cartState, pendingSlotId, busy, onAdd, o
           </button>
         ) : null}
 
-        {state.actionKind === 'add' ? (
-          <p className="mt-4 border border-dicefest-green/30 bg-dicefest-green/5 px-3 py-2 font-df-body text-xs leading-relaxed text-dicefest-paper">
-            Ricorda che l&apos;ordine va confermato entro 10 minuti.
-          </p>
-        ) : null}
+        
 
         <button
           type="button"
@@ -1330,6 +1326,12 @@ function OneShotDetailsModal({ session, cartState, pendingSlotId, busy, onAdd, o
           className={`${actionClass} mt-6`}
         >
           {state.verboseLabel}
+
+          {state.actionKind === 'add' ? (
+          <p className="mt-4 border border-dicefest-green/30 bg-dicefest-green/5 px-3 py-2 font-df-body text-xs leading-relaxed text-dicefest-paper">
+            Ricorda che l&apos;ordine va confermato entro 10 minuti.
+          </p>
+        ) : null}
         </button>
       </div>
     </ModalShell>
@@ -1396,12 +1398,6 @@ function MainEventDetailsModal({ session, sessionKey, reservation, inCart, hasRe
           </p>
         ) : null}
 
-        {!reservation ? (
-          <p className="mt-4 border border-dicefest-green/30 bg-dicefest-green/5 px-3 py-2 font-df-body text-xs leading-relaxed text-dicefest-paper">
-            Questo tavolo entra nello stesso ordine del DICE FEST e si conferma insieme alle eventuali one-shot nello stesso checkout finale.
-          </p>
-        ) : null}
-
         <div className="mt-6 grid grid-cols-2 gap-3 border-t border-dashed border-dicefest-border pt-5">
           <div>
             <p className="font-df-mono text-[10px] font-bold uppercase tracking-[0.22em] text-dicefest-paper/50">Posti disponibili</p>
@@ -1435,12 +1431,6 @@ function MainEventDetailsModal({ session, sessionKey, reservation, inCart, hasRe
           </button>
         ) : null}
 
-        {state.actionKind === 'add' ? (
-          <p className="mt-4 border border-dicefest-green/30 bg-dicefest-green/5 px-3 py-2 font-df-body text-xs leading-relaxed text-dicefest-paper">
-            Ricorda che l&apos;ordine va confermato entro 10 minuti.
-          </p>
-        ) : null}
-
         <button
           type="button"
           onClick={handleAction}
@@ -1449,6 +1439,13 @@ function MainEventDetailsModal({ session, sessionKey, reservation, inCart, hasRe
         >
           {state.verboseLabel}
         </button>
+
+         {state.actionKind === 'add' ? (
+          <p className="mt-4 border border-dicefest-green/30 bg-dicefest-green/5 px-3 py-2 font-df-body text-xs leading-relaxed text-dicefest-paper">
+            Ricorda che l&apos;ordine va confermato entro 10 minuti.
+          </p>
+        ) : null}
+        
       </div>
     </ModalShell>
   )
