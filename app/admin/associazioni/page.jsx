@@ -79,7 +79,7 @@ export default function AdminAssociazioniPage() {
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-xl border border-editorial-border bg-white shadow-soft">
+      <div className="overflow-x-auto rounded-xl border border-editorial-border bg-white shadow-soft">
         {loading ? (
           <div className="py-16 text-center font-body text-sm text-editorial-text-muted">Caricamento...</div>
         ) : filteredAssociations.length === 0 ? (

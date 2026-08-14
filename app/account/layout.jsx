@@ -21,13 +21,13 @@ export default async function AccountLayout({ children }) {
     <div className="min-h-screen energized-bg">
       <div className="sticky top-0 z-20 border-b border-editorial-border bg-white">
         <div className="mx-auto flex h-12 max-w-7xl items-center justify-between gap-6 px-6">
-          <div className="flex items-center gap-6">
+          <div className="flex min-w-0 items-center gap-6 overflow-x-auto">
             <span className="shrink-0 font-body text-xs font-semibold uppercase tracking-widest text-editorial-terra">
               Area utente
             </span>
             <AccountNavbar />
           </div>
-          <span className="max-w-[240px] truncate font-body text-xs text-editorial-text-muted">{userEmail}</span>
+          <span className="max-w-[240px] shrink-0 truncate font-body text-xs text-editorial-text-muted">{userEmail}</span>
         </div>
       </div>
 

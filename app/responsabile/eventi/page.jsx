@@ -45,7 +45,7 @@ export default function ResponsabileEventiPage() {
         tutorialSlides={EVENTI_TUTORIAL_SLIDES}
       />
 
-      <div className="bg-white rounded-xl border border-editorial-border shadow-soft overflow-hidden">
+      <div className="bg-white rounded-xl border border-editorial-border shadow-soft overflow-x-auto">
         {loading ? (
           <div className="py-16 text-center font-body text-sm text-editorial-text-muted">Caricamento...</div>
         ) : events.length === 0 ? (

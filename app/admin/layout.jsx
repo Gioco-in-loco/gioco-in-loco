@@ -9,7 +9,7 @@ export default async function AdminLayout({ children }) {
   return (
     <div className="min-h-screen energized-bg">
       <div className="bg-white border-b border-editorial-border sticky top-0 z-20">
-        <div className="max-w-7xl mx-auto px-6 h-12 flex items-center gap-6">
+        <div className="max-w-7xl mx-auto px-6 h-12 flex items-center gap-6 overflow-x-auto">
           <span className="font-body text-xs uppercase tracking-widest text-editorial-terra font-semibold shrink-0">
             Admin
           </span>

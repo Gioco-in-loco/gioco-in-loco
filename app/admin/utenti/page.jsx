@@ -97,6 +97,7 @@ export default function UtentiPage() {
             {search ? 'Nessun risultato.' : 'Nessun utente trovato.'}
           </div>
         ) : (
+          <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
               <tr className="border-b border-editorial-border bg-editorial-bg">
@@ -142,6 +143,7 @@ export default function UtentiPage() {
               ))}
             </tbody>
           </table>
+          </div>
         )}
       </div>
 

@@ -26,7 +26,7 @@ export default function AdminNavbar() {
   const pathname = usePathname()
 
   return (
-    <nav className="flex items-center gap-1">
+    <nav className="flex shrink-0 items-center gap-1">
       {adminNavItems.map((item) => {
         const isActive = isActivePath(pathname, item)
 
@@ -35,7 +35,7 @@ export default function AdminNavbar() {
             key={item.href}
             href={item.href}
             className={[
-              'px-3 py-1.5 rounded-lg font-body text-sm font-semibold transition-colors',
+              'shrink-0 whitespace-nowrap px-3 py-1.5 rounded-lg font-body text-sm font-semibold transition-colors',
               isActive
                 ? 'bg-editorial-terra text-white shadow-soft'
                 : 'text-editorial-text hover:bg-editorial-bg',

@@ -190,6 +190,50 @@ export default function AssociazionePage({ association }) {
               <span>Sito</span>
             </a>
           )}
+          {assoc.social.linktree && (
+            <a
+              href={assoc.social.linktree}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 px-5 py-3 bg-white border-2 border-editorial-border rounded-lg font-body text-sm text-editorial-text hover:border-editorial-terra hover:text-editorial-terra hover:scale-105 transition-all"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="6" cy="4" r="1.5" fill="currentColor" stroke="none"/><circle cx="18" cy="4" r="1.5" fill="currentColor" stroke="none"/><path d="M12 2v20M4 9l16 6M20 9L4 15" strokeLinecap="round"/></svg>
+              <span>Linktree</span>
+            </a>
+          )}
+          {assoc.social.whatsapp && (
+            <a
+              href={assoc.social.whatsapp}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 px-5 py-3 bg-white border-2 border-editorial-border rounded-lg font-body text-sm text-editorial-text hover:border-green-600 hover:text-green-600 hover:scale-105 transition-all"
+            >
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2 22l5.25-1.38a9.9 9.9 0 0 0 4.79 1.22h.01c5.46 0 9.9-4.45 9.9-9.91C21.96 6.45 17.5 2 12.04 2zm5.83 14.07c-.24.68-1.4 1.3-1.93 1.35-.5.05-1.02.24-3.4-.71-2.87-1.15-4.71-4.08-4.85-4.27-.14-.19-1.16-1.55-1.16-2.95 0-1.4.73-2.09 1-2.38.24-.26.55-.35.73-.35.19 0 .37 0 .53.01.17.01.4-.06.62.48.24.58.81 2 .88 2.14.07.14.11.31.02.5-.09.19-.14.31-.28.48-.14.17-.29.37-.42.5-.14.14-.28.29-.12.57.16.28.71 1.17 1.53 1.9 1.05.94 1.94 1.23 2.22 1.37.28.14.44.12.6-.07.16-.19.68-.79.87-1.06.19-.28.37-.23.63-.14.26.09 1.63.77 1.91.91.28.14.47.21.53.33.07.12.07.68-.17 1.36z"/></svg>
+              <span>WhatsApp</span>
+            </a>
+          )}
+          {assoc.social.tiktok && (
+            <a
+              href={assoc.social.tiktok}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 px-5 py-3 bg-white border-2 border-editorial-border rounded-lg font-body text-sm text-editorial-text hover:border-editorial-text hover:scale-105 transition-all"
+            >
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M16.6 5.82c-.9-.95-1.4-2.16-1.4-3.5h-3.05v13.35c0 1.64-1.33 2.98-2.98 2.98a2.98 2.98 0 0 1-2.98-2.98 2.98 2.98 0 0 1 2.98-2.98c.3 0 .59.05.86.13V9.7a6.03 6.03 0 0 0-.86-.06 6.02 6.02 0 0 0-6.02 6.02A6.02 6.02 0 0 0 9.17 21.68a6.02 6.02 0 0 0 6.02-6.02V9.01a8.4 8.4 0 0 0 4.9 1.57V7.53c-1.13 0-2.18-.36-3.05-.98a5.6 5.6 0 0 1-.44-.73z"/></svg>
+              <span>TikTok</span>
+            </a>
+          )}
+          {assoc.social.telegram && (
+            <a
+              href={assoc.social.telegram}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 px-5 py-3 bg-white border-2 border-editorial-border rounded-lg font-body text-sm text-editorial-text hover:border-sky-500 hover:text-sky-500 hover:scale-105 transition-all"
+            >
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M21.94 4.6 18.6 20.36c-.25 1.13-.9 1.4-1.83.87l-5.06-3.73-2.44 2.35c-.27.27-.5.5-1.02.5l.36-5.16 9.4-8.5c.41-.36-.09-.56-.63-.2L6.5 12.9 1.42 11.3c-1.1-.34-1.12-1.1.23-1.63L20.52 3.4c.92-.34 1.72.2 1.42 1.2z"/></svg>
+              <span>Telegram</span>
+            </a>
+          )}
         </div>
       </div>
     </section>
