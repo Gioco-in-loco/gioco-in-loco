@@ -55,6 +55,17 @@ export function normalizeEventTimeSlots(timeSlotsInput) {
   return unique
 }
 
+export function normalizeTags(tagsInput) {
+  if (tagsInput === undefined) return undefined
+  if (!Array.isArray(tagsInput)) throw createHttpError(400, 'Tag non validi')
+
+  return Array.from(new Set(
+    tagsInput
+      .map((tag) => (typeof tag === 'string' ? tag.trim() : ''))
+      .filter(Boolean)
+  ))
+}
+
 export function normalizeOptionalString(value) {
   if (typeof value !== 'string') return null
   const trimmed = value.trim()
@@ -127,6 +138,7 @@ export function serializeOneShot(oneshot, { phoneByUserId = new Map() } = {}) {
     master: oneshot.master,
     description: oneshot.description,
     image: oneshot.image,
+    tags: oneshot.tags || [],
     price: oneshot.price,
     minPlayers: oneshot.minPlayers,
     maxPlayers: oneshot.maxPlayers,
@@ -327,6 +339,7 @@ export async function createOneShot({ body, managedAssociationId = null }) {
           master,
           description: normalizeOptionalString(body?.description),
           image: normalizeOptionalString(body?.image),
+          tags: normalizeTags(body?.tags) ?? [],
           price,
           minPlayers,
           maxPlayers,
@@ -401,6 +414,7 @@ export async function updateOneShot({ id, body, managedAssociationId = null }) {
 
   if (body?.description !== undefined) data.description = normalizeOptionalString(body.description)
   if (body?.image !== undefined) data.image = normalizeOptionalString(body.image)
+  if (body?.tags !== undefined) data.tags = normalizeTags(body.tags)
   if (body?.associationId !== undefined && !managedAssociationId) data.associationId = normalizeOptionalString(body.associationId)
   if (managedAssociationId) data.associationId = managedAssociationId
 

@@ -1077,6 +1077,33 @@ function MainEventMapCell({ session, sessionKey, reservation, inCart, hasReserve
 
 /* ============ DETAILS MODALS ============ */
 
+// Palette dedicata ai tag (vedi .dicefest-badge--* in main.css) — distinta da
+// pink/green, già usati per il badge "sistema di gioco" e "Main Event", così
+// i tag non si confondono con quei due badge identitari.
+const TAG_BADGE_VARIANTS = ['yellow', 'purple', 'orange', 'cyan', 'red']
+
+// Hash deterministico: lo stesso tag ha sempre lo stesso colore, ovunque
+// compaia nell'app, senza bisogno di configurare un colore per tag a mano.
+function getTagBadgeVariant(tag) {
+  let hash = 0
+  for (let i = 0; i < tag.length; i += 1) {
+    hash = (hash * 31 + tag.charCodeAt(i)) | 0
+  }
+  return TAG_BADGE_VARIANTS[Math.abs(hash) % TAG_BADGE_VARIANTS.length]
+}
+
+function TagBadges({ tags }) {
+  if (!tags || tags.length === 0) return null
+
+  return (
+    <div className="mt-2 flex flex-wrap gap-1.5">
+      {tags.map((tag) => (
+        <span key={tag} className={`dicefest-badge dicefest-badge--${getTagBadgeVariant(tag)}`}>{tag}</span>
+      ))}
+    </div>
+  )
+}
+
 const FOCUSABLE_SELECTOR = 'a[href], button:not([disabled]), textarea, input, select, [tabindex]:not([tabindex="-1"])'
 
 function ModalShell({ children, onClose }) {
@@ -1269,6 +1296,7 @@ function OneShotDetailsModal({ session, cartState, pendingSlotId, busy, onAdd, o
             <span className="font-df-body text-xs text-dicefest-paper/50">{oneshot.association.name}</span>
           ) : null}
         </div>
+        <TagBadges tags={oneshot.tags} />
 
         <p className="mt-3 font-df-body text-sm text-dicefest-paper/75">
           Master · <span className="font-bold text-dicefest-paper">{oneshot.master}</span>
@@ -1381,6 +1409,7 @@ function MainEventDetailsModal({ session, sessionKey, reservation, inCart, hasRe
           <span className="dicefest-badge dicefest-badge--green">Main Event</span>
           {mainEvent.game ? <span className="font-df-body text-xs text-dicefest-paper/50">{mainEvent.game}</span> : null}
         </div>
+        <TagBadges tags={mainEvent.tags} />
 
         {mainEvent.description ? (
           <p className="dicefest-passage mt-5 text-[14px] leading-[1.7]">{mainEvent.description}</p>

@@ -1,4 +1,5 @@
 import { prisma } from './prisma'
+import { normalizeTags } from './oneshots-management'
 
 export const DEFAULT_MAIN_EVENT_PAGE_SIZE = 20
 const ACTIVE_RESERVATION_STATUSES = ['PENDING', 'CONFIRMED', 'ATTENDED']
@@ -48,6 +49,7 @@ export function serializeMainEvent(mainEvent) {
     description: mainEvent.description,
     game: mainEvent.game,
     image: mainEvent.image,
+    tags: mainEvent.tags || [],
     price: mainEvent.price,
     maxPlayers: mainEvent.maxPlayers,
     createdAt: mainEvent.createdAt,
@@ -227,6 +229,7 @@ export async function createMainEvent({ body }) {
           description: normalizeOptionalString(body?.description),
           game: normalizeOptionalString(body?.game),
           image: normalizeOptionalString(body?.image),
+          tags: normalizeTags(body?.tags) ?? [],
           price,
           maxPlayers,
         },
@@ -275,6 +278,7 @@ export async function updateMainEvent({ id, body }) {
   if (body?.description !== undefined) data.description = normalizeOptionalString(body.description)
   if (body?.game !== undefined) data.game = normalizeOptionalString(body.game)
   if (body?.image !== undefined) data.image = normalizeOptionalString(body.image)
+  if (body?.tags !== undefined) data.tags = normalizeTags(body.tags)
 
   if (body?.price !== undefined) {
     const price = normalizeOptionalNumber(body.price)

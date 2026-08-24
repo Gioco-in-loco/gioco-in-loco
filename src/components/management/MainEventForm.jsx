@@ -7,6 +7,7 @@ export const EMPTY_MAIN_EVENT_FORM = {
   game: '',
   description: '',
   image: '',
+  tags: [],
   price: '',
   maxPlayers: 8,
 }
@@ -17,17 +18,36 @@ export function formatMainEventPrice(price) {
 }
 
 export default function MainEventForm({ initial = EMPTY_MAIN_EVENT_FORM, onSave, onCancel, isNew, uploadEndpoint }) {
-  const [form, setForm] = useState(initial)
+  // Il primo render usa `initial` così com'è, prima che l'effetto sotto lo
+  // normalizzi: un chiamante che non passa ancora `tags` (o altri campi
+  // opzionali) non deve far crashare il form al primo giro.
+  const [form, setForm] = useState(() => ({ ...EMPTY_MAIN_EVENT_FORM, ...initial }))
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [imageUploading, setImageUploading] = useState(false)
   const [imageError, setImageError] = useState('')
+  const [newTag, setNewTag] = useState('')
 
   useEffect(() => {
-    setForm({ ...EMPTY_MAIN_EVENT_FORM, ...initial })
+    setForm({
+      ...EMPTY_MAIN_EVENT_FORM,
+      ...initial,
+      tags: Array.isArray(initial?.tags) ? initial.tags : [],
+    })
   }, [initial])
 
   const set = (field) => (e) => setForm((current) => ({ ...current, [field]: e.target.value }))
+
+  const addTag = () => {
+    const value = newTag.trim()
+    if (!value) return
+    setForm((current) => ({ ...current, tags: Array.from(new Set([...current.tags, value])) }))
+    setNewTag('')
+  }
+
+  const removeTag = (value) => {
+    setForm((current) => ({ ...current, tags: current.tags.filter((tag) => tag !== value) }))
+  }
 
   const handleImageChange = async (e) => {
     const file = e.target.files?.[0]
@@ -97,6 +117,46 @@ export default function MainEventForm({ initial = EMPTY_MAIN_EVENT_FORM, onSave,
       <div>
         <label className={labelClass}>Descrizione</label>
         <textarea className={`${inputClass} resize-none`} rows={3} value={form.description} onChange={set('description')} placeholder="Descrizione del main event..." />
+      </div>
+      <div>
+        <label className={labelClass}>Tag (temi, difficoltà, content warning...)</label>
+        <div className="flex gap-2">
+          <input
+            className={inputClass}
+            value={newTag}
+            onChange={(e) => setNewTag(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addTag() } }}
+            placeholder="Competitivo, Squadre, Difficoltà: Alta..."
+          />
+          <button
+            type="button"
+            onClick={addTag}
+            className="shrink-0 rounded-lg border border-editorial-border px-4 py-2 font-body text-sm font-semibold text-editorial-text transition-colors hover:border-editorial-terra"
+          >
+            + Aggiungi
+          </button>
+        </div>
+        {form.tags.length > 0 ? (
+          <div className="mt-2 flex flex-wrap gap-2">
+            {form.tags.map((tag) => (
+              <span
+                key={tag}
+                className="flex items-center gap-2 rounded-lg border border-editorial-border bg-editorial-bg/50 px-3 py-1.5 font-body text-sm text-editorial-text"
+              >
+                {tag}
+                <button
+                  type="button"
+                  onClick={() => removeTag(tag)}
+                  className="font-semibold text-editorial-text-muted hover:text-red-600"
+                  aria-label={`Rimuovi tag ${tag}`}
+                >
+                  ✕
+                </button>
+              </span>
+            ))}
+          </div>
+        ) : null}
+        <p className="mt-1 font-body text-xs text-editorial-text-muted">Mostrati come badge colorati nel popup pubblico della sessione.</p>
       </div>
       <div>
         <label className={labelClass}>Immagine copertina</label>

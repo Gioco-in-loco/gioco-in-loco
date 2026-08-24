@@ -240,6 +240,7 @@ model MainEvent {
   description   String?
   game          String?   // rulebook/game name
   image         String?
+  tags          String[] @default([]) // etichette libere per temi/content warning (es. "Horror", "Solo adulti"), mostrate come badge colorati nel popup pubblico
   price         Float?
   // Capienza massima del main event, indipendente dai tavoli assegnati: un
   // main event può girare su più tavoli/slot, ma il tetto di prenotazioni è
@@ -320,6 +321,7 @@ model OneShot {
   master        String    // Game master's name
   description   String?
   image         String?   // public URL in Supabase Storage, not the file itself
+  tags          String[] @default([]) // etichette libere per temi/content warning (es. "Horror", "Solo adulti"), mostrate come badge colorati nel popup pubblico
   price         Float?
   minPlayers    Int       @default(1)
   maxPlayers    Int       @default(6)

@@ -2262,6 +2262,14 @@ select.form-input {
   --df-pink-dim: #B81F66;
   --df-green: #39FF8A;
   --df-green-dim: #1FB864;
+  /* Palette dedicata ai badge tag one-shot/main event (vedi getTagBadgeVariant
+     in DiceFestBookingPage.jsx) — distinta da pink/green, già usati per il
+     badge "sistema di gioco" e l'etichetta "Main Event". */
+  --df-yellow: #FFD23F;
+  --df-purple: #B14EFF;
+  --df-orange: #FF7A29;
+  --df-cyan: #2FD9FF;
+  --df-red: #FF4D4D;
   --df-shadow-hard: 6px 6px 0 0 var(--df-ink);
   --df-shadow-hard-sm: 3px 3px 0 0 var(--df-ink);
   color: var(--df-paper);
@@ -2344,6 +2352,36 @@ select.form-input {
   background: var(--df-surface-2);
   color: var(--df-paper);
   opacity: 0.85;
+}
+
+.dicefest-badge--yellow {
+  border-color: var(--df-yellow);
+  background: rgba(255, 210, 63, 0.12);
+  color: var(--df-yellow);
+}
+
+.dicefest-badge--purple {
+  border-color: var(--df-purple);
+  background: rgba(177, 78, 255, 0.14);
+  color: var(--df-purple);
+}
+
+.dicefest-badge--orange {
+  border-color: var(--df-orange);
+  background: rgba(255, 122, 41, 0.14);
+  color: var(--df-orange);
+}
+
+.dicefest-badge--cyan {
+  border-color: var(--df-cyan);
+  background: rgba(47, 217, 255, 0.12);
+  color: var(--df-cyan);
+}
+
+.dicefest-badge--red {
+  border-color: var(--df-red);
+  background: rgba(255, 77, 77, 0.14);
+  color: var(--df-red);
 }
 
 /* Buttons — replicate .btn-primary/.btn-secondary from dice-fest.it/src/input.css */

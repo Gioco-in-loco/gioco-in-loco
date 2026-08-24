@@ -59,6 +59,7 @@ export default function OneShotFormDialog({
       maxPlayers: detail.maxPlayers ?? 6,
       associationId: detail.associationId || '',
       image: detail.image || '',
+      tags: detail.tags || [],
       slotIds: detail.slots?.map((slot) => slot.id) || [],
     }
   }, [mode, detail])

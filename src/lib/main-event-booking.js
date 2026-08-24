@@ -141,6 +141,7 @@ function serializeMainEventForEvent(mainEvent, event, countsByKey) {
     description: mainEvent.description,
     game: mainEvent.game,
     image: mainEvent.image,
+    tags: mainEvent.tags || [],
     price: mainEvent.price,
     eventId: event.id,
     eventExternalId: event.externalId || null,

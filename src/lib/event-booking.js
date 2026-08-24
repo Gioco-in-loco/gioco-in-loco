@@ -475,6 +475,7 @@ export const getBookableEventData = cache(async function getBookableEventData(ev
               description: true,
               price: true,
               image: true,
+              tags: true,
               association: {
                 select: {
                   id: true,
@@ -542,6 +543,7 @@ export const getBookableEventData = cache(async function getBookableEventData(ev
         description: link.oneShot.description,
         price: link.oneShot.price,
         image: link.oneShot.image,
+        tags: link.oneShot.tags || [],
         association: link.oneShot.association,
         slots: link.oneShot.slots
           .map((slot) => ({

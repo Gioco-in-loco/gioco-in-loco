@@ -46,6 +46,7 @@ export default function MainEventDetail({
     price: detail.price ?? '',
     maxPlayers: detail.maxPlayers ?? 8,
     image: detail.image || '',
+    tags: detail.tags || [],
   } : null), [detail])
 
   const handleSave = async (form) => {
