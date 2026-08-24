@@ -267,7 +267,7 @@ export default function AdminEventDetailPage({ params }) {
           ) : activeTab === 'attesa' ? (
             <EventWaitlistPanel eventId={event.id} waitlistEndpointBase="/api/admin/eventi" />
           ) : (
-            <EventReservationsPanel eventId={event.id} />
+            <EventReservationsPanel eventId={event.id} eventExternalId={event.externalId} />
           )}
         </div>
       )}

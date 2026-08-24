@@ -11,6 +11,7 @@ const ROLE_STYLE = {
 }
 
 const ADMIN_BADGE_STYLE = 'bg-editorial-terra/10 text-editorial-terra'
+const PAGE_SIZE = 15
 
 function formatDate(dateStr) {
   if (!dateStr) return '—'
@@ -25,6 +26,7 @@ export default function UtentiPage() {
   const [search, setSearch] = useState('')
   const [roleFilter, setRoleFilter] = useState('')
   const [associationFilter, setAssociationFilter] = useState('')
+  const [page, setPage] = useState(1)
 
   const loadData = useCallback(async () => {
     setLoading(true)
@@ -38,6 +40,7 @@ export default function UtentiPage() {
   }, [])
 
   useEffect(() => { loadData() }, [loadData])
+  useEffect(() => { setPage(1) }, [search, roleFilter, associationFilter])
 
   const filtered = users.filter((u) => {
     const matchesSearch = !search || u.email.toLowerCase().includes(search.toLowerCase()) || u.name?.toLowerCase().includes(search.toLowerCase())
@@ -45,6 +48,13 @@ export default function UtentiPage() {
     const matchesAssociation = !associationFilter || u.managedAssociation?.id === associationFilter
     return matchesSearch && matchesRole && matchesAssociation
   })
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
+  // Filtri/ricerca possono restringere la lista sotto la pagina in cui ci si
+  // trovava (es. da pagina 3 a una lista con una sola pagina): senza questa
+  // clamp la tabella risulterebbe vuota anche se ci sono risultati.
+  const currentPage = Math.min(page, totalPages)
+  const paginated = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE)
 
   return (
     <>
@@ -108,7 +118,7 @@ export default function UtentiPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-editorial-border">
-              {filtered.map((u) => (
+              {paginated.map((u) => (
                 <tr
                   key={u.id}
                   className="hover:bg-editorial-bg/50 transition-colors cursor-pointer"
@@ -145,6 +155,30 @@ export default function UtentiPage() {
           </table>
           </div>
         )}
+
+        {!loading && totalPages > 1 ? (
+          <div className="flex items-center justify-between gap-4 border-t border-editorial-border px-4 py-3">
+            <p className="font-body text-sm text-editorial-text-muted">Pagina {currentPage} di {totalPages} · {filtered.length} utenti</p>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setPage(currentPage - 1)}
+                disabled={currentPage <= 1}
+                className="rounded-lg border border-editorial-border px-3 py-2 font-body text-sm font-semibold text-editorial-text transition-colors hover:border-editorial-terra disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Precedente
+              </button>
+              <button
+                type="button"
+                onClick={() => setPage(currentPage + 1)}
+                disabled={currentPage >= totalPages}
+                className="rounded-lg border border-editorial-border px-3 py-2 font-body text-sm font-semibold text-editorial-text transition-colors hover:border-editorial-terra disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Successiva
+              </button>
+            </div>
+          </div>
+        ) : null}
       </div>
 
     </>

@@ -1204,7 +1204,7 @@ export async function handleConfirmEventCart(eventId) {
       if (confirmedMainEventReservationIds.length > 0) {
         await tx.mainEventReservation.updateMany({
           where: { id: { in: confirmedMainEventReservationIds } },
-          data: { status: 'PENDING', holdExpiresAt: null },
+          data: { status: 'CONFIRMED', holdExpiresAt: null },
         })
       }
 

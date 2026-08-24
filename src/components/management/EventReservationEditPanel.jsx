@@ -32,7 +32,7 @@ function formatDate(value) {
   }).format(new Date(value))
 }
 
-export default function EventReservationEditPanel({ eventId, reservationId, type }) {
+export default function EventReservationEditPanel({ eventId, eventExternalId, reservationId, type }) {
   const router = useRouter()
   const toast = useToast()
 
@@ -135,7 +135,7 @@ export default function EventReservationEditPanel({ eventId, reservationId, type
         throw new Error(data.error || 'Eliminazione non riuscita.')
       }
       toast.success('Prenotazione eliminata.')
-      router.push(`/admin/eventi/${eventId}?tab=prenotazioni`)
+      router.push(`/admin/eventi/${eventExternalId}?tab=prenotazioni`)
     } catch (err) {
       toast.error(err.message || 'Eliminazione non riuscita.')
       setDeleting(false)

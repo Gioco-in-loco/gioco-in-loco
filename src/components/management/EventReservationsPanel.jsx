@@ -57,7 +57,7 @@ function rowKeyFor(reservation) {
 // per la vista principale su cosa succederà davvero all'evento.
 const DEFAULT_FILTERS = { type: '', day: '', slotTime: '', status: 'CONFIRMED' }
 
-export default function EventReservationsPanel({ eventId }) {
+export default function EventReservationsPanel({ eventId, eventExternalId }) {
   const router = useRouter()
   const toast = useToast()
   const [reservations, setReservations] = useState([])
@@ -171,7 +171,7 @@ export default function EventReservationsPanel({ eventId }) {
   }
 
   const openReservation = (reservation) => {
-    router.push(`/admin/eventi/${eventId}/prenotazioni/${reservation.id}?type=${reservation.type}`)
+    router.push(`/admin/eventi/${eventExternalId}/prenotazioni/${reservation.id}?type=${reservation.type}`)
   }
 
   return (

@@ -1,11 +1,10 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import Hero from '../sections/Hero'
 import ItalianGameJam from '../sections/ItalianGameJam'
 
 // Recap section for each area
-function AreaRecapSection({ id, title, emoji, description, stats, imagePlaceholder, imageAlt, reverse = false }) {
+function AreaRecapSection({ id, title, emoji, description, stats, reverse = false }) {
   const [isVisible, setIsVisible] = useState(false)
   const sectionRef = useRef(null)
 
@@ -35,54 +34,34 @@ function AreaRecapSection({ id, title, emoji, description, stats, imagePlacehold
       {/* Background decorations */}
       <div className="absolute inset-0 pattern-drift opacity-30" />
 
-      <div className="relative max-w-6xl mx-auto">
-        <div className={`grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center ${reverse ? 'lg:flex-row-reverse' : ''}`}>
-          {/* Content side */}
-          <div
-            className={`space-y-6 ${reverse ? 'lg:order-2' : 'lg:order-1'} transition-all duration-700 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}
-          >
-            {/* Emoji and title */}
-            <div className="flex items-center gap-4">
-              <span className="text-5xl float-bounce">{emoji}</span>
-              <h2 className="font-bangers text-4xl md:text-5xl text-comic-navy tracking-wider">{title}</h2>
-            </div>
-
-            {/* Description */}
-            <div className="bg-white border-4 border-comic-navy rounded-xl p-6 shadow-[4px_4px_0px_0px_#1A1A2E]">
-              <p className="font-comic text-comic-navy text-lg leading-relaxed">{description}</p>
-            </div>
-
-            {/* Stats pills */}
-            {stats && (
-              <div className="flex flex-wrap gap-3">
-                {stats.map((stat) => (
-                  <div
-                    key={stat.text}
-                    className="bg-comic-cyan/90 backdrop-blur-sm border-3 border-comic-navy rounded-full px-5 py-3 shadow-[3px_3px_0px_0px_#1A1A2E] hover:scale-105 transition-transform"
-                  >
-                    <span className="font-bangers text-comic-navy text-lg">{stat.icon} {stat.text}</span>
-                  </div>
-                ))}
-              </div>
-            )}
+      <div className="relative max-w-3xl mx-auto">
+        <div
+          className={`space-y-6 transition-all duration-700 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}
+        >
+          {/* Emoji and title */}
+          <div className="flex items-center gap-4">
+            <span className="text-5xl float-bounce">{emoji}</span>
+            <h2 className="font-bangers text-4xl md:text-5xl text-comic-navy tracking-wider">{title}</h2>
           </div>
 
-          {/* Image side */}
-          <div
-            className={`${reverse ? 'lg:order-1' : 'lg:order-2'} transition-all duration-700 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}
-            style={{ transitionDelay: '0.2s' }}
-          >
-            <div className="relative rounded-xl overflow-hidden border-4 border-comic-navy shadow-[6px_6px_0px_0px_#1A1A2E]">
-              {/* Image placeholder */}
-              <div className="aspect-[4/3] bg-gradient-to-br from-comic-cyan/20 via-comic-magenta/20 to-comic-yellow/20 flex items-center justify-center">
-                <div className="text-center p-6">
-                  <div className="text-6xl mb-4 float-bounce">{emoji}</div>
-                  <p className="font-bangers text-xl text-comic-navy tracking-wider">{imagePlaceholder}</p>
-                  <p className="font-comic text-sm text-comic-navy/60 mt-2">{imageAlt}</p>
+          {/* Description */}
+          <div className="bg-white border-4 border-comic-navy rounded-xl p-6 shadow-[4px_4px_0px_0px_#1A1A2E]">
+            <p className="font-comic text-comic-navy text-lg leading-relaxed">{description}</p>
+          </div>
+
+          {/* Stats pills */}
+          {stats && (
+            <div className="flex flex-wrap gap-3">
+              {stats.map((stat) => (
+                <div
+                  key={stat.text}
+                  className="bg-comic-cyan/90 backdrop-blur-sm border-3 border-comic-navy rounded-full px-5 py-3 shadow-[3px_3px_0px_0px_#1A1A2E] hover:scale-105 transition-transform"
+                >
+                  <span className="font-bangers text-comic-navy text-lg">{stat.icon} {stat.text}</span>
                 </div>
-              </div>
+              ))}
             </div>
-          </div>
+          )}
         </div>
       </div>
     </section>
@@ -180,7 +159,6 @@ function ThanksSection() {
 export default function Comicon2026({ associations = [] }) {
   return (
     <>
-      <Hero />
       <AreaRecapSection
         id="ludoteca"
         title="LUDOTECA"
@@ -191,8 +169,6 @@ export default function Comicon2026({ associations = [] }) {
           { icon: '⏰', text: '10-19 TUTTI I GIORNI' },
           { icon: '🎟️', text: 'INGRESSO LIBERO' }
         ]}
-        imagePlaceholder="ludoteca-comicon-2026.jpg"
-        imageAlt="Photo of the Ludoteca area at COMICON 2026"
       />
       <AreaRecapSection
         id="area-gdr"
@@ -204,8 +180,6 @@ export default function Comicon2026({ associations = [] }) {
           { icon: '🎭', text: '20+ MASTERS' },
           { icon: '🗺️', text: 'DIVERSI SISTEMI' }
         ]}
-        imagePlaceholder="gdr-comicon-2026.jpg"
-        imageAlt="Photo of the GDR area at COMICON 2026"
         reverse
       />
       <AreaRecapSection
@@ -218,8 +192,6 @@ export default function Comicon2026({ associations = [] }) {
           { icon: '🤝', text: 'GIOCHI COOPERATIVI' },
           { icon: '🧠', text: 'STRATEGIA AVANZATA' }
         ]}
-        imagePlaceholder="hardcore-comicon-2026.jpg"
-        imageAlt="Photo of the HardCore area at COMICON 2026"
       />
       <AreaRecapSection
         id="area-young"
@@ -231,8 +203,6 @@ export default function Comicon2026({ associations = [] }) {
           { icon: '🪑', text: '6 TAVOLI ATTIVI' },
           { icon: '👦', text: 'ETÀ 8-13 ANNI' }
         ]}
-        imagePlaceholder="young-comicon-2026.jpg"
-        imageAlt="Photo of the Young area at COMICON 2026"
         reverse
       />
       <ItalianGameJam associations={associations} />

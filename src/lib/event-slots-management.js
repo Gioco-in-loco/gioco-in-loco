@@ -528,10 +528,17 @@ export async function listSessionsForExport({ eventId }) {
       reservations: {
         where: { status: { in: ACTIVE_RESERVATION_STATUSES } },
         orderBy: { createdAt: 'asc' },
-        select: { playerName: true, playerEmail: true },
+        select: {
+          userId: true,
+          playerName: true,
+          playerEmail: true,
+          user: { select: { supabaseUserId: true } },
+        },
       },
     },
   })
+
+  const phoneByUserId = await buildReservationPhoneMap(slots)
 
   return slots
     .map((slot) => ({
@@ -540,7 +547,11 @@ export async function listSessionsForExport({ eventId }) {
       table: slot.table,
       title: slot.oneshot?.title || '',
       master: slot.oneshot?.master || '',
-      players: slot.reservations.map((reservation) => reservation.playerName || reservation.playerEmail || ''),
+      players: slot.reservations.map((reservation) => ({
+        name: reservation.playerName || reservation.playerEmail || '',
+        email: reservation.playerEmail || '',
+        phone: phoneByUserId.get(reservation.userId) || '',
+      })),
     }))
     .sort((left, right) => {
       const dayDiff = weekDayIndex(left.day) - weekDayIndex(right.day)

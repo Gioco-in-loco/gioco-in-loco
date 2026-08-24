@@ -12,7 +12,8 @@ import BookingLockDialog from './BookingLockDialog'
 import ActionsMenu, { ActionsMenuItem } from './ActionsMenu'
 import { useToast } from '../../context/ToastContext'
 
-const EMPTY_FILTERS = { association: '', game: '', master: '' }
+const AT_RISK_MAX_PLAYERS = 2
+const EMPTY_FILTERS = { association: '', game: '', master: '', atRisk: false }
 
 function normalizeFilterValue(value) {
   return String(value || '').trim().toLocaleLowerCase('it-IT')
@@ -152,6 +153,14 @@ export default function EventTableMapPanel({
     if (filters.game && normalizeFilterValue(game) !== filters.game) return true
     if (filters.master && normalizeFilterValue(master) !== filters.master) return true
 
+    // "A rischio": una sessione assegnata (one-shot o main event) con pochi
+    // iscritti — le celle libere non c'entrano, non c'è nulla che rischi di
+    // saltare se non è mai stato programmato nulla.
+    if (filters.atRisk) {
+      const isBookable = Boolean(cell.oneshotId || cell.mainEventId)
+      if (!isBookable || (cell.reservationsCount || 0) > AT_RISK_MAX_PLAYERS) return true
+    }
+
     return false
   }, [filters, hasActiveFilters])
 
@@ -236,6 +245,17 @@ export default function EventTableMapPanel({
             <option value="">Tutti</option>
             {filterOptions.masters.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
           </select>
+        </div>
+        <div>
+          <label className="mb-1 block font-body text-[11px] font-semibold uppercase tracking-wider text-editorial-text-muted">&nbsp;</label>
+          <label className="flex items-center gap-2 rounded-lg border border-editorial-border px-3 py-1.5 font-body text-sm text-editorial-text">
+            <input
+              type="checkbox"
+              checked={filters.atRisk}
+              onChange={(e) => setFilters((current) => ({ ...current, atRisk: e.target.checked }))}
+            />
+            A rischio (≤ {AT_RISK_MAX_PLAYERS} prenotati)
+          </label>
         </div>
         <button
           type="button"
