@@ -45,6 +45,7 @@ export default function EventTableMapPanel({
   canMarkAttendance = false,
   canDeleteReservations = true,
   canManageMainEvents = true,
+  canManageOneShots = true,
   slotsEndpointBase = '/api/admin/eventi',
   oneshotsEndpointBase = '/api/admin/oneshots',
   uploadEndpoint = '/api/admin/oneshots/upload-image',
@@ -169,12 +170,16 @@ export default function EventTableMapPanel({
               + Aggiungi slot
             </ActionsMenuItem>
           ) : null}
-          <ActionsMenuItem onClick={() => setShowCreateOneshot(true)}>
-            + Crea one shot
-          </ActionsMenuItem>
-          <ActionsMenuItem onClick={() => setShowEditOneshot(true)}>
-            Modifica one shot
-          </ActionsMenuItem>
+          {canManageOneShots ? (
+            <>
+              <ActionsMenuItem onClick={() => setShowCreateOneshot(true)}>
+                + Crea one shot
+              </ActionsMenuItem>
+              <ActionsMenuItem onClick={() => setShowEditOneshot(true)}>
+                Modifica one shot
+              </ActionsMenuItem>
+            </>
+          ) : null}
           {canManageMainEvents ? (
             <>
               <ActionsMenuItem onClick={() => setShowCreateMainEvent(true)}>
@@ -337,6 +342,7 @@ export default function EventTableMapPanel({
         canMarkAttendance={canMarkAttendance}
         canDeleteReservations={canDeleteReservations}
         canManageMainEvents={canManageMainEvents}
+        canManageOneShots={canManageOneShots}
         mainEventsEndpointBase={mainEventsEndpointBase}
         mainEventUploadEndpoint={mainEventUploadEndpoint}
         onChanged={() => { setSelectedSlot(null); loadSlots() }}

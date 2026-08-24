@@ -2595,18 +2595,6 @@ select.form-input {
   filter: grayscale(0.5);
 }
 
-.dicefest-slot-card--soon {
-  background: var(--df-surface);
-  border-style: dashed;
-  opacity: 0.7;
-  cursor: default;
-}
-
-.dicefest-slot-card--soon:hover {
-  border-color: var(--df-border);
-  transform: none;
-  box-shadow: none;
-}
 
 /* Table map — table × time-slot grid */
 .dicefest-table-scroll {

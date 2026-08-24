@@ -7,7 +7,7 @@ const WEEK_DAYS = ['Lunedi', 'Martedi', 'Mercoledi', 'Giovedi', 'Venerdi', 'Saba
 const TIME_SLOT_PATTERN = '^([01]\\d|2[0-3]):[0-5]\\d-([01]\\d|2[0-3]):[0-5]\\d$'
 const TIME_SLOT_REGEX = /^([01]\d|2[0-3]):[0-5]\d-([01]\d|2[0-3]):[0-5]\d$/
 
-const EMPTY_FORM = { externalId: '', name: '', description: '', location: '', mapsUrl: '', price: '', dailyPrice: '', days: [], timeSlots: [], startDate: '', endDate: '', bookingOpensAt: '', visibility: 'REVEALED' }
+const EMPTY_FORM = { externalId: '', name: '', description: '', location: '', mapsUrl: '', price: '', dailyPrice: '', days: [], timeSlots: [], startDate: '', endDate: '', bookingOpensAt: '', visibility: 'REVEALED', sessionsLocked: false }
 
 const VISIBILITY_OPTIONS = [
   { value: 'PREVIEW', label: 'Preview', description: 'La pagina principale è visibile, ma il programma (sessioni) resta nascosto.' },
@@ -129,6 +129,19 @@ export default function EventForm({ initial = EMPTY_FORM, onSave, onCancel, isNe
         <p className="font-body text-xs text-editorial-text-muted mt-1">
           {VISIBILITY_OPTIONS.find((option) => option.value === form.visibility)?.description}
           {' '}Admin e responsabile vedono sempre le pagine reali, a prescindere da questo stato.
+        </p>
+      </div>
+      <div>
+        <label className="flex items-center gap-2 font-body text-sm text-editorial-text">
+          <input
+            type="checkbox"
+            checked={form.sessionsLocked}
+            onChange={(e) => setForm((f) => ({ ...f, sessionsLocked: e.target.checked }))}
+          />
+          Blocca modifiche one-shot ai responsabili
+        </label>
+        <p className="font-body text-xs text-editorial-text-muted mt-1">
+          Da questo momento solo l&apos;amministratore può creare, modificare o riassegnare le one-shot di questo evento. I responsabili continuano a gestire presenze e prenotazioni.
         </p>
       </div>
       <div>

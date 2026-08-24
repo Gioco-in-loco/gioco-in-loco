@@ -22,28 +22,6 @@ function ListIcon() {
   )
 }
 
-function LockIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <rect x="4" y="10" width="16" height="10" rx="1" />
-      <path d="M7 10V7a5 5 0 0 1 10 0v3" />
-    </svg>
-  )
-}
-
-// Placeholder per un tavolo marcato "non visibile" dall'admin: si sa che c'è
-// qualcosa in preparazione (giorno/fascia/tavolo), ma né titolo né master
-// arrivano dal server, quindi qui non c'è nulla da svelare per costruzione.
-function ComingSoonCard({ table }) {
-  return (
-    <div className="dicefest-slot-card dicefest-slot-card--soon flex h-full flex-col items-center justify-center gap-1.5 py-4 text-center">
-      <span className="dicefest-slot-card__table">{table}</span>
-      <LockIcon />
-      <p className="font-df-display text-xs uppercase tracking-wide text-dicefest-paper/70">Presto in arrivo</p>
-    </div>
-  )
-}
-
 const DAY_ORDER = ['Lunedi', 'Lunedì', 'Martedi', 'Martedì', 'Mercoledi', 'Mercoledì', 'Giovedi', 'Giovedì', 'Venerdi', 'Venerdì', 'Sabato', 'Domenica']
 
 function dayIndex(day) {
@@ -56,7 +34,7 @@ function dayIndex(day) {
 // fantasy/parchment booking page. Callers own all business logic: each entry
 // in `entries` is `{ slot: { day, slot, table, ... }, ... }` and `renderCell`
 // decides what a cell looks like and does when clicked.
-export default function TableMap({ entries, hiddenSlots = [], activeDay, onChangeDay, renderCell, isDimmed }) {
+export default function TableMap({ entries, activeDay, onChangeDay, renderCell, isDimmed }) {
   // Below `lg` there's never room for the grid (see the comment on the
   // desktop block below), so the toggle only matters — and is only shown —
   // from `lg` up. Defaults to the grid to keep current desktop behaviour.
@@ -64,9 +42,8 @@ export default function TableMap({ entries, hiddenSlots = [], activeDay, onChang
 
   const days = useMemo(() => {
     const unique = new Set(entries.map((entry) => entry.slot.day))
-    hiddenSlots.forEach((slot) => unique.add(slot.day))
     return Array.from(unique).sort((left, right) => dayIndex(left) - dayIndex(right))
-  }, [entries, hiddenSlots])
+  }, [entries])
 
   useEffect(() => {
     if (days.length === 0) return
@@ -74,24 +51,20 @@ export default function TableMap({ entries, hiddenSlots = [], activeDay, onChang
   }, [days, activeDay, onChangeDay])
 
   const dayEntries = useMemo(() => entries.filter((entry) => entry.slot.day === activeDay), [entries, activeDay])
-  const dayHiddenSlots = useMemo(() => hiddenSlots.filter((slot) => slot.day === activeDay), [hiddenSlots, activeDay])
 
-  // Righe/colonne derivano dall'unione di TUTTI i giorni (entries + slot
-  // nascosti), non solo da quello attivo: la sala è la stessa ogni giorno,
-  // cambia solo cosa succede in ogni tavolo/fascia. Derivarle dal solo giorno
-  // attivo farebbe apparire/sparire tavoli e fasce cambiando tab, anche
-  // quando è solo l'occupazione a variare.
+  // Righe/colonne derivano dall'unione di TUTTI i giorni, non solo da quello
+  // attivo: la sala è la stessa ogni giorno, cambia solo cosa succede in ogni
+  // tavolo/fascia. Derivarle dal solo giorno attivo farebbe apparire/sparire
+  // tavoli e fasce cambiando tab, anche quando è solo l'occupazione a variare.
   const timeSlots = useMemo(() => {
     const unique = new Set(entries.map((entry) => entry.slot.slot))
-    hiddenSlots.forEach((slot) => unique.add(slot.slot))
     return Array.from(unique).sort((left, right) => left.localeCompare(right, undefined, { numeric: true }))
-  }, [entries, hiddenSlots])
+  }, [entries])
 
   const tables = useMemo(() => {
     const unique = new Set(entries.map((entry) => entry.slot.table))
-    hiddenSlots.forEach((slot) => unique.add(slot.table))
     return Array.from(unique).sort((left, right) => left.localeCompare(right, undefined, { numeric: true }))
-  }, [entries, hiddenSlots])
+  }, [entries])
 
   const cellMap = useMemo(() => {
     const map = new Map()
@@ -99,13 +72,17 @@ export default function TableMap({ entries, hiddenSlots = [], activeDay, onChang
     return map
   }, [dayEntries])
 
-  const hiddenCellSet = useMemo(
-    () => new Set(dayHiddenSlots.map((slot) => `${slot.table}__${slot.slot}`)),
-    [dayHiddenSlots],
+  // A differenza di `tables` (unione su tutti i giorni, serve per tenere
+  // stabile la struttura della griglia cambiando tab), qui si scende al solo
+  // giorno attivo: un tavolo senza nessuna sessione visibile in questo giorno
+  // (es. l'unica sessione era nascosta) non deve lasciare una riga vuota.
+  const dayTables = useMemo(
+    () => tables.filter((table) => dayEntries.some((entry) => entry.slot.table === table)),
+    [tables, dayEntries],
   )
 
-  // Mobile list grouped by time slot: solo entry reali o tavoli nascosti
-  // vengono elencati (nessun placeholder "Libero"), dato che scorrere una
+  // Mobile list grouped by time slot: solo le entry reali vengono elencate
+  // (nessun placeholder "Libero"/"Presto in arrivo"), dato che scorrere una
   // lista piatta di tavoli aperti si legge meglio su telefono che
   // ricostruire una griglia vuota cella per cella.
   const groupedByTimeSlot = useMemo(
@@ -115,10 +92,9 @@ export default function TableMap({ entries, hiddenSlots = [], activeDay, onChang
         entries: tables
           .map((table) => cellMap.get(`${table}__${slotTime}`))
           .filter(Boolean),
-        hiddenTables: tables.filter((table) => hiddenCellSet.has(`${table}__${slotTime}`)),
       }))
-      .filter((group) => group.entries.length > 0 || group.hiddenTables.length > 0),
-    [timeSlots, tables, cellMap, hiddenCellSet],
+      .filter((group) => group.entries.length > 0),
+    [timeSlots, tables, cellMap],
   )
 
   if (days.length === 0) return null
@@ -189,9 +165,6 @@ export default function TableMap({ entries, hiddenSlots = [], activeDay, onChang
                       </div>
                     )
                   })}
-                  {group.hiddenTables.map((table) => (
-                    <ComingSoonCard key={`hidden__${table}__${group.slotTime}`} table={table} />
-                  ))}
                 </div>
               </div>
             ))}
@@ -208,22 +181,21 @@ export default function TableMap({ entries, hiddenSlots = [], activeDay, onChang
                 <div key={slotTime} className="dicefest-table__col-header">{slotTime}</div>
               ))}
 
-              {tables.map((table) => (
+              {dayTables.map((table) => (
                 <Fragment key={table}>
                   <div className="dicefest-table__row-header">{table}</div>
                   {timeSlots.map((slotTime) => {
                     const entry = cellMap.get(`${table}__${slotTime}`)
                     const dimmed = entry && isDimmed ? isDimmed(entry) : false
 
-                    // Un utente non può prenotare un tavolo "a vuoto": qui non
-                    // esiste una vera azione su una cella libera, quindi anche
-                    // le celle senza sessione annunciata mostrano "Presto in
-                    // arrivo" invece di "Libero" — non solo quelle esplicitamente
-                    // nascoste, dato che dal punto di vista dell'utente sono
-                    // indistinguibili (in entrambi i casi non c'è nulla da fare).
+                    // Cella senza sessione reale: resta vuota, sia che si tratti
+                    // di un tavolo/fascia mai usato sia di una sessione marcata
+                    // non visibile dall'admin — le due cose devono restare
+                    // indistinguibili, quindi niente placeholder che riveli
+                    // "qui c'è qualcosa in arrivo".
                     return (
                       <div key={`${table}__${slotTime}`} className={`dicefest-table__cell ${dimmed ? 'dicefest-table__cell--dimmed' : ''}`}>
-                        {entry ? renderCell(entry) : <ComingSoonCard table={table} />}
+                        {entry ? renderCell(entry) : null}
                       </div>
                     )
                   })}

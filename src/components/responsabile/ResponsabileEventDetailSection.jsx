@@ -76,20 +76,28 @@ export default function ResponsabileEventDetailSection({ eventExternalId, associ
       ) : loadError ? (
         <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 font-body text-sm text-red-600">{loadError}</p>
       ) : (
-        <EventTableMapPanel
-          eventId={event.id}
-          fixedAssociation={{ id: association.id, name: association.name }}
-          canAddSlot={false}
-          canManageSlot={false}
-          canManageReservations={false}
-          canMarkAttendance
-          canDeleteReservations={false}
-          canManageMainEvents={false}
-          slotsEndpointBase="/api/responsabile/eventi"
-          oneshotsEndpointBase="/api/responsabile/oneshots"
-          uploadEndpoint="/api/responsabile/oneshots/upload-image"
-          associationsEndpoint={null}
-        />
+        <>
+          {event.sessionsLocked ? (
+            <p className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 font-body text-sm text-amber-700">
+              Le sessioni di questo evento sono bloccate: solo l&apos;amministratore può creare, modificare o riassegnare le one-shot. Puoi ancora gestire presenze e prenotazioni.
+            </p>
+          ) : null}
+          <EventTableMapPanel
+            eventId={event.id}
+            fixedAssociation={{ id: association.id, name: association.name }}
+            canAddSlot={false}
+            canManageSlot={false}
+            canManageReservations={false}
+            canMarkAttendance
+            canDeleteReservations={false}
+            canManageMainEvents={false}
+            canManageOneShots={!event.sessionsLocked}
+            slotsEndpointBase="/api/responsabile/eventi"
+            oneshotsEndpointBase="/api/responsabile/oneshots"
+            uploadEndpoint="/api/responsabile/oneshots/upload-image"
+            associationsEndpoint={null}
+          />
+        </>
       )}
     </>
   )

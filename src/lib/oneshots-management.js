@@ -267,6 +267,18 @@ async function assertNoAdminOnlySlots(tx, slotIds, managedAssociationId) {
   }
 }
 
+// L'admin bypassa sempre il lock (managedAssociationId assente); il
+// responsabile non deve poter toccare contenuto o assegnazione tavolo di una
+// one-shot legata a un evento con sessioni bloccate (Event.sessionsLocked).
+async function assertEventsNotLocked(tx, eventIds, managedAssociationId) {
+  if (!managedAssociationId || eventIds.length === 0) return
+
+  const locked = await tx.event.findFirst({ where: { id: { in: eventIds }, sessionsLocked: true } })
+  if (locked) {
+    throw createHttpError(403, 'Le sessioni di questo evento sono bloccate: solo l\'amministratore può modificarle.')
+  }
+}
+
 // eventLinks (EventOneShot) non si sceglie più manualmente: è derivata dagli
 // slot effettivamente assegnati alla one-shot, così una one-shot risulta
 // "collegata" esattamente agli eventi in cui ha almeno uno slot — niente altro
@@ -323,6 +335,9 @@ export async function createOneShot({ body, managedAssociationId = null }) {
       })
 
       if (requestedSlotIds.length > 0) {
+        const requestedSlots = await tx.eventSlot.findMany({ where: { id: { in: requestedSlotIds } }, select: { eventId: true } })
+        await assertEventsNotLocked(tx, Array.from(new Set(requestedSlots.map((s) => s.eventId))), managedAssociationId)
+
         await assertSlotsSelectable(tx, requestedSlotIds)
         await assertNoAdminOnlySlots(tx, requestedSlotIds, managedAssociationId)
 
@@ -407,11 +422,16 @@ export async function updateOneShot({ id, body, managedAssociationId = null }) {
           id: true,
           minPlayers: true,
           maxPlayers: true,
-          slots: { select: { id: true } },
+          slots: { select: { id: true, eventId: true } },
         },
       })
 
       if (!currentOneShot) throw createHttpError(404, 'One shot non trovata')
+
+      // Blocca anche una modifica di solo contenuto (titolo, descrizione...)
+      // su una one-shot già seduta su un evento con sessioni bloccate, non
+      // solo la riassegnazione slot controllata più sotto.
+      await assertEventsNotLocked(tx, Array.from(new Set(currentOneShot.slots.map((s) => s.eventId))), managedAssociationId)
 
       const nextMinPlayers = body?.minPlayers !== undefined
         ? normalizeRequiredInteger(body.minPlayers, 'Posti minimi')
@@ -430,6 +450,11 @@ export async function updateOneShot({ id, body, managedAssociationId = null }) {
 
         const slotIdsToDetach = existingSlotIds.filter((slotId) => !requestedSlotIds.includes(slotId))
         const slotIdsToAttach = requestedSlotIds.filter((slotId) => !existingSlotIds.includes(slotId))
+
+        if (slotIdsToAttach.length > 0) {
+          const targetSlots = await tx.eventSlot.findMany({ where: { id: { in: slotIdsToAttach } }, select: { eventId: true } })
+          await assertEventsNotLocked(tx, Array.from(new Set(targetSlots.map((s) => s.eventId))), managedAssociationId)
+        }
 
         await assertSlotsSelectable(tx, requestedSlotIds)
         await assertNoAdminOnlySlots(tx, slotIdsToAttach, managedAssociationId)
@@ -636,7 +661,7 @@ export async function deleteOneShot({ id, managedAssociationId = null }) {
         select: {
           id: true,
           slots: {
-            select: { id: true },
+            select: { id: true, eventId: true },
           },
         },
       })
@@ -644,6 +669,8 @@ export async function deleteOneShot({ id, managedAssociationId = null }) {
       if (!oneshot) {
         throw createHttpError(404, 'One shot non trovata')
       }
+
+      await assertEventsNotLocked(tx, Array.from(new Set(oneshot.slots.map((s) => s.eventId))), managedAssociationId)
 
       const slotIds = oneshot.slots.map((slot) => slot.id)
 

@@ -26,7 +26,7 @@ export async function PATCH(request, { params }) {
   if (error) return NextResponse.json({ error }, { status })
 
   const body = await request.json()
-  const { externalId, name, description, location, mapsUrl, price, dailyPrice, startDate, endDate, bookingOpensAt, visibility } = body
+  const { externalId, name, description, location, mapsUrl, price, dailyPrice, startDate, endDate, bookingOpensAt, visibility, sessionsLocked } = body
 
   try {
     const days = normalizeEventDays(body.days)
@@ -56,6 +56,7 @@ export async function PATCH(request, { params }) {
         ...(endDate !== undefined && { endDate: endDate ? new Date(endDate) : null }),
         ...(bookingOpensAt !== undefined && { bookingOpensAt: bookingOpensAt ? parseRomeDateTimeLocal(bookingOpensAt) : null }),
         ...(visibility !== undefined && { visibility }),
+        ...(sessionsLocked !== undefined && { sessionsLocked: Boolean(sessionsLocked) }),
       },
     })
     return NextResponse.json(event)

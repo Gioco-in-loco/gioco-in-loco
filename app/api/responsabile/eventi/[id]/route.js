@@ -18,6 +18,7 @@ export async function GET(_request, { params }) {
       location: true,
       startDate: true,
       endDate: true,
+      sessionsLocked: true,
     },
   })
 

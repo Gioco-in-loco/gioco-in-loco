@@ -168,6 +168,7 @@ export default function AdminEventDetailPage({ params }) {
                   endDate: toInputDate(event.endDate),
                   bookingOpensAt: toInputDateTime(event.bookingOpensAt),
                   visibility: event.visibility || 'REVEALED',
+                  sessionsLocked: Boolean(event.sessionsLocked),
                 }}
                 onSave={handleSave}
                 onCancel={() => setIsEditing(false)}
@@ -228,6 +229,12 @@ export default function AdminEventDetailPage({ params }) {
                       <dd className="mt-1 font-body text-sm text-editorial-text">
                         {event.visibility === 'PREVIEW' ? 'Preview — pagina principale visibile, programma nascosto'
                           : 'Rivelato — tutto visibile'}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="font-body text-xs font-semibold uppercase tracking-wider text-editorial-text-muted">Sessioni responsabili</dt>
+                      <dd className="mt-1 font-body text-sm text-editorial-text">
+                        {event.sessionsLocked ? 'Bloccate — solo l\'admin può modificare le one-shot' : 'Sbloccate'}
                       </dd>
                     </div>
                     <div>

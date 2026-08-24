@@ -24,6 +24,7 @@ export default function SlotCellDialog({
   canMarkAttendance = false,
   canDeleteReservations = true,
   canManageMainEvents = true,
+  canManageOneShots = true,
   mainEventsEndpointBase = '/api/admin/main-events',
   mainEventUploadEndpoint = '/api/admin/main-events/upload-image',
   onChanged,
@@ -463,17 +464,25 @@ export default function SlotCellDialog({
               <p className="font-body text-sm text-editorial-text-muted">Caricamento...</p>
             ) : oneshotDetail ? (
               <div className="flex flex-wrap items-start justify-between gap-3 rounded-xl border border-editorial-border bg-editorial-bg/30 p-4">
-                <button type="button" onClick={() => setEditingOneshot(true)} className="group min-w-0 text-left">
-                  <p className="font-body text-sm font-semibold text-editorial-text group-hover:text-editorial-terra group-hover:underline">{oneshotDetail.title}</p>
-                  <p className="font-body text-xs text-editorial-text-muted">{oneshotDetail.game} · Master {oneshotDetail.master}</p>
-                  {oneshotDetail.associationName ? <p className="font-body text-xs text-editorial-text-muted">{oneshotDetail.associationName}</p> : null}
-                </button>
+                {canManageOneShots ? (
+                  <button type="button" onClick={() => setEditingOneshot(true)} className="group min-w-0 text-left">
+                    <p className="font-body text-sm font-semibold text-editorial-text group-hover:text-editorial-terra group-hover:underline">{oneshotDetail.title}</p>
+                    <p className="font-body text-xs text-editorial-text-muted">{oneshotDetail.game} · Master {oneshotDetail.master}</p>
+                    {oneshotDetail.associationName ? <p className="font-body text-xs text-editorial-text-muted">{oneshotDetail.associationName}</p> : null}
+                  </button>
+                ) : (
+                  <div className="min-w-0">
+                    <p className="font-body text-sm font-semibold text-editorial-text">{oneshotDetail.title}</p>
+                    <p className="font-body text-xs text-editorial-text-muted">{oneshotDetail.game} · Master {oneshotDetail.master}</p>
+                    {oneshotDetail.associationName ? <p className="font-body text-xs text-editorial-text-muted">{oneshotDetail.associationName}</p> : null}
+                  </div>
+                )}
                 <div className="flex flex-wrap gap-2">
                   <button
                     type="button"
                     onClick={handleDetach}
-                    disabled={hasReservations || detaching}
-                    title={hasReservations ? 'Non puoi rimuovere l\'assegnazione: ci sono prenotazioni attive.' : undefined}
+                    disabled={!canManageOneShots || hasReservations || detaching}
+                    title={!canManageOneShots ? 'Le sessioni di questo evento sono bloccate: solo l\'amministratore può modificarle.' : hasReservations ? 'Non puoi rimuovere l\'assegnazione: ci sono prenotazioni attive.' : undefined}
                     className="rounded-lg border border-red-200 px-3 py-1.5 font-body text-xs font-semibold text-red-600 transition-colors hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-40"
                   >
                     {detaching ? 'Rimuovo...' : 'Rimuovi assegnazione'}
@@ -483,6 +492,10 @@ export default function SlotCellDialog({
             ) : (
               <p className="font-body text-sm text-editorial-text-muted">One shot non trovata.</p>
             )
+          ) : !canManageOneShots ? (
+            <p className="rounded-lg border border-editorial-border bg-editorial-bg/40 px-3 py-2 font-body text-sm text-editorial-text-muted">
+              Le sessioni di questo evento sono bloccate: solo l&apos;amministratore può assegnare one shot ai tavoli.
+            </p>
           ) : slot.adminOnly && !canManageSlot ? (
             <p className="rounded-lg border border-editorial-border bg-editorial-bg/40 px-3 py-2 font-body text-sm text-editorial-text-muted">
               Questo tavolo è riservato all&apos;amministratore: non puoi assegnargli una one shot.

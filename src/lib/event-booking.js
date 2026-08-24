@@ -520,15 +520,6 @@ export const getBookableEventData = cache(async function getBookableEventData(ev
 
   const countsBySlotId = new Map(reservationCounts.map((entry) => [entry.slotId, entry._count._all]))
 
-  // Coordinate grezze (giorno/fascia/tavolo) degli slot che l'admin ha
-  // marcato non visibili — mai il contenuto (titolo, master, associazione):
-  // servono solo alla UI pubblica per mostrare un placeholder "Presto in
-  // arrivo" al posto di "Libero" su quel tavolo, senza svelare cosa ci sarà.
-  const hiddenSlots = await prisma.eventSlot.findMany({
-    where: { eventId, isVisible: false },
-    select: { day: true, slot: true, table: true },
-  })
-
   return {
     id: event.id,
     externalId: event.externalId,
@@ -542,7 +533,6 @@ export const getBookableEventData = cache(async function getBookableEventData(ev
     days: event.days || [],
     bookingOpensAt: normalizeDate(event.bookingOpensAt),
     visibility: event.visibility,
-    hiddenSlots,
     oneshots: event.oneShotLinks
       .map((link) => ({
         id: link.oneShot.id,

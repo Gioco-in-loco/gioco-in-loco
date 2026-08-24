@@ -400,8 +400,6 @@ export default function DiceFestBookingPage({ event }) {
     [allEntries, openedEntryKey, getEntryKey]
   )
 
-  const hiddenSlots = event.hiddenSlots || []
-
   const isDimmed = useCallback((entry) => {
     const game = entry.type === 'oneshot' ? entry.oneshot.game : entry.mainEvent.game
     const association = entry.type === 'oneshot' ? entry.oneshot.association?.name : null
@@ -520,7 +518,7 @@ export default function DiceFestBookingPage({ event }) {
                 onLeaveWaitlist={handleLeaveWaitlist}
               />
 
-              {allEntries.length === 0 && hiddenSlots.length === 0 ? (
+              {allEntries.length === 0 ? (
                 <ParchmentCard>
                   <div className="px-7 py-10 text-center">
                     <h2 className="font-df-display text-xl uppercase text-dicefest-paper">Il programma è ancora un mistero</h2>
@@ -540,7 +538,6 @@ export default function DiceFestBookingPage({ event }) {
               ) : (
                 <TableMap
                   entries={allEntries}
-                  hiddenSlots={hiddenSlots}
                   activeDay={activeDay}
                   onChangeDay={setActiveDay}
                   isDimmed={isDimmed}
@@ -1167,7 +1164,6 @@ const TUTORIAL_STEPS = [
       { swatch: 'bg-dicefest-pink/10 border-dicefest-pink', label: 'Nel carrello — bloccato per te per 10 minuti' },
       { swatch: 'bg-dicefest-green/10 border-dicefest-green', label: 'Confermato' },
       { swatch: 'bg-dicefest-surface border-dicefest-border opacity-60 grayscale', label: 'Pieno' },
-      { swatch: 'bg-dicefest-surface border-dicefest-border border-dashed opacity-70', label: 'Presto in arrivo — non ancora annunciato' },
     ],
   },
   {

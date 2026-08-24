@@ -129,6 +129,7 @@ model Event {
   endDate     DateTime?
   bookingOpensAt DateTime? // le prenotazioni sono permesse solo da questa data/ora in poi (stato REVEALED); null = nessun limite
   visibility  EventVisibility @default(REVEALED) // stato pubblico delle pagine evento (staff bypassa sempre): PREVIEW = pagina principale visibile ma programma nascosto, REVEALED = tutto visibile
+  sessionsLocked Boolean @default(false) // se true, i responsabili non possono più creare/modificare/eliminare one-shot né riassegnarne il tavolo per questo evento; solo l'admin può ancora farlo
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
