@@ -147,15 +147,18 @@ export default function EventForm({ initial = EMPTY_FORM, onSave, onCancel, isNe
         </p>
       </div>
       <div>
-        <label className={labelClass}>Tempo per confermare un invito amico</label>
-        <input
-          type="number"
-          min="0.1"
-          step="0.5"
-          className={inputClass}
-          value={form.companionInviteHours}
-          onChange={(e) => setForm((f) => ({ ...f, companionInviteHours: e.target.value }))}
-        />
+        <label className={labelClass}>Tempo per confermare un invito amico (ore)</label>
+        <div className="relative">
+          <input
+            type="number"
+            min="0.5"
+            step="0.5"
+            className={`${inputClass} pr-12`}
+            value={form.companionInviteHours}
+            onChange={(e) => setForm((f) => ({ ...f, companionInviteHours: e.target.value }))}
+          />
+          <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 font-body text-xs font-semibold text-editorial-text-muted">ore</span>
+        </div>
         <p className="font-body text-xs text-editorial-text-muted mt-1">
           Ore a disposizione di un amico invitato per registrarsi e confermare il posto prima che venga rilasciato. Es. 6 durante la promozione, 1 il giorno dell&apos;evento.
         </p>
