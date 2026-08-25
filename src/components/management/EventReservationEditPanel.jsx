@@ -170,6 +170,12 @@ export default function EventReservationEditPanel({ eventId, eventExternalId, re
             <dt className={labelClass}>Stato attuale</dt>
             <dd className="font-body text-sm text-editorial-text">{STATUS_LABELS[reservation.status] || reservation.status}</dd>
           </div>
+          {(reservation.status === 'INVITED' || reservation.status === 'HOLD') && reservation.holdExpiresAt ? (
+            <div>
+              <dt className={labelClass}>Scade il</dt>
+              <dd className="font-body text-sm text-editorial-text">{formatDate(reservation.holdExpiresAt)}</dd>
+            </div>
+          ) : null}
           <div>
             <dt className={labelClass}>Account</dt>
             <dd className="font-body text-sm text-editorial-text">{reservation.accountName || reservation.accountEmail || 'Non ancora registrato'}</dd>

@@ -12,6 +12,11 @@ function formatPrice(value) {
   return new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR' }).format(value)
 }
 
+function formatDeadline(value) {
+  if (!value) return null
+  return new Intl.DateTimeFormat('it-IT', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }).format(new Date(value))
+}
+
 // The cart with the live 10-minute countdown lives on the event's own
 // booking route (e.g. /dice-fest/carrello), not on the generic account
 // bookings page — resolve it from whichever event the claimed sessions
@@ -199,7 +204,8 @@ export default function InviteClaimPage({ code }) {
       <AuthMessage type="error">{claimError}</AuthMessage>
 
       <div className="rounded-lg border-2 border-editorial-border px-4 py-3 mb-4 font-body text-sm text-editorial-text-secondary">
-        Il tuo posto è riservato all&apos;email <strong className="text-editorial-text">{invite.email}</strong>. Registrati o accedi con questa email entro la scadenza per scegliere.
+        Il tuo posto è riservato all&apos;email <strong className="text-editorial-text">{invite.email}</strong>. Registrati o accedi con questa email
+        {invite.expiresAt ? <> entro le <strong className="text-editorial-text">{formatDeadline(invite.expiresAt)}</strong></> : ' entro la scadenza'} per scegliere, altrimenti i posti verranno rilasciati.
       </div>
 
       <div className="space-y-3 mb-6">

@@ -46,6 +46,11 @@ export function getBookingTypeBadge(bookingType) {
   }
 }
 
+export function formatCompanionDeadline(holdExpiresAt) {
+  if (!holdExpiresAt) return null
+  return new Intl.DateTimeFormat('it-IT', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }).format(new Date(holdExpiresAt))
+}
+
 export function formatUpdatedAt(updatedAt) {
   if (!updatedAt) return 'n/d'
   return new Date(updatedAt).toLocaleString('it-IT', {
@@ -143,12 +148,14 @@ export function BookingItemCard({ booking, pendingCancellationKey, onCancel, sho
               <p className="font-body text-[10px] font-bold uppercase tracking-wider text-editorial-text-muted">Amici invitati</p>
               {booking.companions.map((companion, index) => {
                 const companionStatus = formatCompanionStatus(companion.status)
+                const deadline = companion.status === 'INVITED' ? formatCompanionDeadline(companion.holdExpiresAt) : null
                 return (
                   <div key={`${companion.email}:${index}`} className="flex flex-wrap items-center gap-1.5 font-body text-xs text-editorial-text-secondary">
                     <span className="font-semibold text-editorial-text">{companion.name || companion.email}</span>
                     <span className={`inline-flex rounded-full border px-2 py-0.5 font-body text-[10px] font-bold ${companionStatus.className}`}>
                       {companionStatus.label}
                     </span>
+                    {deadline ? <span className="text-editorial-text-muted">entro il {deadline}</span> : null}
                   </div>
                 )
               })}

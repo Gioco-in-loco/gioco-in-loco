@@ -1,16 +1,9 @@
 'use client'
 
+import { formatInviteDuration } from '../../lib/cart-ui'
+
 function createEmptyCompanion() {
   return { firstName: '', lastName: '', email: '' }
-}
-
-function formatInviteDuration(minutes) {
-  const safeMinutes = Number.isFinite(minutes) && minutes > 0 ? minutes : 60
-  if (safeMinutes % 60 === 0) {
-    const hours = safeMinutes / 60
-    return `${hours} ${hours === 1 ? 'ora' : 'ore'}`
-  }
-  return `${safeMinutes} minuti`
 }
 
 export default function CompanionInviteFields({ companions, onChange, maxCount, minutes, className = '' }) {

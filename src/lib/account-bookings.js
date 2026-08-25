@@ -128,6 +128,7 @@ function serializeCompanion(companion) {
     name: companion.playerName,
     email: companion.playerEmail,
     status: companion.status,
+    holdExpiresAt: companion.holdExpiresAt ? companion.holdExpiresAt.toISOString() : null,
   }
 }
 
@@ -425,13 +426,13 @@ export async function getUserAccountBookings({ userId, db = prisma }) {
     oneshotSlotIds.length > 0
       ? db.reservation.findMany({
           where: { invitedByUserId: userId, slotId: { in: oneshotSlotIds } },
-          select: { slotId: true, playerName: true, playerEmail: true, status: true },
+          select: { slotId: true, playerName: true, playerEmail: true, status: true, holdExpiresAt: true },
         })
       : [],
     mainEventKeys.length > 0
       ? db.mainEventReservation.findMany({
           where: { invitedByUserId: userId, OR: mainEventKeys },
-          select: { mainEventId: true, eventId: true, day: true, slot: true, playerName: true, playerEmail: true, status: true },
+          select: { mainEventId: true, eventId: true, day: true, slot: true, playerName: true, playerEmail: true, status: true, holdExpiresAt: true },
         })
       : [],
   ])

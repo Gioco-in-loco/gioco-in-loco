@@ -10,6 +10,15 @@ export function formatCartPrice(value, { hideWhenMissing = false } = {}) {
   return new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR' }).format(value)
 }
 
+export function formatInviteDuration(minutes) {
+  const safeMinutes = Number.isFinite(minutes) && minutes > 0 ? minutes : 60
+  if (safeMinutes % 60 === 0) {
+    const hours = safeMinutes / 60
+    return `${hours} ${hours === 1 ? 'ora' : 'ore'}`
+  }
+  return `${safeMinutes} minuti`
+}
+
 export function getTimeRemainingLabel(expiresAt) {
   if (!expiresAt) return null
 

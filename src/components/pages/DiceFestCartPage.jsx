@@ -8,6 +8,7 @@ import { useCartHoldTimer } from '../../hooks/useCartHoldTimer'
 import {
   createEmptyGdrEventCartState,
   formatCartPrice,
+  formatInviteDuration,
   removeConfirmedMainEventReservation,
 } from '../../lib/cart-ui'
 import { DICE_FEST_BOOKING_CONFIG } from '../../lib/bookable-events'
@@ -521,7 +522,7 @@ const PendingOrderLayout = memo(function PendingOrderLayout({
             <div className="px-6 py-5 sm:px-7">
               <p className="dicefest-eyebrow">Amici che stai invitando</p>
               <p className="mt-2 font-df-body text-sm leading-relaxed text-dicefest-paper/75">
-                Riceveranno un&apos;email per registrarsi e confermare il loro posto: include anche il pass giornaliero per quel giorno, gratuito. Se ci ripensi, puoi ritirare l&apos;invito prima di confermare le Prenotazioni.
+                Riceveranno un&apos;email per registrarsi e confermare il loro posto entro {formatInviteDuration(cartState.companionInviteMinutes)} dalla conferma: include anche il pass giornaliero per quel giorno, gratuito. Se ci ripensi, puoi ritirare l&apos;invito prima di confermare le Prenotazioni.
               </p>
               <ul className="mt-4 space-y-3">
                 {companions.map((companion) => (
