@@ -172,7 +172,12 @@ export default function EventAnalyticsPanel({ eventId }) {
             ))}
             {stats.byDay.length === 0 ? (
               <p className="font-body text-sm text-editorial-text-muted">Nessun dato per giorno disponibile.</p>
-            ) : null}
+            ) : (
+              <div className="flex items-center justify-between border-t border-editorial-border pt-2 font-body text-sm">
+                <span className="font-semibold text-editorial-text">Totale</span>
+                <span className="font-semibold text-editorial-text">{stats.byDay.reduce((sum, { count }) => sum + count, 0)}</span>
+              </div>
+            )}
           </div>
         </div>
       </div>
