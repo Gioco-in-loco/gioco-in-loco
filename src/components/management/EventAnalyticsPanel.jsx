@@ -9,12 +9,6 @@ function dayIndex(day) {
   return idx === -1 ? 999 : idx
 }
 
-const TYPE_LABELS = {
-  oneshot: 'One-shot',
-  mainEvent: 'Main Event',
-  admission: 'Pass ingresso',
-}
-
 const STATUS_LABELS = {
   HOLD: 'In blocco',
   INVITED: 'Invito in attesa',
@@ -47,6 +41,7 @@ function KpiCard({ label, value, hint }) {
 
 export default function EventAnalyticsPanel({ eventId }) {
   const [rows, setRows] = useState([])
+  const [slots, setSlots] = useState([])
   const [waitlistTotal, setWaitlistTotal] = useState(0)
   const [loading, setLoading] = useState(false)
   const [loadError, setLoadError] = useState('')
@@ -59,18 +54,21 @@ export default function EventAnalyticsPanel({ eventId }) {
       setLoading(true)
       setLoadError('')
       try {
-        const [reservationsRes, waitlistRes] = await Promise.all([
+        const [reservationsRes, waitlistRes, slotsRes] = await Promise.all([
           fetch(`/api/admin/eventi/${eventId}/reservations`),
           fetch(`/api/admin/eventi/${eventId}/waitlist`),
+          fetch(`/api/admin/eventi/${eventId}/slots`),
         ])
         if (cancelled) return
         if (!reservationsRes.ok) throw new Error('Impossibile caricare le prenotazioni.')
 
         const reservations = await reservationsRes.json()
         const waitlistGroups = waitlistRes.ok ? await waitlistRes.json() : []
+        const slotsData = slotsRes.ok ? await slotsRes.json() : []
         if (cancelled) return
 
         setRows(reservations)
+        setSlots(slotsData)
         setWaitlistTotal(waitlistGroups.reduce((sum, group) => sum + group.entries.length, 0))
       } catch (err) {
         if (!cancelled) setLoadError(err.message || 'Impossibile caricare le statistiche.')
@@ -98,9 +96,28 @@ export default function EventAnalyticsPanel({ eventId }) {
       if (!row.day) continue
       byDayMap.set(row.day, (byDayMap.get(row.day) || 0) + 1)
     }
-    const byDay = Array.from(byDayMap.entries())
-      .map(([day, count]) => ({ day, count }))
+    // Posti offerti per giorno: per le one-shot è la somma dei maxPlayers dei
+    // tavoli, per i main event è il tetto per gruppo (mainEventId, day, slot)
+    // — un main event può girare su più tavoli, ma il tetto è unico per
+    // gruppo, non la somma dei singoli tavoli (vedi MainEvent.maxPlayers).
+    const capacityByDayMap = new Map()
+    const seenMainEventGroups = new Set()
+    for (const slot of slots) {
+      if (slot.oneshotId) {
+        capacityByDayMap.set(slot.day, (capacityByDayMap.get(slot.day) || 0) + slot.maxPlayers)
+      } else if (slot.mainEventId) {
+        const groupKey = `${slot.mainEventId}__${slot.day}__${slot.slot}`
+        if (seenMainEventGroups.has(groupKey)) continue
+        seenMainEventGroups.add(groupKey)
+        capacityByDayMap.set(slot.day, (capacityByDayMap.get(slot.day) || 0) + (slot.groupMaxPlayers ?? slot.maxPlayers))
+      }
+    }
+
+    const dayNames = new Set([...byDayMap.keys(), ...capacityByDayMap.keys()])
+    const byDay = Array.from(dayNames)
+      .map((day) => ({ day, count: byDayMap.get(day) || 0, capacity: capacityByDayMap.get(day) ?? null }))
       .sort((left, right) => dayIndex(left.day) - dayIndex(right.day))
+    const totalCapacity = Array.from(capacityByDayMap.values()).reduce((sum, value) => sum + value, 0)
 
     const oneshotCountsMap = new Map()
     for (const row of active) {
@@ -112,8 +129,8 @@ export default function EventAnalyticsPanel({ eventId }) {
       .sort((left, right) => right.count - left.count)
       .slice(0, 5)
 
-    return { active, byType, uniquePlayers, byStatus, byDay, topOneshots }
-  }, [rows])
+    return { active, byType, uniquePlayers, byStatus, byDay, totalCapacity, topOneshots }
+  }, [rows, slots])
 
   if (loading) {
     return (
@@ -162,12 +179,14 @@ export default function EventAnalyticsPanel({ eventId }) {
 
         <div className="rounded-xl border border-editorial-border bg-white p-6 shadow-soft">
           <p className="font-body text-xs font-semibold uppercase tracking-wider text-editorial-terra">Per giorno</p>
-          <p className="mt-1 font-body text-xs text-editorial-text-muted">Prenotazioni confermate, giorno per giorno.</p>
+          <p className="mt-1 font-body text-xs text-editorial-text-muted">
+            Prenotazioni confermate su posti offerti (tavoli one-shot + main event), giorno per giorno.
+          </p>
           <div className="mt-4 space-y-2">
-            {stats.byDay.map(({ day, count }) => (
+            {stats.byDay.map(({ day, count, capacity }) => (
               <div key={day} className="flex items-center justify-between font-body text-sm">
                 <span className="text-editorial-text-secondary">{day}</span>
-                <span className="font-semibold text-editorial-text">{count}</span>
+                <span className="font-semibold text-editorial-text">{count}{capacity != null ? ` / ${capacity}` : ''}</span>
               </div>
             ))}
             {stats.byDay.length === 0 ? (
@@ -175,7 +194,9 @@ export default function EventAnalyticsPanel({ eventId }) {
             ) : (
               <div className="flex items-center justify-between border-t border-editorial-border pt-2 font-body text-sm">
                 <span className="font-semibold text-editorial-text">Totale</span>
-                <span className="font-semibold text-editorial-text">{stats.byDay.reduce((sum, { count }) => sum + count, 0)}</span>
+                <span className="font-semibold text-editorial-text">
+                  {stats.byDay.reduce((sum, { count }) => sum + count, 0)}{stats.totalCapacity > 0 ? ` / ${stats.totalCapacity}` : ''}
+                </span>
               </div>
             )}
           </div>
