@@ -8,6 +8,7 @@ import EventForm, { toInputDate, toInputDateTime } from '../../../../src/compone
 import EventTableMapPanel from '../../../../src/components/management/EventTableMapPanel'
 import EventWaitlistPanel from '../../../../src/components/management/EventWaitlistPanel'
 import EventReservationsPanel from '../../../../src/components/management/EventReservationsPanel'
+import EventAnalyticsPanel from '../../../../src/components/management/EventAnalyticsPanel'
 
 function formatDate(dateStr) {
   if (!dateStr) return '—'
@@ -114,6 +115,17 @@ export default function AdminEventDetailPage({ params }) {
               }`}
             >
               Dettaglio evento
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('analitiche')}
+              className={`rounded-lg px-4 py-2 font-body text-sm font-semibold transition-colors ${
+                activeTab === 'analitiche'
+                  ? 'bg-editorial-terra text-white shadow-soft'
+                  : 'border border-editorial-border text-editorial-text hover:border-editorial-terra'
+              }`}
+            >
+              Analitiche
             </button>
             <button
               type="button"
@@ -262,6 +274,8 @@ export default function AdminEventDetailPage({ params }) {
             )}
           </div>
 
+          ) : activeTab === 'analitiche' ? (
+            <EventAnalyticsPanel eventId={event.id} />
           ) : activeTab === 'mappa' ? (
             <EventTableMapPanel eventId={event.id} eventDays={event.days || []} eventTimeSlots={event.timeSlots || []} />
           ) : activeTab === 'attesa' ? (
