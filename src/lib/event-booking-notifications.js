@@ -236,7 +236,16 @@ function buildInviteSessionsHtml(sessions) {
   `).join('')
 }
 
-function buildCompanionInviteText({ name, email, sessions, host, claimLink, claimPageLink, inviteCode }) {
+function formatInviteDuration(minutes) {
+  const safeMinutes = Number.isFinite(minutes) && minutes > 0 ? minutes : COMPANION_INVITE_MINUTES
+  if (safeMinutes % 60 === 0) {
+    const hours = safeMinutes / 60
+    return `${safeMinutes} minuti (${hours} ${hours === 1 ? 'ora' : 'ore'})`
+  }
+  return `${safeMinutes} minuti`
+}
+
+function buildCompanionInviteText({ name, email, sessions, host, claimLink, claimPageLink, inviteCode, minutes }) {
   return [
     `Ciao ${name || ''},`,
     '',
@@ -244,7 +253,7 @@ function buildCompanionInviteText({ name, email, sessions, host, claimLink, clai
     '',
     buildInviteSessionsText(sessions),
     '',
-    `Apri il link e scegli a quali vuoi partecipare, entro ${COMPANION_INVITE_MINUTES} minuti (1 ora). I posti sono riservati a questa email: dopo la scadenza verranno rilasciati.`,
+    `Apri il link e scegli a quali vuoi partecipare, entro ${formatInviteDuration(minutes)}. I posti sono riservati a questa email: dopo la scadenza verranno rilasciati.`,
     '',
     `Se non hai ancora un account, registrati usando proprio questa email${email ? ` (${email})` : ''}: è l'unico modo per confermare il tuo posto.`,
     '',
@@ -258,14 +267,14 @@ function buildCompanionInviteText({ name, email, sessions, host, claimLink, clai
   ].join('\n')
 }
 
-function buildCompanionInviteHtml({ name, email, sessions, host, claimLink, claimPageLink, inviteCode }) {
+function buildCompanionInviteHtml({ name, email, sessions, host, claimLink, claimPageLink, inviteCode, minutes }) {
   return `
     <div style="font-family:Arial,sans-serif;line-height:1.5;color:#1F2937;max-width:680px;margin:0 auto;">
       <h1 style="color:#1A1A2E;">${escapeHtml(host?.name || host?.email || 'Un amico')} ti ha invitato!</h1>
       <p>Ciao ${escapeHtml(name || '')},</p>
       <p>sei stato invitato a ${sessions.length} session${sessions.length === 1 ? 'e' : 'i'}:</p>
       <ul style="padding-left:20px;">${buildInviteSessionsHtml(sessions)}</ul>
-      <p>Apri il link e scegli a quali vuoi partecipare, entro <strong>${COMPANION_INVITE_MINUTES} minuti (1 ora)</strong>. I posti sono riservati a questa email: dopo la scadenza verranno rilasciati.</p>
+      <p>Apri il link e scegli a quali vuoi partecipare, entro <strong>${formatInviteDuration(minutes)}</strong>. I posti sono riservati a questa email: dopo la scadenza verranno rilasciati.</p>
       <p>Se non hai ancora un account, registrati usando proprio questa email${email ? ` (<strong>${escapeHtml(email)}</strong>)` : ''}: è l'unico modo per confermare il tuo posto.</p>
       ${claimLink ? `<p><a href="${escapeHtml(claimLink)}" style="color:#B45309;font-weight:700;">Scegli le sessioni</a></p>` : ''}
       <p>In alternativa${claimPageLink ? ` vai su <a href="${escapeHtml(claimPageLink)}">${escapeHtml(claimPageLink)}</a> e` : ','} inserisci questo codice:</p>
@@ -282,7 +291,7 @@ export async function sendCompanionInviteEmails({ host, eventId, invites }) {
 
   const eventIds = [...new Set(invites.map((invite) => invite.eventId || eventId).filter(Boolean))]
   const events = eventIds.length > 0
-    ? await prisma.event.findMany({ where: { id: { in: eventIds } }, select: { id: true, name: true, location: true } })
+    ? await prisma.event.findMany({ where: { id: { in: eventIds } }, select: { id: true, name: true, location: true, companionInviteMinutes: true } })
     : []
   const eventById = new Map(events.map((event) => [event.id, event]))
   const siteUrl = getConfiguredSiteUrl()
@@ -308,12 +317,13 @@ export async function sendCompanionInviteEmails({ host, eventId, invites }) {
       event: eventById.get(invite.eventId || eventId) || null,
     }))
     const claimLink = siteUrl ? buildAbsoluteUrl(`/invito/${inviteCode}`, siteUrl) : null
+    const minutes = eventById.get(first.eventId || eventId)?.companionInviteMinutes
 
     return sendMail({
       to: first.email,
       subject: `${host?.name || 'Un amico'} ti ha invitato · ${sessions.length} session${sessions.length === 1 ? 'e' : 'i'}`,
-      text: buildCompanionInviteText({ name: first.name, email: first.email, sessions, host, claimLink, claimPageLink, inviteCode }),
-      html: buildCompanionInviteHtml({ name: first.name, email: first.email, sessions, host, claimLink, claimPageLink, inviteCode }),
+      text: buildCompanionInviteText({ name: first.name, email: first.email, sessions, host, claimLink, claimPageLink, inviteCode, minutes }),
+      html: buildCompanionInviteHtml({ name: first.name, email: first.email, sessions, host, claimLink, claimPageLink, inviteCode, minutes }),
     })
   }))
 

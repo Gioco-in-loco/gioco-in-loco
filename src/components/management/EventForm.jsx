@@ -7,7 +7,7 @@ const WEEK_DAYS = ['Lunedi', 'Martedi', 'Mercoledi', 'Giovedi', 'Venerdi', 'Saba
 const TIME_SLOT_PATTERN = '^([01]\\d|2[0-3]):[0-5]\\d-([01]\\d|2[0-3]):[0-5]\\d$'
 const TIME_SLOT_REGEX = /^([01]\d|2[0-3]):[0-5]\d-([01]\d|2[0-3]):[0-5]\d$/
 
-const EMPTY_FORM = { externalId: '', name: '', description: '', location: '', mapsUrl: '', price: '', dailyPrice: '', days: [], timeSlots: [], startDate: '', endDate: '', bookingOpensAt: '', visibility: 'REVEALED', sessionsLocked: false }
+const EMPTY_FORM = { externalId: '', name: '', description: '', location: '', mapsUrl: '', price: '', dailyPrice: '', days: [], timeSlots: [], startDate: '', endDate: '', bookingOpensAt: '', visibility: 'REVEALED', sessionsLocked: false, companionInviteHours: 1 }
 
 const VISIBILITY_OPTIONS = [
   { value: 'PREVIEW', label: 'Preview', description: 'La pagina principale è visibile, ma il programma (sessioni) resta nascosto.' },
@@ -62,7 +62,9 @@ export default function EventForm({ initial = EMPTY_FORM, onSave, onCancel, isNe
     e.preventDefault()
     setError('')
     setSaving(true)
-    const result = await onSave(form)
+    const { companionInviteHours, ...rest } = form
+    const payload = { ...rest, companionInviteMinutes: Math.round(Number(companionInviteHours) * 60) }
+    const result = await onSave(payload)
     setSaving(false)
     if (result?.error) setError(result.error)
   }
@@ -142,6 +144,20 @@ export default function EventForm({ initial = EMPTY_FORM, onSave, onCancel, isNe
         </label>
         <p className="font-body text-xs text-editorial-text-muted mt-1">
           Da questo momento solo l&apos;amministratore può creare, modificare o riassegnare le one-shot di questo evento. I responsabili continuano a gestire presenze e prenotazioni.
+        </p>
+      </div>
+      <div>
+        <label className={labelClass}>Tempo per confermare un invito amico</label>
+        <input
+          type="number"
+          min="0.1"
+          step="0.5"
+          className={inputClass}
+          value={form.companionInviteHours}
+          onChange={(e) => setForm((f) => ({ ...f, companionInviteHours: e.target.value }))}
+        />
+        <p className="font-body text-xs text-editorial-text-muted mt-1">
+          Ore a disposizione di un amico invitato per registrarsi e confermare il posto prima che venga rilasciato. Es. 6 durante la promozione, 1 il giorno dell&apos;evento.
         </p>
       </div>
       <div>

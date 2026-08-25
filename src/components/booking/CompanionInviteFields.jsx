@@ -4,7 +4,16 @@ function createEmptyCompanion() {
   return { firstName: '', lastName: '', email: '' }
 }
 
-export default function CompanionInviteFields({ companions, onChange, maxCount, className = '' }) {
+function formatInviteDuration(minutes) {
+  const safeMinutes = Number.isFinite(minutes) && minutes > 0 ? minutes : 60
+  if (safeMinutes % 60 === 0) {
+    const hours = safeMinutes / 60
+    return `${hours} ${hours === 1 ? 'ora' : 'ore'}`
+  }
+  return `${safeMinutes} minuti`
+}
+
+export default function CompanionInviteFields({ companions, onChange, maxCount, minutes, className = '' }) {
   const canAddMore = companions.length < maxCount
 
   const updateCompanion = (index, field, value) => {
@@ -30,7 +39,7 @@ export default function CompanionInviteFields({ companions, onChange, maxCount, 
         Invita amici (opzionale)
       </p>
       <p className="mt-1 font-body text-xs text-editorial-text-secondary">
-        Riceveranno una email con un codice per registrarsi e confermare il proprio posto entro 1 ora. Il loro posto non è incluso nel tuo pagamento.
+        Riceveranno una email con un codice per registrarsi e confermare il proprio posto entro {formatInviteDuration(minutes)}. Il loro posto non è incluso nel tuo pagamento.
       </p>
 
       <div className="mt-3 space-y-3">

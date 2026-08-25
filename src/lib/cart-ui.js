@@ -38,6 +38,7 @@ export function createEmptyEventCartState() {
     cartSlots: [],
     companionCartSlots: [],
     holdExpiresAt: null,
+    companionInviteMinutes: 60,
   }
 }
 

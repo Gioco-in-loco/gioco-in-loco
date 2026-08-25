@@ -86,7 +86,15 @@ export default function EventAnalyticsPanel({ eventId }) {
     const byType = { oneshot: 0, mainEvent: 0, admission: 0 }
     for (const row of active) byType[row.type] = (byType[row.type] || 0) + 1
 
-    const uniquePlayers = new Set(active.map(playerKey))
+    // "Giocatori unici" conta solo chi ha prenotato una sessione vera
+    // (one-shot/main event): chi ha comprato solo il pass ingresso non è un
+    // giocatore ai fini di questa vista, quindi non entra né qui né nella
+    // media sotto.
+    const nonAdmissionRows = active.filter((row) => row.type !== 'admission')
+    const nonAdmissionUniquePlayers = new Set(nonAdmissionRows.map(playerKey))
+    const avgBookingsPerPlayer = nonAdmissionUniquePlayers.size > 0
+      ? nonAdmissionRows.length / nonAdmissionUniquePlayers.size
+      : 0
 
     const byStatus = {}
     for (const row of rows) byStatus[row.status] = (byStatus[row.status] || 0) + 1
@@ -129,7 +137,7 @@ export default function EventAnalyticsPanel({ eventId }) {
       .sort((left, right) => right.count - left.count)
       .slice(0, 5)
 
-    return { active, byType, uniquePlayers, byStatus, byDay, totalCapacity, topOneshots }
+    return { active, byType, avgBookingsPerPlayer, nonAdmissionUniquePlayers, byStatus, byDay, totalCapacity, topOneshots }
   }, [rows, slots])
 
   if (loading) {
@@ -152,12 +160,17 @@ export default function EventAnalyticsPanel({ eventId }) {
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
         <KpiCard label="Pass evento iscritti" value={stats.byType.admission} hint="Ammissioni confermate" />
         <KpiCard label="Prenotazioni totali" value={stats.active.length} hint="One-shot + Main Event + Pass, confermate" />
-        <KpiCard label="Giocatori unici" value={stats.uniquePlayers.size} hint="Persone distinte con almeno una prenotazione confermata" />
+        <KpiCard label="Giocatori unici" value={stats.nonAdmissionUniquePlayers.size} hint="Persone con almeno una prenotazione one-shot o Main Event (escluso chi ha solo il pass)" />
         <KpiCard label="One-shot prenotate" value={stats.byType.oneshot} />
         <KpiCard label="Main Event prenotati" value={stats.byType.mainEvent} />
+        <KpiCard
+          label="Media prenotazioni/giocatore"
+          value={stats.avgBookingsPerPlayer.toFixed(1)}
+          hint="One-shot + Main Event confermate, per giocatore reale (escluso pass ingresso)"
+        />
       </div>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">

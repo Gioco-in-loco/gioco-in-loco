@@ -181,6 +181,7 @@ export default function AdminEventDetailPage({ params }) {
                   bookingOpensAt: toInputDateTime(event.bookingOpensAt),
                   visibility: event.visibility || 'REVEALED',
                   sessionsLocked: Boolean(event.sessionsLocked),
+                  companionInviteHours: (event.companionInviteMinutes || 60) / 60,
                 }}
                 onSave={handleSave}
                 onCancel={() => setIsEditing(false)}
@@ -247,6 +248,15 @@ export default function AdminEventDetailPage({ params }) {
                       <dt className="font-body text-xs font-semibold uppercase tracking-wider text-editorial-text-muted">Sessioni responsabili</dt>
                       <dd className="mt-1 font-body text-sm text-editorial-text">
                         {event.sessionsLocked ? 'Bloccate — solo l\'admin può modificare le one-shot' : 'Sbloccate'}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="font-body text-xs font-semibold uppercase tracking-wider text-editorial-text-muted">Tempo per confermare invito amico</dt>
+                      <dd className="mt-1 font-body text-sm text-editorial-text">
+                        {(() => {
+                          const hours = (event.companionInviteMinutes || 60) / 60
+                          return hours === 1 ? '1 ora' : Number.isInteger(hours) ? `${hours} ore` : `${event.companionInviteMinutes} minuti`
+                        })()}
                       </dd>
                     </div>
                     <div>

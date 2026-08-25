@@ -10,6 +10,17 @@ function normalizeEventVisibility(value) {
   return EVENT_VISIBILITY_VALUES.has(value) ? value : 'REVEALED'
 }
 
+// null/undefined/'' = usa il default (60'). Qualunque altro valore deve
+// essere un intero positivo di minuti.
+function normalizeCompanionInviteMinutes(value) {
+  if (value === '' || value === null || value === undefined) return undefined
+  const minutes = Number(value)
+  if (!Number.isInteger(minutes) || minutes < 1) {
+    throw Object.assign(new Error('I minuti per confermare l\'invito devono essere un numero intero positivo.'), { status: 400 })
+  }
+  return minutes
+}
+
 export async function GET() {
   const { error, status } = await requireAdminApi()
   if (error) return NextResponse.json({ error }, { status })
@@ -31,6 +42,7 @@ export async function GET() {
       endDate: true,
       bookingOpensAt: true,
       visibility: true,
+      companionInviteMinutes: true,
       createdAt: true,
     },
   })
@@ -43,7 +55,7 @@ export async function POST(request) {
   if (error) return NextResponse.json({ error }, { status })
 
   const body = await request.json()
-  const { externalId, name, description, location, mapsUrl, price, dailyPrice, startDate, endDate, bookingOpensAt, visibility } = body
+  const { externalId, name, description, location, mapsUrl, price, dailyPrice, startDate, endDate, bookingOpensAt, visibility, companionInviteMinutes } = body
 
   if (!externalId?.trim() || !name?.trim()) {
     return NextResponse.json({ error: 'externalId e name sono obbligatori' }, { status: 400 })
@@ -55,6 +67,8 @@ export async function POST(request) {
   }
 
   try {
+    const normalizedCompanionInviteMinutes = normalizeCompanionInviteMinutes(companionInviteMinutes)
+
     const event = await prisma.event.create({
       data: {
         externalId: externalId.trim(),
@@ -70,11 +84,15 @@ export async function POST(request) {
         endDate: endDate ? new Date(endDate) : null,
         bookingOpensAt: bookingOpensAt ? parseRomeDateTimeLocal(bookingOpensAt) : null,
         visibility: normalizeEventVisibility(visibility),
+        ...(normalizedCompanionInviteMinutes !== undefined && { companionInviteMinutes: normalizedCompanionInviteMinutes }),
       },
     })
 
     return NextResponse.json(event, { status: 201 })
   } catch (caughtError) {
+    if (caughtError?.status) {
+      return NextResponse.json({ error: caughtError.message }, { status: caughtError.status })
+    }
     return NextResponse.json({ error: caughtError.message || 'Creazione evento non riuscita' }, { status: caughtError.status || 500 })
   }
 }

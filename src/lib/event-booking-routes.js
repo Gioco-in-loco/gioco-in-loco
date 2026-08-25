@@ -1127,7 +1127,8 @@ export async function handleConfirmEventCart(eventId) {
     await releaseExpiredHolds({ eventId, userId: user.id })
 
     const confirmation = await prisma.$transaction(async (tx) => {
-      const [admissions, holdReservations, holdMainEventReservations] = await Promise.all([
+      const [event, admissions, holdReservations, holdMainEventReservations] = await Promise.all([
+        tx.event.findUnique({ where: { id: eventId }, select: { companionInviteMinutes: true } }),
         tx.eventAdmission.findMany({
           where: { userId: user.id, eventId },
           select: { id: true, status: true, holdExpiresAt: true },
@@ -1212,7 +1213,7 @@ export async function handleConfirmEventCart(eventId) {
       // HOLD (still just a cart draft) to INVITED — reserved for 1h while
       // they register/claim it. They are never part of the host's own paid
       // total: each stays userId-less and un-confirmed until claimed.
-      const companionInviteExpiresAt = getCompanionInviteExpiration()
+      const companionInviteExpiresAt = getCompanionInviteExpiration(event?.companionInviteMinutes)
       const companionInvites = []
 
       const oneshotCompanions = holdReservations.length > 0

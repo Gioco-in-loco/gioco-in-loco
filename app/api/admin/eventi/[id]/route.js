@@ -6,6 +6,17 @@ import { parseRomeDateTimeLocal } from '../../../../../src/lib/rome-datetime'
 
 const EVENT_VISIBILITY_VALUES = new Set(['PREVIEW', 'REVEALED'])
 
+// null/undefined/'' = usa il default (60'). Qualunque altro valore deve
+// essere un intero positivo di minuti.
+function normalizeCompanionInviteMinutes(value) {
+  if (value === '' || value === null || value === undefined) return undefined
+  const minutes = Number(value)
+  if (!Number.isInteger(minutes) || minutes < 1) {
+    throw Object.assign(new Error('I minuti per confermare l\'invito devono essere un numero intero positivo.'), { status: 400 })
+  }
+  return minutes
+}
+
 // params.id qui è l'externalId (slug) dell'evento, non il cuid interno — la
 // pagina/rotta admin naviga e cerca gli eventi per externalId in modo che
 // l'URL resti leggibile e stabile anche se l'id interno non lo è. Le rotte
@@ -26,7 +37,7 @@ export async function PATCH(request, { params }) {
   if (error) return NextResponse.json({ error }, { status })
 
   const body = await request.json()
-  const { externalId, name, description, location, mapsUrl, price, dailyPrice, startDate, endDate, bookingOpensAt, visibility, sessionsLocked } = body
+  const { externalId, name, description, location, mapsUrl, price, dailyPrice, startDate, endDate, bookingOpensAt, visibility, sessionsLocked, companionInviteMinutes } = body
 
   try {
     const days = normalizeEventDays(body.days)
@@ -39,6 +50,8 @@ export async function PATCH(request, { params }) {
     if (visibility !== undefined && !EVENT_VISIBILITY_VALUES.has(visibility)) {
       throw Object.assign(new Error('Stato pagina evento non valido'), { status: 400 })
     }
+
+    const normalizedCompanionInviteMinutes = normalizeCompanionInviteMinutes(companionInviteMinutes)
 
     const event = await prisma.event.update({
       where: { externalId: params.id },
@@ -57,6 +70,7 @@ export async function PATCH(request, { params }) {
         ...(bookingOpensAt !== undefined && { bookingOpensAt: bookingOpensAt ? parseRomeDateTimeLocal(bookingOpensAt) : null }),
         ...(visibility !== undefined && { visibility }),
         ...(sessionsLocked !== undefined && { sessionsLocked: Boolean(sessionsLocked) }),
+        ...(normalizedCompanionInviteMinutes !== undefined && { companionInviteMinutes: normalizedCompanionInviteMinutes }),
       },
     })
     return NextResponse.json(event)

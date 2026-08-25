@@ -638,6 +638,7 @@ export default function DiceFestBookingPage({ event }) {
             <MainEventDetailsModal
               session={openedEntry}
               sessionKey={key}
+              cartState={cartState}
               reservation={mainReservationsBySessionKey.get(key)}
               hasReservedKey={mainReservedSlotKeys.has(getSlotKey(openedEntry.slot))}
               inCart={mainCartSessionKeys.has(key)}
@@ -1326,6 +1327,7 @@ function OneShotDetailsModal({ session, cartState, pendingSlotId, busy, onAdd, o
             companions={invite.companions}
             onChange={invite.setCompanions}
             maxCount={invite.maxCount}
+            minutes={cartState.companionInviteMinutes}
             className="mt-6 border-t border-dashed border-dicefest-border pt-5"
           />
         ) : null}
@@ -1362,7 +1364,7 @@ function OneShotDetailsModal({ session, cartState, pendingSlotId, busy, onAdd, o
   )
 }
 
-function MainEventDetailsModal({ session, sessionKey, reservation, inCart, hasReservedKey, hasCartKey, hasOneshotConflict, pendingSessionKey, busy, onAdd, onRemove, onCancel, onClose, isLoggedIn, isAdmin }) {
+function MainEventDetailsModal({ session, sessionKey, cartState, reservation, inCart, hasReservedKey, hasCartKey, hasOneshotConflict, pendingSessionKey, busy, onAdd, onRemove, onCancel, onClose, isLoggedIn, isAdmin }) {
   const { mainEvent, slot } = session
   const isPending = pendingSessionKey === sessionKey
   const state = computeMainEventState({ slot, reservation, inCart, hasReservedKey, hasCartKey, isLoggedIn, isAdmin, isPending, busy })
@@ -1441,6 +1443,7 @@ function MainEventDetailsModal({ session, sessionKey, reservation, inCart, hasRe
             companions={invite.companions}
             onChange={invite.setCompanions}
             maxCount={invite.maxCount}
+            minutes={cartState.companionInviteMinutes}
             className="mt-6 border-t border-dashed border-dicefest-border pt-5"
           />
         ) : null}

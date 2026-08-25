@@ -114,7 +114,8 @@ export async function getUserEventCartState({ eventId, userId, db = prisma }) {
   const now = new Date()
   await releaseExpiredEventHolds({ eventId, db, userId })
 
-  const [admissions, reservations, mainEventCartState, companionReservations] = await Promise.all([
+  const [event, admissions, reservations, mainEventCartState, companionReservations] = await Promise.all([
+    db.event.findUnique({ where: { id: eventId }, select: { companionInviteMinutes: true } }),
     db.eventAdmission.findMany({
       where: { userId, eventId },
       select: {
@@ -239,6 +240,7 @@ export async function getUserEventCartState({ eventId, userId, db = prisma }) {
     mainEventCartSlots: mainEventCartState.cartSlots,
     mainEventCompanionCartSlots: mainEventCartState.companionCartSlots,
     holdExpiresAt: holdExpiresAt ? holdExpiresAt.toISOString() : null,
+    companionInviteMinutes: event?.companionInviteMinutes ?? 60,
   }
 }
 

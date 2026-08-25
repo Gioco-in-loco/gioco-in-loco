@@ -1,3 +1,5 @@
+// Fallback usato solo quando l'evento non ha (ancora) un valore proprio —
+// vedi Event.companionInviteMinutes, configurabile da admin per evento.
 export const COMPANION_INVITE_MINUTES = 60
 
 // Web Crypto API (globalThis.crypto) instead of node:crypto — this module is
@@ -8,8 +10,9 @@ export function generateInviteCode() {
   return crypto.randomUUID().replace(/-/g, '')
 }
 
-export function getCompanionInviteExpiration() {
-  return new Date(Date.now() + COMPANION_INVITE_MINUTES * 60 * 1000)
+export function getCompanionInviteExpiration(minutes = COMPANION_INVITE_MINUTES) {
+  const safeMinutes = Number.isFinite(minutes) && minutes > 0 ? minutes : COMPANION_INVITE_MINUTES
+  return new Date(Date.now() + safeMinutes * 60 * 1000)
 }
 
 // Groups companion rows (from one or more tables) by normalized playerEmail
