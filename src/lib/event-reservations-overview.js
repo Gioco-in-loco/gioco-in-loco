@@ -7,6 +7,9 @@ function createHttpError(status, message) {
   return error
 }
 
+const ACTIVE_RESERVATION_STATUSES = ['PENDING', 'CONFIRMED', 'ATTENDED']
+const ACTIVE_MAIN_EVENT_RESERVATION_STATUSES = ['PENDING', 'CONFIRMED', 'ATTENDED']
+
 function formatAuditDate(value = new Date()) {
   return new Intl.DateTimeFormat('it-IT', {
     day: '2-digit',
@@ -460,6 +463,105 @@ export async function getEventReservationDetail({ eventId, type, reservationId }
   }
 
   throw createHttpError(400, 'Tipo prenotazione non valido')
+}
+
+// Sposta una prenotazione esistente su un'altra sessione (tavolo one-shot, o
+// gruppo mainEvent+giorno+fascia) — usato quando una sessione salta o due
+// vengono accorpate e i giocatori già prenotati vanno ricollocati altrove
+// senza farli ripassare dal carrello. targetSlotId è sempre un EventSlot: per
+// le one-shot identifica direttamente il tavolo di destinazione, per i main
+// event serve solo a leggere il gruppo (mainEventId, day, slot) a cui
+// appartiene, perché le prenotazioni main event non sono legate a un tavolo
+// preciso.
+export async function moveEventReservationToSlot({ eventId, type, reservationId, targetSlotId }) {
+  if (!targetSlotId) {
+    throw createHttpError(400, 'Seleziona una sessione di destinazione.')
+  }
+
+  if (type === 'oneshot') {
+    const [reservation, targetSlot] = await Promise.all([
+      prisma.reservation.findFirst({
+        where: { id: reservationId, slot: { eventId } },
+        select: { id: true, userId: true, slotId: true },
+      }),
+      prisma.eventSlot.findFirst({
+        where: { id: targetSlotId, eventId },
+        select: { id: true, oneshotId: true, maxPlayers: true },
+      }),
+    ])
+    if (!reservation) throw createHttpError(404, 'Prenotazione non trovata')
+    if (!targetSlot) throw createHttpError(404, 'Tavolo di destinazione non trovato')
+    if (!targetSlot.oneshotId) throw createHttpError(400, 'Il tavolo di destinazione non è assegnato a nessuna one shot.')
+    if (targetSlot.id === reservation.slotId) throw createHttpError(400, 'La prenotazione è già in questa sessione.')
+
+    if (reservation.userId) {
+      const clash = await prisma.reservation.findFirst({
+        where: { userId: reservation.userId, slotId: targetSlot.id },
+        select: { id: true },
+      })
+      if (clash) throw createHttpError(409, 'Questo giocatore ha già una prenotazione nella sessione di destinazione.')
+    }
+
+    const activeCount = await prisma.reservation.count({
+      where: { slotId: targetSlot.id, status: { in: ACTIVE_RESERVATION_STATUSES } },
+    })
+    if (activeCount >= targetSlot.maxPlayers) {
+      throw createHttpError(409, 'Il tavolo di destinazione è al completo.')
+    }
+
+    await prisma.reservation.update({ where: { id: reservationId }, data: { slotId: targetSlot.id } })
+    return getEventReservationDetail({ eventId, type, reservationId })
+  }
+
+  if (type === 'mainEvent') {
+    const [reservation, targetSlot] = await Promise.all([
+      prisma.mainEventReservation.findFirst({
+        where: { id: reservationId, eventId },
+        select: { id: true, userId: true, mainEventId: true, day: true, slot: true },
+      }),
+      prisma.eventSlot.findFirst({
+        where: { id: targetSlotId, eventId },
+        select: { id: true, mainEventId: true, day: true, slot: true },
+      }),
+    ])
+    if (!reservation) throw createHttpError(404, 'Prenotazione non trovata')
+    if (!targetSlot || !targetSlot.mainEventId) throw createHttpError(400, 'Il tavolo di destinazione non è assegnato a nessun main event.')
+
+    const isSameSession = targetSlot.mainEventId === reservation.mainEventId
+      && targetSlot.day === reservation.day
+      && targetSlot.slot === reservation.slot
+    if (isSameSession) throw createHttpError(400, 'La prenotazione è già in questa sessione.')
+
+    if (reservation.userId) {
+      const clash = await prisma.mainEventReservation.findFirst({
+        where: { userId: reservation.userId, mainEventId: targetSlot.mainEventId, eventId, day: targetSlot.day, slot: targetSlot.slot },
+        select: { id: true },
+      })
+      if (clash) throw createHttpError(409, 'Questo giocatore ha già una prenotazione nella sessione di destinazione.')
+    }
+
+    const [groupSlots, activeCount] = await Promise.all([
+      prisma.eventSlot.findMany({
+        where: { eventId, mainEventId: targetSlot.mainEventId, day: targetSlot.day, slot: targetSlot.slot },
+        select: { maxPlayers: true },
+      }),
+      prisma.mainEventReservation.count({
+        where: { eventId, mainEventId: targetSlot.mainEventId, day: targetSlot.day, slot: targetSlot.slot, status: { in: ACTIVE_MAIN_EVENT_RESERVATION_STATUSES } },
+      }),
+    ])
+    const groupCapacity = groupSlots.reduce((sum, groupSlot) => sum + groupSlot.maxPlayers, 0)
+    if (activeCount >= groupCapacity) {
+      throw createHttpError(409, 'La sessione di destinazione è al completo.')
+    }
+
+    await prisma.mainEventReservation.update({
+      where: { id: reservationId },
+      data: { mainEventId: targetSlot.mainEventId, day: targetSlot.day, slot: targetSlot.slot },
+    })
+    return getEventReservationDetail({ eventId, type, reservationId })
+  }
+
+  throw createHttpError(400, 'Questo tipo di prenotazione non può essere spostato.')
 }
 
 // Stati che l'admin può impostare direttamente dal form di modifica.

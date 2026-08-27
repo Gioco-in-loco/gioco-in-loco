@@ -222,6 +222,45 @@ export async function getSlotReservationsDetail({ eventId, slotId, managedAssoci
   }
 }
 
+// Prenotazione creata a mano dall'admin per un tavolo (es. giocatore arrivato
+// di persona senza aver prenotato online) — a differenza del flusso pubblico
+// in event-booking-routes.js, salta il carrello/hold e conferma subito il
+// posto, senza account utente collegato.
+export async function createManualOneShotReservation({ eventId, slotId, playerName, playerEmail, notes }) {
+  const name = String(playerName || '').trim()
+  if (!name) {
+    throw createHttpError(400, 'Inserisci il nome del giocatore.')
+  }
+
+  const slot = await prisma.eventSlot.findFirst({
+    where: { id: slotId, eventId },
+    select: { id: true, oneshotId: true, maxPlayers: true },
+  })
+  if (!slot) throw createHttpError(404, 'Tavolo non trovato')
+  if (!slot.oneshotId) throw createHttpError(400, 'Assegna prima una one shot a questo tavolo.')
+
+  const activeCount = await prisma.reservation.count({
+    where: { slotId: slot.id, status: { in: ACTIVE_RESERVATION_STATUSES } },
+  })
+  if (activeCount >= slot.maxPlayers) {
+    throw createHttpError(409, 'Il tavolo è al completo. Aumenta i posti dallo slot se vuoi comunque aggiungere questo giocatore.')
+  }
+
+  await prisma.reservation.create({
+    data: {
+      slotId: slot.id,
+      status: 'CONFIRMED',
+      playerName: name,
+      playerEmail: playerEmail ? (String(playerEmail).trim() || null) : null,
+      notes: notes ? (String(notes).trim() || null) : null,
+      consentGiven: true,
+      consentDate: new Date(),
+    },
+  })
+
+  return getSlotReservationsDetail({ eventId, slotId: slot.id })
+}
+
 export async function createEventSlot({ eventId, body }) {
   if (!eventId) throw createHttpError(400, 'Evento non valido')
 

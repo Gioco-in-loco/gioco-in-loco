@@ -30,7 +30,9 @@ function formatReservationDate(value) {
   }).format(new Date(value))
 }
 
-export default function ReservationsPanel({ oneshot, itemEndpointBase, canManageReservations, canMarkAttendance, canDeleteReservations = false, hideSlotHeader = false, onRefresh }) {
+const EMPTY_ADD_FORM = { playerName: '', playerEmail: '', notes: '' }
+
+export default function ReservationsPanel({ oneshot, itemEndpointBase, addPlayerEndpoint = null, canManageReservations, canMarkAttendance, canDeleteReservations = false, hideSlotHeader = false, onRefresh }) {
   const canToggleAttendance = canManageReservations || canMarkAttendance
   const toast = useToast()
   const [pendingReservationId, setPendingReservationId] = useState(null)
@@ -39,6 +41,40 @@ export default function ReservationsPanel({ oneshot, itemEndpointBase, canManage
   const [confirmDeleteId, setConfirmDeleteId] = useState(null)
   const [deletingReservationId, setDeletingReservationId] = useState(null)
   const [error, setError] = useState('')
+
+  const [showAddForm, setShowAddForm] = useState(false)
+  const [addForm, setAddForm] = useState(EMPTY_ADD_FORM)
+  const [addingPlayer, setAddingPlayer] = useState(false)
+  const [addError, setAddError] = useState('')
+
+  const handleAddPlayer = async (event) => {
+    event.preventDefault()
+    if (!addPlayerEndpoint) return
+
+    setAddingPlayer(true)
+    setAddError('')
+
+    try {
+      const response = await fetch(addPlayerEndpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(addForm),
+      })
+      const payload = await response.json().catch(() => ({}))
+      if (!response.ok) {
+        throw new Error(payload.error || 'Aggiunta giocatore non riuscita.')
+      }
+
+      setAddForm(EMPTY_ADD_FORM)
+      setShowAddForm(false)
+      await onRefresh()
+      toast.success('Giocatore aggiunto al tavolo.')
+    } catch (addPlayerError) {
+      setAddError(addPlayerError.message || 'Aggiunta giocatore non riuscita.')
+    } finally {
+      setAddingPlayer(false)
+    }
+  }
 
   const handleReservationAction = async (reservationId, status, cancellationReason = '') => {
     setPendingReservationId(reservationId)
@@ -101,14 +137,67 @@ export default function ReservationsPanel({ oneshot, itemEndpointBase, canManage
 
   return (
     <section className="space-y-4 border-t border-editorial-border pt-5">
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h3 className="mt-1 font-elegant text-xl font-bold text-editorial-text">Lista prenotati</h3>
         </div>
-        <p className="font-body text-sm text-editorial-text-muted">
-          {oneshot.slots.reduce((total, slot) => total + (slot.reservations?.length || 0), 0)} prenotazioni attive
-        </p>
+        <div className="flex items-center gap-3">
+          <p className="font-body text-sm text-editorial-text-muted">
+            {oneshot.slots.reduce((total, slot) => total + (slot.reservations?.length || 0), 0)} prenotazioni attive
+          </p>
+          {addPlayerEndpoint && canManageReservations ? (
+            <button
+              type="button"
+              onClick={() => { setShowAddForm((current) => !current); setAddError('') }}
+              className="rounded-lg border border-editorial-terra px-3 py-1.5 font-body text-xs font-semibold text-editorial-terra transition-colors hover:bg-editorial-terra/10"
+            >
+              {showAddForm ? 'Annulla' : '+ Aggiungi giocatore'}
+            </button>
+          ) : null}
+        </div>
       </div>
+
+      {addPlayerEndpoint && showAddForm ? (
+        <form onSubmit={handleAddPlayer} className="space-y-3 rounded-xl border border-editorial-terra/40 bg-editorial-terra/5 p-4">
+          {addError ? <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 font-body text-sm text-red-600">{addError}</p> : null}
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div>
+              <label className="mb-1 block font-body text-[11px] font-semibold uppercase tracking-wider text-editorial-text-muted">Nome giocatore</label>
+              <input
+                required
+                className="w-full rounded-lg border border-editorial-border px-3 py-2 font-body text-sm text-editorial-text outline-none focus:border-editorial-terra focus:ring-2 focus:ring-editorial-terra/10"
+                value={addForm.playerName}
+                onChange={(event) => setAddForm((current) => ({ ...current, playerName: event.target.value }))}
+              />
+            </div>
+            <div>
+              <label className="mb-1 block font-body text-[11px] font-semibold uppercase tracking-wider text-editorial-text-muted">Email (opzionale)</label>
+              <input
+                type="email"
+                className="w-full rounded-lg border border-editorial-border px-3 py-2 font-body text-sm text-editorial-text outline-none focus:border-editorial-terra focus:ring-2 focus:ring-editorial-terra/10"
+                value={addForm.playerEmail}
+                onChange={(event) => setAddForm((current) => ({ ...current, playerEmail: event.target.value }))}
+              />
+            </div>
+          </div>
+          <div>
+            <label className="mb-1 block font-body text-[11px] font-semibold uppercase tracking-wider text-editorial-text-muted">Note (opzionale)</label>
+            <textarea
+              rows={2}
+              className="w-full rounded-lg border border-editorial-border px-3 py-2 font-body text-sm text-editorial-text outline-none focus:border-editorial-terra focus:ring-2 focus:ring-editorial-terra/10"
+              value={addForm.notes}
+              onChange={(event) => setAddForm((current) => ({ ...current, notes: event.target.value }))}
+            />
+          </div>
+          <button
+            type="submit"
+            disabled={addingPlayer}
+            className="rounded-lg bg-editorial-terra px-4 py-2 font-body text-sm font-semibold text-white transition-colors hover:bg-editorial-terra/90 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {addingPlayer ? 'Aggiungo...' : 'Aggiungi al tavolo'}
+          </button>
+        </form>
+      ) : null}
 
       {error ? <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 font-body text-sm text-red-600">{error}</p> : null}
 

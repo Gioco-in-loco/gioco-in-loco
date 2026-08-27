@@ -255,6 +255,13 @@ export default function SlotCellDialog({
   const handleDetach = async () => {
     if (!oneshotDetail) return
 
+    if (hasReservations) {
+      const confirmed = window.confirm(
+        'Questo tavolo ha prenotazioni attive: rimuovendo l\'assegnazione resteranno collegate al tavolo e passeranno alla prossima one shot che ci assegnerai. Continuare?',
+      )
+      if (!confirmed) return
+    }
+
     setDetaching(true)
     setOneshotError('')
 
@@ -481,8 +488,16 @@ export default function SlotCellDialog({
                   <button
                     type="button"
                     onClick={handleDetach}
-                    disabled={!canManageOneShots || hasReservations || detaching}
-                    title={!canManageOneShots ? 'Le sessioni di questo evento sono bloccate: solo l\'amministratore può modificarle.' : hasReservations ? 'Non puoi rimuovere l\'assegnazione: ci sono prenotazioni attive.' : undefined}
+                    disabled={!canManageOneShots || (hasReservations && !canManageSlot) || detaching}
+                    title={
+                      !canManageOneShots
+                        ? 'Le sessioni di questo evento sono bloccate: solo l\'amministratore può modificarle.'
+                        : hasReservations && !canManageSlot
+                          ? 'Non puoi rimuovere l\'assegnazione: ci sono prenotazioni attive.'
+                          : hasReservations
+                            ? 'Attenzione: ci sono prenotazioni attive, resteranno collegate al tavolo.'
+                            : undefined
+                    }
                     className="rounded-lg border border-red-200 px-3 py-1.5 font-body text-xs font-semibold text-red-600 transition-colors hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-40"
                   >
                     {detaching ? 'Rimuovo...' : 'Rimuovi assegnazione'}
@@ -632,6 +647,7 @@ export default function SlotCellDialog({
             <ReservationsPanel
               oneshot={{ id: slotReservations.oneshotId, slots: [slotReservations] }}
               itemEndpointBase={oneshotsEndpointBase}
+              addPlayerEndpoint={`${slotsEndpointBase}/${eventId}/slots/${slot.id}/reservations`}
               canManageReservations={canManageReservations}
               canMarkAttendance={canMarkAttendance}
               canDeleteReservations={canDeleteReservations}

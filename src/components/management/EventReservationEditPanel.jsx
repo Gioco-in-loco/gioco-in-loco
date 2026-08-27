@@ -47,6 +47,11 @@ export default function EventReservationEditPanel({ eventId, eventExternalId, re
   const [cancelling, setCancelling] = useState(false)
   const [deleting, setDeleting] = useState(false)
 
+  const [availableSlots, setAvailableSlots] = useState([])
+  const [targetSlotId, setTargetSlotId] = useState('')
+  const [moving, setMoving] = useState(false)
+  const [moveError, setMoveError] = useState('')
+
   useEffect(() => {
     let cancelled = false
     if (!eventId || !reservationId || !type) return undefined
@@ -76,6 +81,50 @@ export default function EventReservationEditPanel({ eventId, eventExternalId, re
 
     return () => { cancelled = true }
   }, [eventId, reservationId, type])
+
+  useEffect(() => {
+    let cancelled = false
+    if (!eventId || (type !== 'oneshot' && type !== 'mainEvent')) return undefined
+
+    fetch(`/api/admin/eventi/${eventId}/slots`)
+      .then((res) => (res.ok ? res.json() : []))
+      .then((data) => { if (!cancelled) setAvailableSlots(Array.isArray(data) ? data : []) })
+      .catch(() => { if (!cancelled) setAvailableSlots([]) })
+
+    return () => { cancelled = true }
+  }, [eventId, type])
+
+  // Solo i tavoli/gruppi già assegnati a una sessione dello stesso tipo hanno
+  // senso come destinazione: uno slot libero non ha né oneshot né main event
+  // a cui agganciare la prenotazione, e il tipo deve corrispondere (non si
+  // sposta una one-shot su un tavolo main event o viceversa).
+  const moveTargets = availableSlots.filter((slot) => {
+    if (type === 'oneshot') return Boolean(slot.oneshotId)
+    if (type === 'mainEvent') return Boolean(slot.mainEventId)
+    return false
+  })
+
+  const handleMove = async () => {
+    if (!targetSlotId) return
+    setMoving(true)
+    setMoveError('')
+    try {
+      const res = await fetch(`/api/admin/eventi/${eventId}/reservations/${reservationId}/move?type=${type}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ targetSlotId }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(data.error || 'Spostamento non riuscito.')
+      setReservation(data)
+      setTargetSlotId('')
+      toast.success('Prenotazione spostata.')
+    } catch (err) {
+      setMoveError(err.message || 'Spostamento non riuscito.')
+    } finally {
+      setMoving(false)
+    }
+  }
 
   const handleSave = async (e) => {
     e.preventDefault()
@@ -232,6 +281,44 @@ export default function EventReservationEditPanel({ eventId, eventExternalId, re
           {saving ? 'Salvataggio...' : 'Salva modifiche'}
         </button>
       </form>
+
+      {type === 'oneshot' || type === 'mainEvent' ? (
+        <div className="space-y-3 rounded-xl border border-editorial-border bg-white p-6 shadow-soft">
+          <p className="font-body text-xs font-semibold uppercase tracking-wider text-editorial-terra">Sposta a un&apos;altra sessione</p>
+          <p className="font-body text-xs text-editorial-text-muted">
+            Sposta questo giocatore su un altro {type === 'oneshot' ? 'tavolo/one-shot' : 'main event'}, rispettando i posti disponibili nella sessione di destinazione.
+          </p>
+          {moveError ? <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 font-body text-sm text-red-600">{moveError}</p> : null}
+          {moveTargets.length === 0 ? (
+            <p className="font-body text-sm text-editorial-text-muted">Nessuna altra sessione disponibile per questo evento.</p>
+          ) : (
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+              <div className="flex-1">
+                <label className={labelClass}>Sessione di destinazione</label>
+                <select className={inputClass} value={targetSlotId} onChange={(e) => setTargetSlotId(e.target.value)}>
+                  <option value="">Seleziona...</option>
+                  {moveTargets.map((slot) => (
+                    <option key={slot.id} value={slot.id}>
+                      {slot.day} · {slot.slot} · {slot.table}
+                      {slot.oneshotTitle ? ` · ${slot.oneshotTitle}` : ''}
+                      {slot.mainEventTitle ? ` · ${slot.mainEventTitle}` : ''}
+                      {' '}({slot.reservationsCount ?? 0}/{type === 'oneshot' ? slot.maxPlayers : (slot.groupMaxPlayers ?? slot.maxPlayers)} posti)
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <button
+                type="button"
+                onClick={handleMove}
+                disabled={!targetSlotId || moving}
+                className="rounded-lg bg-editorial-terra px-4 py-2 font-body text-sm font-semibold text-white transition-colors hover:bg-editorial-terra/90 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {moving ? 'Sposto...' : 'Sposta'}
+              </button>
+            </div>
+          )}
+        </div>
+      ) : null}
 
       <div className="space-y-3 rounded-xl border border-editorial-border bg-white p-6 shadow-soft">
         <p className="font-body text-xs font-semibold uppercase tracking-wider text-editorial-terra">Annulla prenotazione</p>

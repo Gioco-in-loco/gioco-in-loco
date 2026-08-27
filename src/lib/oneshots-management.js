@@ -474,12 +474,19 @@ export async function updateOneShot({ id, body, managedAssociationId = null }) {
         await assertNoAdminOnlySlots(tx, slotIdsToAttach, managedAssociationId)
 
         if (slotIdsToDetach.length > 0) {
-          const activeReservationsCount = await tx.reservation.count({
-            where: { slotId: { in: slotIdsToDetach }, status: { in: ACTIVE_RESERVATION_STATUSES } },
-          })
+          // Il responsabile non può staccare un tavolo con prenotazioni attive
+          // (rischierebbe di perdere iscritti senza avvisarli); l'admin invece
+          // deve poterlo fare per correggere assegnazioni o sostituire la
+          // sessione su un tavolo già prenotato — le prenotazioni restano
+          // agganciate allo slot e passano alla one-shot che lo occuperà dopo.
+          if (managedAssociationId) {
+            const activeReservationsCount = await tx.reservation.count({
+              where: { slotId: { in: slotIdsToDetach }, status: { in: ACTIVE_RESERVATION_STATUSES } },
+            })
 
-          if (activeReservationsCount > 0) {
-            throw createHttpError(400, 'Non puoi rimuovere slot che hanno prenotazioni collegate.')
+            if (activeReservationsCount > 0) {
+              throw createHttpError(400, 'Non puoi rimuovere slot che hanno prenotazioni collegate.')
+            }
           }
 
           await tx.eventSlot.updateMany({
