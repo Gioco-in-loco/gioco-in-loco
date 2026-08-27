@@ -47,6 +47,7 @@ export default function EventTableMapPanel({
   canDeleteReservations = true,
   canManageMainEvents = true,
   canManageOneShots = true,
+  hideSensitiveFields = false,
   slotsEndpointBase = '/api/admin/eventi',
   oneshotsEndpointBase = '/api/admin/oneshots',
   uploadEndpoint = '/api/admin/oneshots/upload-image',
@@ -363,6 +364,7 @@ export default function EventTableMapPanel({
         canDeleteReservations={canDeleteReservations}
         canManageMainEvents={canManageMainEvents}
         canManageOneShots={canManageOneShots}
+        hideSensitiveFields={hideSensitiveFields}
         mainEventsEndpointBase={mainEventsEndpointBase}
         mainEventUploadEndpoint={mainEventUploadEndpoint}
         onChanged={() => { setSelectedSlot(null); loadSlots() }}

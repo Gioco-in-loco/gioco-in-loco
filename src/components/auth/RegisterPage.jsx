@@ -9,6 +9,7 @@ import PasswordInput from './PasswordInput'
 import { useAuth } from '../../context/AuthContext'
 import PrivacyModal from '../ui/PrivacyModal'
 import { sanitizeRedirectTarget } from '../../lib/safe-redirect'
+import { NICKNAME_RE } from '../../lib/nicknames'
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const PHONE_RE = /^[+\d][\d\s]{6,}$/
@@ -21,6 +22,9 @@ export default function RegisterPage() {
   const { register, isConfigured } = useAuth()
   const [showPrivacy, setShowPrivacy] = useState(false)
   const [fullName, setFullName] = useState('')
+  const [nickname, setNickname] = useState('')
+  const [nicknameTouched, setNicknameTouched] = useState(false)
+  const [nicknameAvailability, setNicknameAvailability] = useState({ checking: false, available: null, error: '' })
   const [email, setEmail] = useState(prefillEmail)
   const [emailTouched, setEmailTouched] = useState(false)
   const [phone, setPhone] = useState('')
@@ -36,11 +40,40 @@ export default function RegisterPage() {
 
   const emailError = emailTouched && email && !EMAIL_RE.test(email) ? 'Inserisci un indirizzo email valido.' : ''
   const phoneError = phoneTouched && phone && !PHONE_RE.test(phone.trim()) ? 'Inserisci un numero di telefono valido.' : ''
+  const nicknameFormatError = nicknameTouched && nickname && !NICKNAME_RE.test(nickname.trim())
+    ? 'Il nickname deve avere tra 3 e 20 caratteri (lettere, numeri, spazi, - o _).'
+    : ''
   const passwordHint = passwordTouched && password.length > 0 && password.length < 8 ? `Ancora ${8 - password.length} caratteri` : ''
   const confirmError = confirmTouched && confirmPassword.length > 0 && password !== confirmPassword ? 'Le password non coincidono.' : ''
 
+  useEffect(() => {
+    const trimmed = nickname.trim()
+    if (!NICKNAME_RE.test(trimmed)) {
+      setNicknameAvailability({ checking: false, available: null, error: '' })
+      return undefined
+    }
+
+    let cancelled = false
+    setNicknameAvailability({ checking: true, available: null, error: '' })
+
+    const timeout = setTimeout(() => {
+      fetch(`/api/auth/nickname-available?nickname=${encodeURIComponent(trimmed)}`)
+        .then((res) => res.json())
+        .then((data) => {
+          if (cancelled) return
+          setNicknameAvailability({ checking: false, available: Boolean(data.available), error: data.available === false && data.error ? data.error : '' })
+        })
+        .catch(() => { if (!cancelled) setNicknameAvailability({ checking: false, available: null, error: '' }) })
+    }, 400)
+
+    return () => { cancelled = true; clearTimeout(timeout) }
+  }, [nickname])
+
+  const isNicknameValid = NICKNAME_RE.test(nickname.trim()) && nicknameAvailability.available === true
+
   const isFormValid =
     fullName.trim().length > 0 &&
+    isNicknameValid &&
     EMAIL_RE.test(email) &&
     PHONE_RE.test(phone.trim()) &&
     password.length >= 8 &&
@@ -52,11 +85,13 @@ export default function RegisterPage() {
     setError('')
     setEmailTouched(true)
     setPhoneTouched(true)
+    setNicknameTouched(true)
     setPasswordTouched(true)
     setConfirmTouched(true)
 
     if (!EMAIL_RE.test(email)) return
     if (!PHONE_RE.test(phone.trim())) return
+    if (!isNicknameValid) return
     if (password.length < 8) return
     if (password !== confirmPassword) return
     if (!consentGiven) {
@@ -65,7 +100,7 @@ export default function RegisterPage() {
     }
 
     setIsSubmitting(true)
-    const result = await register({ email, password, fullName, phone: phone.trim(), consentGiven, newsletterOptIn }, { next: redirectTo || undefined })
+    const result = await register({ email, password, fullName, nickname: nickname.trim(), phone: phone.trim(), consentGiven, newsletterOptIn }, { next: redirectTo || undefined })
     setIsSubmitting(false)
 
     if (result.error) {
@@ -111,6 +146,29 @@ export default function RegisterPage() {
             placeholder="Mario Rossi"
             className="input-field"
           />
+        </div>
+        <div>
+          <label className="block mb-2 font-body text-sm text-editorial-text font-semibold">Nickname</label>
+          <input
+            type="text"
+            value={nickname}
+            onChange={(event) => setNickname(event.target.value)}
+            onBlur={() => setNicknameTouched(true)}
+            required
+            autoComplete="off"
+            placeholder="Il nome che vedranno gli altri giocatori"
+            className={`input-field ${nicknameFormatError || nicknameAvailability.available === false ? 'input-field--error' : ''}`}
+          />
+          {nicknameFormatError && <p className="mt-1.5 font-body text-xs text-red-500">{nicknameFormatError}</p>}
+          {!nicknameFormatError && nicknameAvailability.checking && (
+            <p className="mt-1.5 font-body text-xs text-editorial-text-muted">Controllo disponibilità...</p>
+          )}
+          {!nicknameFormatError && !nicknameAvailability.checking && nicknameAvailability.available === false && (
+            <p className="mt-1.5 font-body text-xs text-red-500">{nicknameAvailability.error || 'Nickname già in uso.'}</p>
+          )}
+          {!nicknameFormatError && !nicknameAvailability.checking && nicknameAvailability.available === true && (
+            <p className="mt-1.5 font-body text-xs text-editorial-forest">Nickname disponibile.</p>
+          )}
         </div>
         <div>
           <label className="block mb-2 font-body text-sm text-editorial-text font-semibold">Email</label>

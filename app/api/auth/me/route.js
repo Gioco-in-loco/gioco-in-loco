@@ -36,13 +36,14 @@ export async function GET(request) {
 
   const dbUser = await prisma.user.findUnique({
     where: { supabaseUserId },
-    select: { role: true, isAdmin: true, consentGiven: true, consentDate: true, associationId: true },
+    select: { role: true, isAdmin: true, consentGiven: true, consentDate: true, associationId: true, nickname: true },
   })
 
   return NextResponse.json({
     id: authUser?.id || supabaseUserId,
     email: authUser?.email || null,
     name: authUser?.user_metadata?.full_name || authUser?.user_metadata?.name || null,
+    nickname: dbUser?.nickname || null,
     phone: authUser?.user_metadata?.phone || null,
     avatarUrl: authUser?.user_metadata?.avatar_url || null,
     createdAt: authUser?.created_at || null,

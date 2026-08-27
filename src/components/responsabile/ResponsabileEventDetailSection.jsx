@@ -92,6 +92,7 @@ export default function ResponsabileEventDetailSection({ eventExternalId, associ
             canDeleteReservations={false}
             canManageMainEvents={false}
             canManageOneShots={!event.sessionsLocked}
+            hideSensitiveFields
             slotsEndpointBase="/api/responsabile/eventi"
             oneshotsEndpointBase="/api/responsabile/oneshots"
             uploadEndpoint="/api/responsabile/oneshots/upload-image"

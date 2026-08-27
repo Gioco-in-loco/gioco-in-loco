@@ -113,6 +113,7 @@ export default function EventWaitlistPanel({ eventId, waitlistEndpointBase }) {
                             <td className="px-3 py-2 font-body text-sm text-editorial-text">
                               {entry.name || entry.email || 'Utente sconosciuto'}
                               {entry.name && entry.email ? <span className="block font-body text-xs text-editorial-text-muted">{entry.email}</span> : null}
+                              {entry.nickname ? <span className="block font-body text-xs text-editorial-text-muted">@{entry.nickname}</span> : null}
                             </td>
                             <td className="px-3 py-2 font-body text-sm text-editorial-text-secondary">{formatDate(entry.createdAt)}</td>
                             <td className="px-3 py-2 font-body text-sm text-editorial-text-secondary">{entry.notifiedAt ? formatDate(entry.notifiedAt) : '—'}</td>

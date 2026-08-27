@@ -11,6 +11,7 @@ import { useToast } from '../../context/ToastContext'
 import { useNotice } from '../../hooks/useNotice'
 import PrivacyModal from '../ui/PrivacyModal'
 import TutorialPopup from '../tutorial/TutorialPopup'
+import { NICKNAME_RE } from '../../lib/nicknames'
 
 const PROFILE_TUTORIAL_SLIDES = [
   {
@@ -133,6 +134,9 @@ export default function AccountPage() {
 
   // Profile
   const [fullName, setFullName] = useState('')
+  const [nickname, setNickname] = useState('')
+  const [nicknameTouched, setNicknameTouched] = useState(false)
+  const [nicknameAvailability, setNicknameAvailability] = useState({ checking: false, available: null, error: '' })
   const [phone, setPhone] = useState('')
   const [phoneTouched, setPhoneTouched] = useState(false)
   const [profileState, setProfileState] = useState({ saving: false, error: '', success: '' })
@@ -159,25 +163,58 @@ export default function AccountPage() {
   useEffect(() => {
     if (user) {
       setFullName(user.name || '')
+      setNickname(user.nickname || '')
       setPhone(user.phone || '')
     }
   }, [user])
+
+  useEffect(() => {
+    const trimmed = nickname.trim()
+
+    // Non ricontrollare la disponibilità se non è cambiato rispetto al
+    // proprio nickname attuale: risulterebbe sempre "in uso" (da se stessi).
+    if (!trimmed || trimmed.toLowerCase() === (user?.nickname || '').toLowerCase() || !NICKNAME_RE.test(trimmed)) {
+      setNicknameAvailability({ checking: false, available: null, error: '' })
+      return undefined
+    }
+
+    let cancelled = false
+    setNicknameAvailability({ checking: true, available: null, error: '' })
+
+    const timeout = setTimeout(() => {
+      fetch(`/api/auth/nickname-available?nickname=${encodeURIComponent(trimmed)}`)
+        .then((res) => res.json())
+        .then((data) => {
+          if (cancelled) return
+          setNicknameAvailability({ checking: false, available: Boolean(data.available), error: data.available === false && data.error ? data.error : '' })
+        })
+        .catch(() => { if (!cancelled) setNicknameAvailability({ checking: false, available: null, error: '' }) })
+    }, 400)
+
+    return () => { cancelled = true; clearTimeout(timeout) }
+  }, [nickname, user?.nickname])
 
   const passwordHint = passwordTouched && password.length > 0 && password.length < 8
     ? `Ancora ${8 - password.length} caratteri` : ''
   const confirmError = confirmTouched && confirmPassword.length > 0 && password !== confirmPassword
     ? 'Le password non coincidono.' : ''
   const isPasswordFormValid = password.length >= 8 && password === confirmPassword
-  const profileChanged = fullName !== (user?.name || '') || phone !== (user?.phone || '')
+  const nicknameChanged = nickname.trim().toLowerCase() !== (user?.nickname || '').toLowerCase()
+  const profileChanged = fullName !== (user?.name || '') || phone !== (user?.phone || '') || nicknameChanged
   const phoneError = phoneTouched && phone && !PHONE_RE.test(phone.trim()) ? 'Inserisci un numero di telefono valido.' : ''
-  const isProfileFormValid = PHONE_RE.test(phone.trim())
+  const nicknameFormatError = nicknameTouched && nickname && !NICKNAME_RE.test(nickname.trim())
+    ? 'Il nickname deve avere tra 3 e 20 caratteri (lettere, numeri, spazi, - o _).'
+    : ''
+  const isNicknameFormValid = NICKNAME_RE.test(nickname.trim()) && (!nicknameChanged || nicknameAvailability.available === true)
+  const isProfileFormValid = PHONE_RE.test(phone.trim()) && isNicknameFormValid
 
   const handleProfileSave = async (e) => {
     e.preventDefault()
     setPhoneTouched(true)
+    setNicknameTouched(true)
     if (!isProfileFormValid) return
     setProfileState({ saving: true, error: '', success: '' })
-    const result = await updateProfile({ fullName, phone: phone.trim() })
+    const result = await updateProfile({ fullName, nickname: nicknameChanged ? nickname.trim() : undefined, phone: phone.trim() })
     setProfileState(result.error
       ? { saving: false, error: result.error, success: '' }
       : { saving: false, error: '', success: 'Salvato.' }
@@ -322,6 +359,28 @@ export default function AccountPage() {
                       placeholder="Mario Rossi"
                       className="input-field"
                     />
+                  </div>
+                  <div>
+                    <label className="block mb-1.5 font-body text-sm text-editorial-text font-semibold">Nickname</label>
+                    <input
+                      type="text"
+                      value={nickname}
+                      onChange={(e) => setNickname(e.target.value)}
+                      onBlur={() => setNicknameTouched(true)}
+                      autoComplete="off"
+                      placeholder="Il nome che vedranno gli altri giocatori"
+                      className={`input-field ${nicknameFormatError || nicknameAvailability.available === false ? 'input-field--error' : ''}`}
+                    />
+                    {nicknameFormatError && <p className="mt-1.5 font-body text-xs text-red-500">{nicknameFormatError}</p>}
+                    {!nicknameFormatError && nicknameAvailability.checking && (
+                      <p className="mt-1.5 font-body text-xs text-editorial-text-muted">Controllo disponibilità...</p>
+                    )}
+                    {!nicknameFormatError && !nicknameAvailability.checking && nicknameAvailability.available === false && (
+                      <p className="mt-1.5 font-body text-xs text-red-500">{nicknameAvailability.error || 'Nickname già in uso.'}</p>
+                    )}
+                    {!nicknameFormatError && !nicknameAvailability.checking && nicknameChanged && nicknameAvailability.available === true && (
+                      <p className="mt-1.5 font-body text-xs text-editorial-forest">Nickname disponibile.</p>
+                    )}
                   </div>
                   <div>
                     <label className="block mb-1.5 font-body text-sm text-editorial-text font-semibold">Telefono</label>

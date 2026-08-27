@@ -19,6 +19,7 @@ datasource db {
 model User {
   id             String    @id @default(cuid())
   supabaseUserId String    @unique
+  nickname       String?   @unique
   role           UserRole  @default(USER)
   isAdmin        Boolean   @default(false)
   associationId  String?

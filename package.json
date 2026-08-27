@@ -16,7 +16,8 @@
     "db:link-oneshots-to-event": "tsx scripts/link-oneshots-to-event.ts",
     "db:studio": "prisma studio",
     "db:backup": "tsx scripts/backup-database.ts",
-    "db:find-orphan-storage": "tsx scripts/find-orphan-storage-files.ts"
+    "db:find-orphan-storage": "tsx scripts/find-orphan-storage-files.ts",
+    "db:assign-default-nicknames": "tsx scripts/assign-default-nicknames.ts"
   },
   "dependencies": {
     "@prisma/client": "^5.22.0",

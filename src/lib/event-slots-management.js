@@ -179,7 +179,7 @@ export async function getSlotReservationsDetail({ eventId, slotId, managedAssoci
           consentDate: true,
           createdAt: true,
           updatedAt: true,
-          user: { select: { supabaseUserId: true } },
+          user: { select: { supabaseUserId: true, nickname: true } },
         },
       },
     },
@@ -196,7 +196,12 @@ export async function getSlotReservationsDetail({ eventId, slotId, managedAssoci
     throw createHttpError(404, 'Slot non trovato')
   }
 
-  const phoneByUserId = await buildReservationPhoneMap([slot])
+  // Il responsabile non deve vedere i dati sensibili dei prenotati (nome,
+  // email, telefono) nemmeno per i propri tavoli — solo l'amministratore vi
+  // ha accesso. Al responsabile resta il nickname, che basta per riconoscere
+  // chi si presenta al tavolo e segnare la presenza.
+  const redactPlayerData = Boolean(managedAssociationId)
+  const phoneByUserId = redactPlayerData ? new Map() : await buildReservationPhoneMap([slot])
 
   return {
     id: slot.id,
@@ -210,9 +215,10 @@ export async function getSlotReservationsDetail({ eventId, slotId, managedAssoci
       id: reservation.id,
       userId: reservation.userId,
       status: reservation.status,
-      playerName: reservation.playerName || null,
-      playerEmail: reservation.playerEmail || null,
-      playerPhone: phoneByUserId.get(reservation.userId) || null,
+      playerName: redactPlayerData ? null : (reservation.playerName || null),
+      playerEmail: redactPlayerData ? null : (reservation.playerEmail || null),
+      playerPhone: redactPlayerData ? null : (phoneByUserId.get(reservation.userId) || null),
+      nickname: reservation.user?.nickname || null,
       notes: reservation.notes || null,
       consentGiven: Boolean(reservation.consentGiven),
       consentDate: reservation.consentDate,

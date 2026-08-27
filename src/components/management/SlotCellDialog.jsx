@@ -25,6 +25,7 @@ export default function SlotCellDialog({
   canDeleteReservations = true,
   canManageMainEvents = true,
   canManageOneShots = true,
+  hideSensitiveFields = false,
   mainEventsEndpointBase = '/api/admin/main-events',
   mainEventUploadEndpoint = '/api/admin/main-events/upload-image',
   onChanged,
@@ -651,6 +652,7 @@ export default function SlotCellDialog({
               canManageReservations={canManageReservations}
               canMarkAttendance={canMarkAttendance}
               canDeleteReservations={canDeleteReservations}
+              hideSensitiveFields={hideSensitiveFields}
               hideSlotHeader
               onRefresh={async () => {
                 const res = await fetch(`${slotsEndpointBase}/${eventId}/slots/${slot.id}`, { cache: 'no-store' })

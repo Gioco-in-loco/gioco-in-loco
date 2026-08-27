@@ -49,6 +49,7 @@ export default function EventReservationEditPanel({ eventId, eventExternalId, re
 
   const [availableSlots, setAvailableSlots] = useState([])
   const [targetSlotId, setTargetSlotId] = useState('')
+  const [targetSearch, setTargetSearch] = useState('')
   const [moving, setMoving] = useState(false)
   const [moveError, setMoveError] = useState('')
 
@@ -104,6 +105,17 @@ export default function EventReservationEditPanel({ eventId, eventExternalId, re
     return false
   })
 
+  const visibleMoveTargets = targetSearch.trim()
+    ? moveTargets.filter((slot) => {
+        const needle = targetSearch.trim().toLowerCase()
+        const haystack = [slot.day, slot.slot, slot.table, slot.oneshotTitle, slot.oneshotMaster, slot.mainEventTitle]
+          .filter(Boolean)
+          .join(' ')
+          .toLowerCase()
+        return haystack.includes(needle)
+      })
+    : moveTargets
+
   const handleMove = async () => {
     if (!targetSlotId) return
     setMoving(true)
@@ -118,6 +130,7 @@ export default function EventReservationEditPanel({ eventId, eventExternalId, re
       if (!res.ok) throw new Error(data.error || 'Spostamento non riuscito.')
       setReservation(data)
       setTargetSlotId('')
+      setTargetSearch('')
       toast.success('Prenotazione spostata.')
     } catch (err) {
       setMoveError(err.message || 'Spostamento non riuscito.')
@@ -229,6 +242,12 @@ export default function EventReservationEditPanel({ eventId, eventExternalId, re
             <dt className={labelClass}>Account</dt>
             <dd className="font-body text-sm text-editorial-text">{reservation.accountName || reservation.accountEmail || 'Non ancora registrato'}</dd>
           </div>
+          {reservation.nickname ? (
+            <div>
+              <dt className={labelClass}>Nickname</dt>
+              <dd className="font-body text-sm text-editorial-text">@{reservation.nickname}</dd>
+            </div>
+          ) : null}
           {reservation.invitedByName ? (
             <div>
               <dt className={labelClass}>Invitato da</dt>
@@ -292,29 +311,44 @@ export default function EventReservationEditPanel({ eventId, eventExternalId, re
           {moveTargets.length === 0 ? (
             <p className="font-body text-sm text-editorial-text-muted">Nessuna altra sessione disponibile per questo evento.</p>
           ) : (
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
-              <div className="flex-1">
-                <label className={labelClass}>Sessione di destinazione</label>
-                <select className={inputClass} value={targetSlotId} onChange={(e) => setTargetSlotId(e.target.value)}>
-                  <option value="">Seleziona...</option>
-                  {moveTargets.map((slot) => (
-                    <option key={slot.id} value={slot.id}>
-                      {slot.day} · {slot.slot} · {slot.table}
-                      {slot.oneshotTitle ? ` · ${slot.oneshotTitle}` : ''}
-                      {slot.mainEventTitle ? ` · ${slot.mainEventTitle}` : ''}
-                      {' '}({slot.reservationsCount ?? 0}/{type === 'oneshot' ? slot.maxPlayers : (slot.groupMaxPlayers ?? slot.maxPlayers)} posti)
-                    </option>
-                  ))}
-                </select>
+            <div className="space-y-3">
+              <div>
+                <label className={labelClass}>Filtra per giorno, tavolo, one-shot o master</label>
+                <input
+                  className={inputClass}
+                  value={targetSearch}
+                  onChange={(e) => { setTargetSearch(e.target.value); setTargetSlotId('') }}
+                  placeholder="Cerca sessione..."
+                />
               </div>
-              <button
-                type="button"
-                onClick={handleMove}
-                disabled={!targetSlotId || moving}
-                className="rounded-lg bg-editorial-terra px-4 py-2 font-body text-sm font-semibold text-white transition-colors hover:bg-editorial-terra/90 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {moving ? 'Sposto...' : 'Sposta'}
-              </button>
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+                <div className="flex-1">
+                  <label className={labelClass}>Sessione di destinazione</label>
+                  {visibleMoveTargets.length === 0 ? (
+                    <p className="font-body text-sm text-editorial-text-muted">Nessuna sessione corrisponde alla ricerca.</p>
+                  ) : (
+                    <select className={inputClass} value={targetSlotId} onChange={(e) => setTargetSlotId(e.target.value)}>
+                      <option value="">Seleziona...</option>
+                      {visibleMoveTargets.map((slot) => (
+                        <option key={slot.id} value={slot.id}>
+                          {slot.day} · {slot.slot} · {slot.table}
+                          {slot.oneshotTitle ? ` · ${slot.oneshotTitle}` : ''}
+                          {slot.mainEventTitle ? ` · ${slot.mainEventTitle}` : ''}
+                          {' '}({slot.reservationsCount ?? 0}/{type === 'oneshot' ? slot.maxPlayers : (slot.groupMaxPlayers ?? slot.maxPlayers)} posti)
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={handleMove}
+                  disabled={!targetSlotId || moving}
+                  className="rounded-lg bg-editorial-terra px-4 py-2 font-body text-sm font-semibold text-white transition-colors hover:bg-editorial-terra/90 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {moving ? 'Sposto...' : 'Sposta'}
+                </button>
+              </div>
             </div>
           )}
         </div>

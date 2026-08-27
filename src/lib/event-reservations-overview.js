@@ -39,6 +39,7 @@ function accountFieldsFor(user, authBySupabaseId) {
   return {
     accountName: authUser?.user_metadata?.full_name || authUser?.user_metadata?.name || null,
     accountEmail: authUser?.email || null,
+    nickname: user?.nickname || null,
   }
 }
 
@@ -58,8 +59,8 @@ export async function getEventAllReservations({ eventId }) {
         playerName: true,
         playerEmail: true,
         createdAt: true,
-        user: { select: { supabaseUserId: true } },
-        invitedBy: { select: { supabaseUserId: true } },
+        user: { select: { supabaseUserId: true, nickname: true } },
+        invitedBy: { select: { supabaseUserId: true, nickname: true } },
         slot: {
           select: {
             day: true,
@@ -82,8 +83,8 @@ export async function getEventAllReservations({ eventId }) {
         day: true,
         slot: true,
         createdAt: true,
-        user: { select: { supabaseUserId: true } },
-        invitedBy: { select: { supabaseUserId: true } },
+        user: { select: { supabaseUserId: true, nickname: true } },
+        invitedBy: { select: { supabaseUserId: true, nickname: true } },
         mainEvent: { select: { title: true } },
       },
     }),
@@ -99,8 +100,8 @@ export async function getEventAllReservations({ eventId }) {
         playerName: true,
         playerEmail: true,
         createdAt: true,
-        user: { select: { supabaseUserId: true } },
-        invitedBy: { select: { supabaseUserId: true } },
+        user: { select: { supabaseUserId: true, nickname: true } },
+        invitedBy: { select: { supabaseUserId: true, nickname: true } },
       },
     }),
   ])
@@ -345,8 +346,8 @@ export async function getEventReservationDetail({ eventId, type, reservationId }
         createdAt: true,
         updatedAt: true,
         holdExpiresAt: true,
-        user: { select: { supabaseUserId: true } },
-        invitedBy: { select: { supabaseUserId: true } },
+        user: { select: { supabaseUserId: true, nickname: true } },
+        invitedBy: { select: { supabaseUserId: true, nickname: true } },
         slot: { select: { day: true, slot: true, table: true, oneshot: { select: { title: true, master: true } } } },
       },
     })
@@ -390,8 +391,8 @@ export async function getEventReservationDetail({ eventId, type, reservationId }
         createdAt: true,
         updatedAt: true,
         holdExpiresAt: true,
-        user: { select: { supabaseUserId: true } },
-        invitedBy: { select: { supabaseUserId: true } },
+        user: { select: { supabaseUserId: true, nickname: true } },
+        invitedBy: { select: { supabaseUserId: true, nickname: true } },
         mainEvent: { select: { title: true } },
       },
     })
@@ -434,8 +435,8 @@ export async function getEventReservationDetail({ eventId, type, reservationId }
         createdAt: true,
         updatedAt: true,
         holdExpiresAt: true,
-        user: { select: { supabaseUserId: true } },
-        invitedBy: { select: { supabaseUserId: true } },
+        user: { select: { supabaseUserId: true, nickname: true } },
+        invitedBy: { select: { supabaseUserId: true, nickname: true } },
       },
     })
     if (!admission) throw createHttpError(404, 'Prenotazione non trovata')

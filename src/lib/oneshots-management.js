@@ -130,7 +130,11 @@ async function buildReservationPhoneMap(oneshot) {
   return phoneByUserId
 }
 
-export function serializeOneShot(oneshot, { phoneByUserId = new Map() } = {}) {
+// redactPlayerData nasconde nome/email/telefono dei prenotati e lascia solo
+// il nickname: usato quando la richiesta arriva da un responsabile
+// (managedAssociationId impostato), che non deve vedere dati sensibili dei
+// giocatori — solo l'amministratore ha accesso ai dati completi.
+export function serializeOneShot(oneshot, { phoneByUserId = new Map(), redactPlayerData = false } = {}) {
   return {
     id: oneshot.id,
     title: oneshot.title,
@@ -160,9 +164,10 @@ export function serializeOneShot(oneshot, { phoneByUserId = new Map() } = {}) {
         id: reservation.id,
         userId: reservation.userId,
         status: reservation.status,
-        playerName: reservation.playerName || null,
-        playerEmail: reservation.playerEmail || null,
-        playerPhone: phoneByUserId.get(reservation.userId) || null,
+        playerName: redactPlayerData ? null : (reservation.playerName || null),
+        playerEmail: redactPlayerData ? null : (reservation.playerEmail || null),
+        playerPhone: redactPlayerData ? null : (phoneByUserId.get(reservation.userId) || null),
+        nickname: reservation.user?.nickname || null,
         notes: reservation.notes || null,
         consentGiven: Boolean(reservation.consentGiven),
         consentDate: reservation.consentDate,
@@ -569,7 +574,7 @@ export async function getOneShotDetail({ id, managedAssociationId = null }) {
               consentDate: true,
               createdAt: true,
               updatedAt: true,
-              user: { select: { supabaseUserId: true } },
+              user: { select: { supabaseUserId: true, nickname: true } },
             },
           },
         },
@@ -581,8 +586,9 @@ export async function getOneShotDetail({ id, managedAssociationId = null }) {
     throw createHttpError(404, 'One shot non trovata')
   }
 
-  const phoneByUserId = await buildReservationPhoneMap(oneshot)
-  return serializeOneShot(oneshot, { phoneByUserId })
+  const redactPlayerData = Boolean(managedAssociationId)
+  const phoneByUserId = redactPlayerData ? new Map() : await buildReservationPhoneMap(oneshot)
+  return serializeOneShot(oneshot, { phoneByUserId, redactPlayerData })
 }
 
 export async function updateManagedOneShotReservationStatus({ oneshotId, reservationId, status, managedAssociationId = null, cancellationReason = '', actorName = null, actorEmail = null, actorUserId = null }) {

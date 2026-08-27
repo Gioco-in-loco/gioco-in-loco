@@ -32,7 +32,7 @@ function formatReservationDate(value) {
 
 const EMPTY_ADD_FORM = { playerName: '', playerEmail: '', notes: '' }
 
-export default function ReservationsPanel({ oneshot, itemEndpointBase, addPlayerEndpoint = null, canManageReservations, canMarkAttendance, canDeleteReservations = false, hideSlotHeader = false, onRefresh }) {
+export default function ReservationsPanel({ oneshot, itemEndpointBase, addPlayerEndpoint = null, canManageReservations, canMarkAttendance, canDeleteReservations = false, hideSlotHeader = false, hideSensitiveFields = false, onRefresh }) {
   const canToggleAttendance = canManageReservations || canMarkAttendance
   const toast = useToast()
   const [pendingReservationId, setPendingReservationId] = useState(null)
@@ -225,9 +225,18 @@ export default function ReservationsPanel({ oneshot, itemEndpointBase, addPlayer
                     <div key={reservation.id} className="rounded-lg border border-editorial-border bg-white p-3">
                       <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                         <div className="space-y-1">
-                          <p className="font-body text-sm font-semibold text-editorial-text">{reservation.playerName || 'Nome non disponibile'}</p>
-                          <p className="font-body text-sm text-editorial-text-secondary">{reservation.playerEmail || 'Email non disponibile'}</p>
-                          <p className="font-body text-sm text-editorial-text-secondary">{reservation.playerPhone || 'Telefono non disponibile'}</p>
+                          {hideSensitiveFields ? (
+                            <p className="font-body text-sm font-semibold text-editorial-text">{reservation.nickname ? `@${reservation.nickname}` : 'Nickname non disponibile'}</p>
+                          ) : (
+                            <>
+                              <p className="font-body text-sm font-semibold text-editorial-text">{reservation.playerName || 'Nome non disponibile'}</p>
+                              <p className="font-body text-sm text-editorial-text-secondary">{reservation.playerEmail || 'Email non disponibile'}</p>
+                              <p className="font-body text-sm text-editorial-text-secondary">{reservation.playerPhone || 'Telefono non disponibile'}</p>
+                              {reservation.nickname ? (
+                                <p className="font-body text-sm text-editorial-text-secondary">@{reservation.nickname}</p>
+                              ) : null}
+                            </>
+                          )}
                           <p className="font-body text-xs text-editorial-text-muted">Stato: {formatReservationStatus(reservation.status)}</p>
                           {formatReservationDate(reservation.createdAt) ? (
                             <p className="font-body text-xs text-editorial-text-muted">Prenotato il {formatReservationDate(reservation.createdAt)}</p>

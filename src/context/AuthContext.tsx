@@ -7,6 +7,7 @@ export interface User {
   id: string
   email: string
   name?: string
+  nickname?: string
   phone?: string
   avatarUrl?: string
   role: string
@@ -26,10 +27,10 @@ interface AuthContextType {
   isPasswordRecovery: boolean
   login: (email: string, password: string) => Promise<{ error: string | null }>
   loginWithGoogle: (next?: string) => Promise<{ error: string | null }>
-  register: (input: { email: string; password: string; fullName: string; consentGiven: boolean }, options?: { next?: string }) => Promise<{ error: string | null; requiresEmailConfirmation: boolean }>
+  register: (input: { email: string; password: string; fullName: string; nickname: string; consentGiven: boolean }, options?: { next?: string }) => Promise<{ error: string | null; requiresEmailConfirmation: boolean }>
   forgotPassword: (email: string) => Promise<{ error: string | null }>
   updatePassword: (password: string) => Promise<{ error: string | null }>
-  updateProfile: (input: { fullName: string; phone?: string; consentGiven?: boolean }) => Promise<{ error: string | null }>
+  updateProfile: (input: { fullName: string; nickname?: string; phone?: string; consentGiven?: boolean }) => Promise<{ error: string | null }>
   updateEmail: (email: string) => Promise<{ error: string | null }>
   cancelEmailChange: () => Promise<{ error: string | null }>
   deleteAccount: () => Promise<{ error: string | null }>
@@ -54,6 +55,7 @@ function mapSupabaseUser(user: any): User | null {
     id: user.id,
     email: user.email,
     name: user.user_metadata?.full_name || user.user_metadata?.name || undefined,
+    nickname: user.user_metadata?.nickname || undefined,
     phone: user.user_metadata?.phone || undefined,
     avatarUrl: user.user_metadata?.avatar_url || undefined,
     role: user.role || 'authenticated',
@@ -98,6 +100,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           id: db.id,
           email: db.email,
           name: db.name || undefined,
+          nickname: db.nickname || undefined,
           phone: db.phone || undefined,
           avatarUrl: db.avatarUrl || undefined,
           role: db.role || 'authenticated',
@@ -192,7 +195,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error: error?.message || null }
   }
 
-  const register = async (input: { email: string; password: string; fullName: string; phone?: string; consentGiven: boolean; newsletterOptIn?: boolean }, options?: { next?: string }) => {
+  const register = async (input: { email: string; password: string; fullName: string; nickname: string; phone?: string; consentGiven: boolean; newsletterOptIn?: boolean }, options?: { next?: string }) => {
     if (!isConfigured) {
       return { error: 'Supabase non configurato.', requiresEmailConfirmation: false }
     }
@@ -209,6 +212,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         emailRedirectTo: buildAbsoluteUrl(callbackPath, siteUrl),
         data: {
           full_name: input.fullName,
+          nickname: input.nickname,
           phone: input.phone || null,
           gdpr_consent_given: input.consentGiven,
           gdpr_consent_at: input.consentGiven ? new Date().toISOString() : null,
@@ -235,13 +239,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // Session already active (no email confirmation required) → sync immediately
     if (!requiresEmailConfirmation) {
-      await fetch('/api/auth/sync', { method: 'POST' })
+      const syncRes = await fetch('/api/auth/sync', { method: 'POST' })
+      if (!syncRes.ok) {
+        const syncData = await syncRes.json().catch(() => ({}))
+        return { error: syncData.error || 'Registrazione riuscita ma il nickname non è stato salvato.', requiresEmailConfirmation: false }
+      }
     }
 
     return { error: null, requiresEmailConfirmation }
   }
 
-  const updateProfile = async (input: { fullName: string; phone?: string; consentGiven?: boolean }) => {
+  const updateProfile = async (input: { fullName: string; nickname?: string; phone?: string; consentGiven?: boolean }) => {
     if (!isConfigured) return { error: 'Supabase non configurato.' }
 
     const supabase = createSupabaseBrowserClient()
@@ -249,6 +257,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { error } = await supabase.auth.updateUser({
       data: {
         full_name: input.fullName,
+        ...(input.nickname ? { nickname: input.nickname } : {}),
         phone: input.phone || null,
         gdpr_consent_given: Boolean(input.consentGiven),
         gdpr_consent_at: consentAt,
@@ -258,8 +267,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     if (error) return { error: error.message }
 
-    if (input.consentGiven) {
-      await fetch('/api/auth/sync', { method: 'POST' }).catch(() => {})
+    if (input.consentGiven || input.nickname) {
+      const syncRes = await fetch('/api/auth/sync', { method: 'POST' })
+      if (!syncRes.ok) {
+        const syncData = await syncRes.json().catch(() => ({}))
+        return { error: syncData.error || 'Aggiornamento non riuscito.' }
+      }
     }
 
     await refreshUser()

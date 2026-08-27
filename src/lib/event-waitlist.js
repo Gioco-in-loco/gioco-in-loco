@@ -62,7 +62,7 @@ export async function getEventWaitlistOverview(eventId) {
       day: true,
       createdAt: true,
       notifiedAt: true,
-      user: { select: { supabaseUserId: true } },
+      user: { select: { supabaseUserId: true, nickname: true } },
     },
   })
 
@@ -82,6 +82,7 @@ export async function getEventWaitlistOverview(eventId) {
       notifiedAt: entry.notifiedAt,
       email: authUser?.email || null,
       name: authUser?.user_metadata?.full_name || authUser?.user_metadata?.name || null,
+      nickname: entry.user?.nickname || null,
     })
   }
 

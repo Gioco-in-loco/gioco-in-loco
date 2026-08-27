@@ -105,7 +105,7 @@ export default function EventReservationsPanel({ eventId, eventExternalId }) {
       if (filters.slotTime && reservation.slotTime !== filters.slotTime) return false
 
       if (query) {
-        const haystack = [reservation.playerName, reservation.playerEmail, reservation.accountName, reservation.accountEmail]
+        const haystack = [reservation.playerName, reservation.playerEmail, reservation.accountName, reservation.accountEmail, reservation.nickname]
           .map(normalizeSearchValue)
           .join(' ')
         if (!haystack.includes(query)) return false
@@ -309,6 +309,9 @@ export default function EventReservationsPanel({ eventId, eventExternalId }) {
                       {displayName}
                       {displayEmail && displayEmail !== displayName ? (
                         <span className="block font-body text-xs text-editorial-text-muted">{displayEmail}</span>
+                      ) : null}
+                      {reservation.nickname ? (
+                        <span className="block font-body text-xs text-editorial-text-muted">@{reservation.nickname}</span>
                       ) : null}
                       {reservation.invitedByName ? (
                         <span className="block font-body text-xs text-editorial-text-muted">Invitato da {reservation.invitedByName}</span>
