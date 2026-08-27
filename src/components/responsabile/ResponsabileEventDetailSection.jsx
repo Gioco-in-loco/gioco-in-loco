@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import ManagementPageHeader from '../management/ManagementPageHeader'
 import EventTableMapPanel from '../management/EventTableMapPanel'
+import EventAnalyticsPanel from '../management/EventAnalyticsPanel'
 
 const TABLE_MAP_TUTORIAL_SLIDES = [
   {
@@ -37,6 +38,7 @@ export default function ResponsabileEventDetailSection({ eventExternalId, associ
   const [event, setEvent] = useState(null)
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState('')
+  const [activeTab, setActiveTab] = useState('mappa')
 
   useEffect(() => {
     let cancelled = false
@@ -82,22 +84,52 @@ export default function ResponsabileEventDetailSection({ eventExternalId, associ
               Le sessioni di questo evento sono bloccate: solo l&apos;amministratore può creare, modificare o riassegnare le one-shot. Puoi ancora gestire presenze e prenotazioni.
             </p>
           ) : null}
-          <EventTableMapPanel
-            eventId={event.id}
-            fixedAssociation={{ id: association.id, name: association.name }}
-            canAddSlot={false}
-            canManageSlot={false}
-            canManageReservations={false}
-            canMarkAttendance
-            canDeleteReservations={false}
-            canManageMainEvents={false}
-            canManageOneShots={!event.sessionsLocked}
-            hideSensitiveFields
-            slotsEndpointBase="/api/responsabile/eventi"
-            oneshotsEndpointBase="/api/responsabile/oneshots"
-            uploadEndpoint="/api/responsabile/oneshots/upload-image"
-            associationsEndpoint={null}
-          />
+
+          <div className="mb-4 flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => setActiveTab('mappa')}
+              className={`rounded-lg px-4 py-2 font-body text-sm font-semibold transition-colors ${
+                activeTab === 'mappa'
+                  ? 'bg-editorial-terra text-white shadow-soft'
+                  : 'border border-editorial-border text-editorial-text hover:border-editorial-terra'
+              }`}
+            >
+              Mappa tavoli
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('analitiche')}
+              className={`rounded-lg px-4 py-2 font-body text-sm font-semibold transition-colors ${
+                activeTab === 'analitiche'
+                  ? 'bg-editorial-terra text-white shadow-soft'
+                  : 'border border-editorial-border text-editorial-text hover:border-editorial-terra'
+              }`}
+            >
+              Analitiche
+            </button>
+          </div>
+
+          {activeTab === 'analitiche' ? (
+            <EventAnalyticsPanel eventId={event.id} endpointBase="/api/responsabile/eventi" />
+          ) : (
+            <EventTableMapPanel
+              eventId={event.id}
+              fixedAssociation={{ id: association.id, name: association.name }}
+              canAddSlot={false}
+              canManageSlot={false}
+              canManageReservations={false}
+              canMarkAttendance
+              canDeleteReservations={false}
+              canManageMainEvents={false}
+              canManageOneShots={!event.sessionsLocked}
+              hideSensitiveFields
+              slotsEndpointBase="/api/responsabile/eventi"
+              oneshotsEndpointBase="/api/responsabile/oneshots"
+              uploadEndpoint="/api/responsabile/oneshots/upload-image"
+              associationsEndpoint={null}
+            />
+          )}
         </>
       )}
     </>

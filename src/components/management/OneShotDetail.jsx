@@ -125,6 +125,7 @@ export default function OneShotDetail({
                 associations={associations}
                 fixedAssociation={fixedAssociation}
                 uploadEndpoint={uploadEndpoint}
+                locked={Boolean(detail.sessionsLocked)}
                 onSave={handleSave}
                 onCancel={() => setIsEditing(false)}
               />

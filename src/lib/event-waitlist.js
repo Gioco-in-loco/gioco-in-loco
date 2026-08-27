@@ -52,8 +52,9 @@ async function buildAuthLookup() {
 // Admin-facing: list every waitlist entry for an event, grouped by day, with
 // the subscriber's email/name resolved from Supabase auth (not stored in the
 // Prisma User row). Used by the admin panel to review who's waiting before
-// deciding to notify them.
-export async function getEventWaitlistOverview(eventId) {
+// deciding to notify them. redactPlayerData (responsabile, used only by the
+// event analytics tab) redacts email/nome e lascia solo il nickname.
+export async function getEventWaitlistOverview(eventId, redactPlayerData = false) {
   const entries = await prisma.eventWaitlist.findMany({
     where: { eventId },
     orderBy: [{ day: 'asc' }, { createdAt: 'asc' }],
@@ -66,7 +67,7 @@ export async function getEventWaitlistOverview(eventId) {
     },
   })
 
-  const authBySupabaseId = await buildAuthLookup()
+  const authBySupabaseId = redactPlayerData ? new Map() : await buildAuthLookup()
 
   const groupsByDay = new Map()
   for (const entry of entries) {
@@ -80,8 +81,8 @@ export async function getEventWaitlistOverview(eventId) {
       id: entry.id,
       createdAt: entry.createdAt,
       notifiedAt: entry.notifiedAt,
-      email: authUser?.email || null,
-      name: authUser?.user_metadata?.full_name || authUser?.user_metadata?.name || null,
+      email: redactPlayerData ? null : (authUser?.email || null),
+      name: redactPlayerData ? null : (authUser?.user_metadata?.full_name || authUser?.user_metadata?.name || null),
       nickname: entry.user?.nickname || null,
     })
   }

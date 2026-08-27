@@ -134,7 +134,7 @@ async function buildReservationPhoneMap(oneshot) {
 // il nickname: usato quando la richiesta arriva da un responsabile
 // (managedAssociationId impostato), che non deve vedere dati sensibili dei
 // giocatori — solo l'amministratore ha accesso ai dati completi.
-export function serializeOneShot(oneshot, { phoneByUserId = new Map(), redactPlayerData = false } = {}) {
+export function serializeOneShot(oneshot, { phoneByUserId = new Map(), redactPlayerData = false, sessionsLocked = false } = {}) {
   return {
     id: oneshot.id,
     title: oneshot.title,
@@ -148,6 +148,7 @@ export function serializeOneShot(oneshot, { phoneByUserId = new Map(), redactPla
     maxPlayers: oneshot.maxPlayers,
     associationId: oneshot.associationId,
     associationName: oneshot.association?.name || null,
+    sessionsLocked,
     eventLinks: oneshot.eventLinks?.map((link) => ({
       eventId: link.eventId,
       eventName: link.event?.name || null,
@@ -285,8 +286,11 @@ async function assertNoAdminOnlySlots(tx, slotIds, managedAssociationId) {
 }
 
 // L'admin bypassa sempre il lock (managedAssociationId assente); il
-// responsabile non deve poter toccare contenuto o assegnazione tavolo di una
-// one-shot legata a un evento con sessioni bloccate (Event.sessionsLocked).
+// responsabile non deve poter riassegnare il tavolo di una one-shot legata a
+// un evento con sessioni bloccate (Event.sessionsLocked). Le modifiche di
+// solo contenuto (descrizione/tag/immagine) restano permesse anche a evento
+// bloccato — vedi isLocked/updateOneShot più sotto — perché non alterano
+// cosa i giocatori hanno già prenotato.
 async function assertEventsNotLocked(tx, eventIds, managedAssociationId) {
   if (!managedAssociationId || eventIds.length === 0) return
 
@@ -294,6 +298,16 @@ async function assertEventsNotLocked(tx, eventIds, managedAssociationId) {
   if (locked) {
     throw createHttpError(403, 'Le sessioni di questo evento sono bloccate: solo l\'amministratore può modificarle.')
   }
+}
+
+// Versione non-throwing di assertEventsNotLocked, usata per decidere QUALI
+// campi accettare in updateOneShot prima ancora di costruire `data` (invece
+// di bloccare l'intera richiesta). L'admin non è mai soggetto al lock.
+async function isAnyEventLocked(eventIds, managedAssociationId) {
+  if (!managedAssociationId || eventIds.length === 0) return false
+
+  const locked = await prisma.event.findFirst({ where: { id: { in: eventIds }, sessionsLocked: true }, select: { id: true } })
+  return Boolean(locked)
 }
 
 // eventLinks (EventOneShot) non si sceglie più manualmente: è derivata dagli
@@ -397,24 +411,49 @@ export async function createOneShot({ body, managedAssociationId = null }) {
 }
 
 export async function updateOneShot({ id, body, managedAssociationId = null }) {
+  const existingForLockCheck = await prisma.oneShot.findFirst({
+    where: { id, ...(managedAssociationId ? { associationId: managedAssociationId } : {}) },
+    select: { slots: { select: { eventId: true } } },
+  })
+  if (!existingForLockCheck) throw createHttpError(404, 'One shot non trovata')
+
+  const linkedEventIds = Array.from(new Set(existingForLockCheck.slots.map((slot) => slot.eventId)))
+  const isLocked = await isAnyEventLocked(linkedEventIds, managedAssociationId)
+
   const data = {}
 
-  if (body?.title !== undefined) {
-    const title = body.title?.trim()
-    if (!title) throw createHttpError(400, 'Titolo obbligatorio')
-    data.title = title
-  }
+  // A evento bloccato il responsabile può aggiornare solo i contenuti
+  // "editoriali" (descrizione, tag, immagine, sotto): titolo/gioco/master/
+  // prezzo/posti/tavolo restano congelati per non alterare cosa i giocatori
+  // hanno già prenotato durante un evento in corso. L'admin non è mai
+  // soggetto a questo limite (isLocked è sempre false quando
+  // managedAssociationId è assente).
+  if (!isLocked) {
+    if (body?.title !== undefined) {
+      const title = body.title?.trim()
+      if (!title) throw createHttpError(400, 'Titolo obbligatorio')
+      data.title = title
+    }
 
-  if (body?.game !== undefined) {
-    const game = body.game?.trim()
-    if (!game) throw createHttpError(400, 'Gioco obbligatorio')
-    data.game = game
-  }
+    if (body?.game !== undefined) {
+      const game = body.game?.trim()
+      if (!game) throw createHttpError(400, 'Gioco obbligatorio')
+      data.game = game
+    }
 
-  if (body?.master !== undefined) {
-    const master = body.master?.trim()
-    if (!master) throw createHttpError(400, 'Master obbligatorio')
-    data.master = master
+    if (body?.master !== undefined) {
+      const master = body.master?.trim()
+      if (!master) throw createHttpError(400, 'Master obbligatorio')
+      data.master = master
+    }
+
+    if (body?.price !== undefined) {
+      const price = normalizeOptionalNumber(body.price)
+      if (Number.isNaN(price) || (price !== null && price < 0)) {
+        throw createHttpError(400, 'Prezzo non valido')
+      }
+      data.price = price
+    }
   }
 
   if (body?.description !== undefined) data.description = normalizeOptionalString(body.description)
@@ -423,15 +462,7 @@ export async function updateOneShot({ id, body, managedAssociationId = null }) {
   if (body?.associationId !== undefined && !managedAssociationId) data.associationId = normalizeOptionalString(body.associationId)
   if (managedAssociationId) data.associationId = managedAssociationId
 
-  if (body?.price !== undefined) {
-    const price = normalizeOptionalNumber(body.price)
-    if (Number.isNaN(price) || (price !== null && price < 0)) {
-      throw createHttpError(400, 'Prezzo non valido')
-    }
-    data.price = price
-  }
-
-  const requestedSlotIds = normalizeSlotIds(body?.slotIds)
+  const requestedSlotIds = isLocked ? null : normalizeSlotIds(body?.slotIds)
 
   try {
     const oneshot = await prisma.$transaction(async (tx) => {
@@ -447,22 +478,22 @@ export async function updateOneShot({ id, body, managedAssociationId = null }) {
 
       if (!currentOneShot) throw createHttpError(404, 'One shot non trovata')
 
-      // Blocca anche una modifica di solo contenuto (titolo, descrizione...)
-      // su una one-shot già seduta su un evento con sessioni bloccate, non
-      // solo la riassegnazione slot controllata più sotto.
-      await assertEventsNotLocked(tx, Array.from(new Set(currentOneShot.slots.map((s) => s.eventId))), managedAssociationId)
+      // Il lock (isLocked, calcolato sopra) già limita quali campi finiscono
+      // in `data` e azzera requestedSlotIds: qui resta solo da validare i
+      // posti quando non è bloccato, la riassegnazione tavolo se richiesta.
+      if (!isLocked) {
+        const nextMinPlayers = body?.minPlayers !== undefined
+          ? normalizeRequiredInteger(body.minPlayers, 'Posti minimi')
+          : currentOneShot.minPlayers
+        const nextMaxPlayers = body?.maxPlayers !== undefined
+          ? normalizeRequiredInteger(body.maxPlayers, 'Posti massimi')
+          : currentOneShot.maxPlayers
 
-      const nextMinPlayers = body?.minPlayers !== undefined
-        ? normalizeRequiredInteger(body.minPlayers, 'Posti minimi')
-        : currentOneShot.minPlayers
-      const nextMaxPlayers = body?.maxPlayers !== undefined
-        ? normalizeRequiredInteger(body.maxPlayers, 'Posti massimi')
-        : currentOneShot.maxPlayers
+        validatePlayerBounds(nextMinPlayers, nextMaxPlayers)
 
-      validatePlayerBounds(nextMinPlayers, nextMaxPlayers)
-
-      if (body?.minPlayers !== undefined) data.minPlayers = nextMinPlayers
-      if (body?.maxPlayers !== undefined) data.maxPlayers = nextMaxPlayers
+        if (body?.minPlayers !== undefined) data.minPlayers = nextMinPlayers
+        if (body?.maxPlayers !== undefined) data.maxPlayers = nextMaxPlayers
+      }
 
       if (requestedSlotIds !== null) {
         const existingSlotIds = currentOneShot.slots.map((slot) => slot.id)
@@ -554,7 +585,7 @@ export async function getOneShotDetail({ id, managedAssociationId = null }) {
       eventLinks: {
         select: {
           eventId: true,
-          event: { select: { name: true } },
+          event: { select: { name: true, sessionsLocked: true } },
         },
       },
       slots: {
@@ -588,7 +619,12 @@ export async function getOneShotDetail({ id, managedAssociationId = null }) {
 
   const redactPlayerData = Boolean(managedAssociationId)
   const phoneByUserId = redactPlayerData ? new Map() : await buildReservationPhoneMap(oneshot)
-  return serializeOneShot(oneshot, { phoneByUserId, redactPlayerData })
+  // Il responsabile deve vedere il form "congelato" sui campi strutturali
+  // quando uno degli eventi collegati ha le sessioni bloccate — l'admin non è
+  // mai soggetto a questo limite (vedi updateOneShot per l'enforcement lato
+  // scrittura, questo flag serve solo a disabilitare i campi nel form).
+  const sessionsLocked = Boolean(managedAssociationId) && oneshot.eventLinks.some((link) => link.event?.sessionsLocked)
+  return serializeOneShot(oneshot, { phoneByUserId, redactPlayerData, sessionsLocked })
 }
 
 export async function updateManagedOneShotReservationStatus({ oneshotId, reservationId, status, managedAssociationId = null, cancellationReason = '', actorName = null, actorEmail = null, actorUserId = null }) {

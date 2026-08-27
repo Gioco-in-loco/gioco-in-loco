@@ -39,7 +39,7 @@ function KpiCard({ label, value, hint }) {
   )
 }
 
-export default function EventAnalyticsPanel({ eventId }) {
+export default function EventAnalyticsPanel({ eventId, endpointBase = '/api/admin/eventi' }) {
   const [rows, setRows] = useState([])
   const [slots, setSlots] = useState([])
   const [waitlistTotal, setWaitlistTotal] = useState(0)
@@ -55,9 +55,9 @@ export default function EventAnalyticsPanel({ eventId }) {
       setLoadError('')
       try {
         const [reservationsRes, waitlistRes, slotsRes] = await Promise.all([
-          fetch(`/api/admin/eventi/${eventId}/reservations`),
-          fetch(`/api/admin/eventi/${eventId}/waitlist`),
-          fetch(`/api/admin/eventi/${eventId}/slots`),
+          fetch(`${endpointBase}/${eventId}/reservations`),
+          fetch(`${endpointBase}/${eventId}/waitlist`),
+          fetch(`${endpointBase}/${eventId}/slots`),
         ])
         if (cancelled) return
         if (!reservationsRes.ok) throw new Error('Impossibile caricare le prenotazioni.')
@@ -79,7 +79,7 @@ export default function EventAnalyticsPanel({ eventId }) {
 
     load()
     return () => { cancelled = true }
-  }, [eventId])
+  }, [eventId, endpointBase])
 
   const stats = useMemo(() => {
     const active = rows.filter((row) => ACTIVE_STATUSES.has(row.status))

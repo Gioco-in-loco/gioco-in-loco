@@ -22,7 +22,7 @@ export function formatOneShotPrice(price) {
   return new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR' }).format(price)
 }
 
-export default function OneShotForm({ initial = EMPTY_ONESHOT_FORM, associations, fixedAssociation, onSave, onCancel, isNew, uploadEndpoint }) {
+export default function OneShotForm({ initial = EMPTY_ONESHOT_FORM, associations, fixedAssociation, onSave, onCancel, isNew, uploadEndpoint, locked = false }) {
   // Il primo render usa `initial` così com'è, prima che l'effetto sotto lo
   // normalizzi: un chiamante che non passa ancora `tags` (o altri campi
   // opzionali) non deve far crashare il form al primo giro.
@@ -98,25 +98,31 @@ export default function OneShotForm({ initial = EMPTY_ONESHOT_FORM, associations
   }
 
   const inputClass = 'w-full rounded-lg border border-editorial-border px-3 py-2 font-body text-sm text-editorial-text outline-none focus:border-editorial-terra focus:ring-2 focus:ring-editorial-terra/10 transition-all'
+  const disabledInputClass = 'disabled:cursor-not-allowed disabled:bg-editorial-bg/60 disabled:text-editorial-text-muted'
   const labelClass = 'block font-body text-xs font-semibold text-editorial-text-muted uppercase tracking-wider mb-1'
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       {error ? <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 font-body text-sm text-red-600">{error}</p> : null}
+      {locked ? (
+        <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 font-body text-sm text-amber-700">
+          Le sessioni di questo evento sono bloccate: puoi ancora aggiornare descrizione, tag e immagine. Il resto può modificarlo solo l&apos;amministratore.
+        </p>
+      ) : null}
       <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
         <div>
           <label className={labelClass}>Titolo *</label>
-          <input className={inputClass} value={form.title} onChange={set('title')} placeholder="Il richiamo della nebbia" required />
+          <input className={`${inputClass} ${disabledInputClass}`} value={form.title} onChange={set('title')} placeholder="Il richiamo della nebbia" required disabled={locked} />
         </div>
         <div>
           <label className={labelClass}>Gioco *</label>
-          <input className={inputClass} value={form.game} onChange={set('game')} placeholder="Call of Cthulhu" required />
+          <input className={`${inputClass} ${disabledInputClass}`} value={form.game} onChange={set('game')} placeholder="Call of Cthulhu" required disabled={locked} />
         </div>
       </div>
       <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
         <div>
           <label className={labelClass}>Master *</label>
-          <input className={inputClass} value={form.master} onChange={set('master')} placeholder="Mario Rossi" required />
+          <input className={`${inputClass} ${disabledInputClass}`} value={form.master} onChange={set('master')} placeholder="Mario Rossi" required disabled={locked} />
         </div>
         <div>
           <label className={labelClass}>Associazione</label>
@@ -135,17 +141,17 @@ export default function OneShotForm({ initial = EMPTY_ONESHOT_FORM, associations
         </div>
         <div>
           <label className={labelClass}>Prezzo</label>
-          <input type="number" min="0" step="0.01" className={`${inputClass} disabled:cursor-not-allowed disabled:bg-editorial-bg/60 disabled:text-editorial-text-muted`} value={form.price} onChange={set('price')} placeholder="0.00" disabled />
+          <input type="number" min="0" step="0.01" className={`${inputClass} ${disabledInputClass}`} value={form.price} onChange={set('price')} placeholder="0.00" disabled />
         </div>
       </div>
       <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
         <div>
           <label className={labelClass}>Posti minimi *</label>
-          <input type="number" min="1" className={inputClass} value={form.minPlayers} onChange={set('minPlayers')} required />
+          <input type="number" min="1" className={`${inputClass} ${disabledInputClass}`} value={form.minPlayers} onChange={set('minPlayers')} required disabled={locked} />
         </div>
         <div>
           <label className={labelClass}>Posti massimi *</label>
-          <input type="number" min={form.minPlayers || 1} className={inputClass} value={form.maxPlayers} onChange={set('maxPlayers')} required />
+          <input type="number" min={form.minPlayers || 1} className={`${inputClass} ${disabledInputClass}`} value={form.maxPlayers} onChange={set('maxPlayers')} required disabled={locked} />
         </div>
       </div>
       <div>

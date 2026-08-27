@@ -47,7 +47,13 @@ function accountFieldsFor(user, authBySupabaseId) {
 // for an entire event, in one flat list — used by the "Prenotazioni" tab to
 // let an admin search across all bookings by player/account name, something
 // no existing view does (they're all scoped to a single slot or user).
-export async function getEventAllReservations({ eventId }) {
+// redactPlayerData (responsabile, used only by the event analytics tab)
+// nasconde nome/email/telefono dei prenotati di TUTTE le associazioni, non
+// solo la propria: questa vista è per costruzione a livello di intero
+// evento, quindi non si può filtrare per associazione senza snaturarla. Va
+// passato esplicitamente (non derivato da un associationId) perché un
+// responsabile senza associazione assegnata deve restare comunque redatto.
+export async function getEventAllReservations({ eventId, redactPlayerData = false }) {
   const [oneshotReservations, mainEventReservations, admissions] = await Promise.all([
     prisma.reservation.findMany({
       where: { slot: { eventId } },
@@ -106,7 +112,7 @@ export async function getEventAllReservations({ eventId }) {
     }),
   ])
 
-  const authBySupabaseId = await buildAuthLookup()
+  const authBySupabaseId = redactPlayerData ? new Map() : await buildAuthLookup()
 
   const rows = [
     ...oneshotReservations.map((reservation) => ({
@@ -114,9 +120,9 @@ export async function getEventAllReservations({ eventId }) {
       type: 'oneshot',
       userId: reservation.userId,
       status: reservation.status,
-      playerName: reservation.playerName,
-      playerEmail: reservation.playerEmail,
-      invitedByName: reservation.invitedBy ? (accountFieldsFor(reservation.invitedBy, authBySupabaseId).accountName || accountFieldsFor(reservation.invitedBy, authBySupabaseId).accountEmail) : null,
+      playerName: redactPlayerData ? null : reservation.playerName,
+      playerEmail: redactPlayerData ? null : reservation.playerEmail,
+      invitedByName: redactPlayerData || !reservation.invitedBy ? null : (accountFieldsFor(reservation.invitedBy, authBySupabaseId).accountName || accountFieldsFor(reservation.invitedBy, authBySupabaseId).accountEmail),
       ...accountFieldsFor(reservation.user, authBySupabaseId),
       title: reservation.slot.oneshot?.title || 'One-shot',
       subtitle: reservation.slot.oneshot?.master ? `Master ${reservation.slot.oneshot.master}` : null,
@@ -130,9 +136,9 @@ export async function getEventAllReservations({ eventId }) {
       type: 'mainEvent',
       userId: reservation.userId,
       status: reservation.status,
-      playerName: reservation.playerName,
-      playerEmail: reservation.playerEmail,
-      invitedByName: reservation.invitedBy ? (accountFieldsFor(reservation.invitedBy, authBySupabaseId).accountName || accountFieldsFor(reservation.invitedBy, authBySupabaseId).accountEmail) : null,
+      playerName: redactPlayerData ? null : reservation.playerName,
+      playerEmail: redactPlayerData ? null : reservation.playerEmail,
+      invitedByName: redactPlayerData || !reservation.invitedBy ? null : (accountFieldsFor(reservation.invitedBy, authBySupabaseId).accountName || accountFieldsFor(reservation.invitedBy, authBySupabaseId).accountEmail),
       ...accountFieldsFor(reservation.user, authBySupabaseId),
       title: reservation.mainEvent?.title || 'Main Event',
       subtitle: null,
@@ -146,9 +152,9 @@ export async function getEventAllReservations({ eventId }) {
       type: 'admission',
       userId: admission.userId,
       status: admission.status,
-      playerName: admission.playerName,
-      playerEmail: admission.playerEmail,
-      invitedByName: admission.invitedBy ? (accountFieldsFor(admission.invitedBy, authBySupabaseId).accountName || accountFieldsFor(admission.invitedBy, authBySupabaseId).accountEmail) : null,
+      playerName: redactPlayerData ? null : admission.playerName,
+      playerEmail: redactPlayerData ? null : admission.playerEmail,
+      invitedByName: redactPlayerData || !admission.invitedBy ? null : (accountFieldsFor(admission.invitedBy, authBySupabaseId).accountName || accountFieldsFor(admission.invitedBy, authBySupabaseId).accountEmail),
       ...accountFieldsFor(admission.user, authBySupabaseId),
       title: 'Pass ingresso',
       subtitle: admission.pricePaid != null ? `EUR ${Number(admission.pricePaid).toFixed(2)}` : null,
