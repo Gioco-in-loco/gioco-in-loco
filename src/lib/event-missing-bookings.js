@@ -1,10 +1,32 @@
 import { prisma } from './prisma'
 import { sendMail } from './mailer'
+import { createSupabaseServiceClient, isServiceRoleConfigured } from './supabase/service'
 
 function createHttpError(status, message) {
   const error = new Error(message)
   error.status = status
   return error
+}
+
+// playerName/playerEmail sull'admission possono essere null per prenotazioni
+// più vecchie o create da flussi diversi dal checkout self-service: in quel
+// caso recuperiamo nome/email dall'account Supabase collegato, altrimenti la
+// persona risulta "Utente sconosciuto" e senza email a cui scrivere pur
+// avendo un pass confermato.
+async function buildAuthLookup() {
+  if (!isServiceRoleConfigured()) return new Map()
+
+  const admin = createSupabaseServiceClient()
+  const { data } = await admin.auth.admin.listUsers({ perPage: 1000 })
+  return new Map((data?.users || []).map((authUser) => [authUser.id, authUser]))
+}
+
+function accountFieldsFor(user, authBySupabaseId) {
+  const authUser = user?.supabaseUserId ? authBySupabaseId.get(user.supabaseUserId) : null
+  return {
+    accountName: authUser?.user_metadata?.full_name || authUser?.user_metadata?.name || null,
+    accountEmail: authUser?.email || null,
+  }
 }
 
 // Pass "confermato" secondo lo stesso criterio usato in EventAnalyticsPanel
@@ -39,7 +61,7 @@ function primaryKey({ userId, email }) {
 // one-shot o main event (in corso o confermata) — il target del promemoria
 // "hai il pass ma non hai ancora prenotato le sessioni".
 export async function getEventAttendeesWithoutReservations({ eventId }) {
-  const [admissions, oneshotReservations, mainEventReservations] = await Promise.all([
+  const [admissions, oneshotReservations, mainEventReservations, authBySupabaseId] = await Promise.all([
     prisma.eventAdmission.findMany({
       where: { eventId, status: { in: CONFIRMED_ADMISSION_STATUSES } },
       orderBy: { createdAt: 'asc' },
@@ -48,7 +70,7 @@ export async function getEventAttendeesWithoutReservations({ eventId }) {
         day: true,
         playerName: true,
         playerEmail: true,
-        user: { select: { nickname: true } },
+        user: { select: { supabaseUserId: true, nickname: true } },
       },
     }),
     prisma.reservation.findMany({
@@ -59,6 +81,7 @@ export async function getEventAttendeesWithoutReservations({ eventId }) {
       where: { eventId, status: { in: ACTIVE_RESERVATION_STATUSES } },
       select: { userId: true, playerEmail: true },
     }),
+    buildAuthLookup(),
   ])
 
   const reservedKeys = new Set()
@@ -82,10 +105,11 @@ export async function getEventAttendeesWithoutReservations({ eventId }) {
       if (admission.day) existing.days.add(admission.day)
       continue
     }
+    const account = accountFieldsFor(admission.user, authBySupabaseId)
     attendeesByKey.set(key, {
       userId: admission.userId,
-      name: admission.playerName || null,
-      email: admission.playerEmail || null,
+      name: admission.playerName || account.accountName || null,
+      email: admission.playerEmail || account.accountEmail || null,
       nickname: admission.user?.nickname || null,
       days: new Set(admission.day ? [admission.day] : []),
     })
