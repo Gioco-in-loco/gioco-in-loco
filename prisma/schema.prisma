@@ -17,33 +17,33 @@ datasource db {
 // ============================================================
 
 model User {
-  id             String    @id @default(cuid())
-  supabaseUserId String    @unique
-  nickname       String?   @unique
-  role           UserRole  @default(USER)
-  isAdmin        Boolean   @default(false)
+  id             String   @id @default(cuid())
+  supabaseUserId String   @unique
+  nickname       String?  @unique
+  role           UserRole @default(USER)
+  isAdmin        Boolean  @default(false)
   associationId  String?
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
   // GDPR fields
-  consentGiven   Boolean   @default(false)
-  consentDate    DateTime?
+  consentGiven Boolean   @default(false)
+  consentDate  DateTime?
 
   // Marketing preferences
-  newsletterOptIn Boolean  @default(false)
+  newsletterOptIn Boolean @default(false)
 
   // Relations
-  managedAssociation    Association?           @relation("AssociationManagers", fields: [associationId], references: [id])
-  reservations          Reservation[]
-  mainEventReservations MainEventReservation[]
-  eventAdmissions       EventAdmission[]
-  feedbackReceived      UserFeedback[]         @relation("UserFeedbackTarget")
-  feedbackAuthored      UserFeedback[]         @relation("UserFeedbackAuthor")
-  waitlistEntries       EventWaitlist[]
-  invitedReservations          Reservation[]           @relation("ReservationInvitedBy")
-  invitedMainEventReservations MainEventReservation[]   @relation("MainEventReservationInvitedBy")
-  invitedEventAdmissions       EventAdmission[]         @relation("EventAdmissionInvitedBy")
+  managedAssociation           Association?           @relation("AssociationManagers", fields: [associationId], references: [id])
+  reservations                 Reservation[]
+  mainEventReservations        MainEventReservation[]
+  eventAdmissions              EventAdmission[]
+  feedbackReceived             UserFeedback[]         @relation("UserFeedbackTarget")
+  feedbackAuthored             UserFeedback[]         @relation("UserFeedbackAuthor")
+  waitlistEntries              EventWaitlist[]
+  invitedReservations          Reservation[]          @relation("ReservationInvitedBy")
+  invitedMainEventReservations MainEventReservation[] @relation("MainEventReservationInvitedBy")
+  invitedEventAdmissions       EventAdmission[]       @relation("EventAdmissionInvitedBy")
 
   @@map("users")
 }
@@ -92,21 +92,21 @@ model Association {
 
 model BoardGame {
   id          String   @id @default(cuid())
-  externalId  String   @unique  // maps to JSON id (e.g., "mlem")
+  externalId  String   @unique // maps to JSON id (e.g., "mlem")
   title       String
   description String?
   image       String?
   players     String?
   time        String?
   category    String?
-  complexity  String?   // only for hardcore games: media, alta, molto alta
+  complexity  String? // only for hardcore games: media, alta, molto alta
   ownerId     String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
   // Relations
-    owner       Association?    @relation(fields: [ownerId], references: [id])
-  eventLinks  EventBoardGame[]
+  owner      Association?     @relation(fields: [ownerId], references: [id])
+  eventLinks EventBoardGame[]
 
   @@map("board_games")
 }
@@ -116,32 +116,33 @@ model BoardGame {
 // ============================================================
 
 model Event {
-  id          String   @id @default(cuid())
-  externalId  String   @unique  // e.g., "comicon-2026", "napoli-gioco-2026"
-  name        String
-  description String?
-  location    String?
-  mapsUrl     String?
-  price       Float?
-  dailyPrice  Float?   // usato solo quando price non è impostato: prezzo per singolo ingresso giornaliero
-  days        String[] @default([]) // giorni dell'evento (es. "Venerdi", "Sabato"), usati per limitare i giorni selezionabili negli slot
-  timeSlots   String[] @default([]) // fasce orarie dell'evento (formato "HH:mm-HH:mm"), usate per limitare le fasce selezionabili negli slot
-  startDate   DateTime?
-  endDate     DateTime?
-  bookingOpensAt DateTime? // le prenotazioni sono permesse solo da questa data/ora in poi (stato REVEALED); null = nessun limite
-  visibility  EventVisibility @default(REVEALED) // stato pubblico delle pagine evento (staff bypassa sempre): PREVIEW = pagina principale visibile ma programma nascosto, REVEALED = tutto visibile
-  sessionsLocked Boolean @default(false) // se true, i responsabili non possono più creare/modificare/eliminare one-shot né riassegnarne il tavolo per questo evento; solo l'admin può ancora farlo
-  companionInviteMinutes Int @default(60) // minuti a disposizione di un amico invitato (companion) per confermare il proprio posto prima che l'invito scada e i posti vengano rilasciati
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id                     String          @id @default(cuid())
+  externalId             String          @unique // e.g., "comicon-2026", "napoli-gioco-2026"
+  name                   String
+  description            String?
+  location               String?
+  mapsUrl                String?
+  price                  Float?
+  dailyPrice             Float? // usato solo quando price non è impostato: prezzo per singolo ingresso giornaliero
+  days                   String[]        @default([]) // giorni dell'evento (es. "Venerdi", "Sabato"), usati per limitare i giorni selezionabili negli slot
+  timeSlots              String[]        @default([]) // fasce orarie dell'evento (formato "HH:mm-HH:mm"), usate per limitare le fasce selezionabili negli slot
+  startDate              DateTime?
+  endDate                DateTime?
+  bookingOpensAt         DateTime? // le prenotazioni sono permesse solo da questa data/ora in poi (stato REVEALED); null = nessun limite
+  visibility             EventVisibility @default(REVEALED) // stato pubblico delle pagine evento (staff bypassa sempre): PREVIEW = pagina principale visibile ma programma nascosto, REVEALED = tutto visibile
+  sessionsLocked         Boolean         @default(false) // se true, i responsabili non possono più creare/modificare/eliminare one-shot né riassegnarne il tavolo per questo evento; solo l'admin può ancora farlo
+  companionInviteMinutes Int             @default(60) // minuti a disposizione di un amico invitato (companion) per confermare il proprio posto prima che l'invito scada e i posti vengano rilasciati
+  createdAt              DateTime        @default(now())
+  updatedAt              DateTime        @updatedAt
 
   // Relations
-  boardGameLinks EventBoardGame[]
-  oneShotLinks   EventOneShot[]
+  boardGameLinks        EventBoardGame[]
+  oneShotLinks          EventOneShot[]
   mainEventReservations MainEventReservation[]
-  admissions     EventAdmission[]
-  slots          EventSlot[]
-  waitlists      EventWaitlist[]
+  admissions            EventAdmission[]
+  slots                 EventSlot[]
+  waitlists             EventWaitlist[]
+  reminderLogs          EventReminderLog[]
 
   @@map("events")
 }
@@ -152,19 +153,19 @@ enum EventVisibility {
 }
 
 model EventAdmission {
-  id           String            @id @default(cuid())
-  userId       String?
-  eventId      String
-  day          String            @default("") // "" = intero evento / nessun giorno GDR; altrimenti stringa giorno (es. "Sabato") come EventSlot.day
-  status       ReservationStatus @default(PENDING)
+  id            String            @id @default(cuid())
+  userId        String?
+  eventId       String
+  day           String            @default("") // "" = intero evento / nessun giorno GDR; altrimenti stringa giorno (es. "Sabato") come EventSlot.day
+  status        ReservationStatus @default(PENDING)
   holdExpiresAt DateTime?
-  pricePaid    Float?
-  consentGiven Boolean           @default(false)
-  consentDate  DateTime?
-  playerName   String?           // Nome dell'amico invitato, prima che confermi il proprio account
-  playerEmail  String?
-  createdAt    DateTime          @default(now())
-  updatedAt    DateTime          @updatedAt
+  pricePaid     Float?
+  consentGiven  Boolean           @default(false)
+  consentDate   DateTime?
+  playerName    String? // Nome dell'amico invitato, prima che confermi il proprio account
+  playerEmail   String?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
 
   // Companion invite (pass giornaliero caricato da un altro utente per conto di
   // questa persona): niente inviteCode/claimedAt propri, il riscatto avviene
@@ -172,9 +173,9 @@ model EventAdmission {
   // playerEmail+day), vedi claimInvite in companion-invites.js.
   invitedByUserId String?
 
-  user         User?             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  invitedBy    User?             @relation("EventAdmissionInvitedBy", fields: [invitedByUserId], references: [id])
-  event        Event             @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user            User?          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  invitedBy       User?          @relation("EventAdmissionInvitedBy", fields: [invitedByUserId], references: [id])
+  event           Event          @relation(fields: [eventId], references: [id], onDelete: Cascade)
   feedbackEntries UserFeedback[]
 
   @@unique([userId, eventId, day])
@@ -200,13 +201,31 @@ model EventWaitlist {
   @@map("event_waitlists")
 }
 
+// Traccia gli invii massivi di email di sollecito fatti dall'admin (es.
+// "pass senza prenotazioni") — condivisa tra tutti gli admin così chiunque
+// veda quando e da chi è partita l'ultima ondata, senza doverselo dire a
+// voce. Non traccia il singolo destinatario, solo l'evento di invio.
+model EventReminderLog {
+  id        String   @id @default(cuid())
+  eventId   String
+  kind      String // es. "MISSING_RESERVATION"
+  sentCount Int
+  sentBy    String? // nome o email dell'admin che ha avviato l'invio
+  createdAt DateTime @default(now())
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@index([eventId, kind, createdAt])
+  @@map("event_reminder_logs")
+}
+
 model EventBoardGame {
-  id          String    @id @default(cuid())
-  eventId     String
-  boardGameId String
+  id            String   @id @default(cuid())
+  eventId       String
+  boardGameId   String
   associationId String?
-  copies      Int       @default(1)
-  createdAt   DateTime  @default(now())
+  copies        Int      @default(1)
+  createdAt     DateTime @default(now())
 
   event       Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
   boardGame   BoardGame    @relation(fields: [boardGameId], references: [id], onDelete: Cascade)
@@ -220,12 +239,12 @@ model EventBoardGame {
 }
 
 model EventOneShot {
-  eventId     String
-  oneShotId   String
-  createdAt   DateTime @default(now())
+  eventId   String
+  oneShotId String
+  createdAt DateTime @default(now())
 
-  event       Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  oneShot     OneShot  @relation(fields: [oneShotId], references: [id], onDelete: Cascade)
+  event   Event   @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  oneShot OneShot @relation(fields: [oneShotId], references: [id], onDelete: Cascade)
 
   @@id([eventId, oneShotId])
   @@index([oneShotId])
@@ -237,55 +256,55 @@ model EventOneShot {
 // ============================================================
 
 model MainEvent {
-  id            String   @id @default(cuid())
-  title         String
-  description   String?
-  game          String?   // rulebook/game name
-  image         String?
-  tags          String[] @default([]) // etichette libere per temi/content warning (es. "Horror", "Solo adulti"), mostrate come badge colorati nel popup pubblico
-  price         Float?
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  game        String? // rulebook/game name
+  image       String?
+  tags        String[] @default([]) // etichette libere per temi/content warning (es. "Horror", "Solo adulti"), mostrate come badge colorati nel popup pubblico
+  price       Float?
   // Capienza massima del main event, indipendente dai tavoli assegnati: un
   // main event può girare su più tavoli/slot, ma il tetto di prenotazioni è
   // questo valore, non la somma dei maxPlayers dei tavoli (che restano solo
   // un'informazione sulla capienza fisica del tavolo).
-  maxPlayers    Int      @default(8)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  maxPlayers  Int      @default(8)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   // Relations
-  slots         EventSlot[]
-  reservations  MainEventReservation[]
+  slots        EventSlot[]
+  reservations MainEventReservation[]
 
   @@map("main_events")
 }
 
 model MainEventReservation {
-  id            String           @id @default(cuid())
-  userId        String?
-  mainEventId   String
-  eventId       String
-  day           String
-  slot          String
-  status        ReservationStatus @default(PENDING)
-  holdExpiresAt DateTime?
-  playerName    String?
-  playerEmail   String?
-  notes         String?
-  consentGiven  Boolean   @default(false)
-  consentDate   DateTime?
+  id              String            @id @default(cuid())
+  userId          String?
+  mainEventId     String
+  eventId         String
+  day             String
+  slot            String
+  status          ReservationStatus @default(PENDING)
+  holdExpiresAt   DateTime?
+  playerName      String?
+  playerEmail     String?
+  notes           String?
+  consentGiven    Boolean           @default(false)
+  consentDate     DateTime?
   // inviteCode is shared across every row invited together for the same
   // playerEmail in one checkout (see companion-invites.js) — not unique.
   invitedByUserId String?
   inviteCode      String?
   claimedAt       DateTime?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
 
   // Relations
-  user          User?        @relation(fields: [userId], references: [id])
-  mainEvent     MainEvent    @relation(fields: [mainEventId], references: [id], onDelete: Cascade)
-  event         Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  invitedBy     User?        @relation("MainEventReservationInvitedBy", fields: [invitedByUserId], references: [id])
+  user            User?          @relation(fields: [userId], references: [id])
+  mainEvent       MainEvent      @relation(fields: [mainEventId], references: [id], onDelete: Cascade)
+  event           Event          @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  invitedBy       User?          @relation("MainEventReservationInvitedBy", fields: [invitedByUserId], references: [id])
   feedbackEntries UserFeedback[]
 
   @@unique([userId, mainEventId, eventId, day, slot])
@@ -319,22 +338,22 @@ model GameGDR {
 model OneShot {
   id            String   @id @default(cuid())
   title         String
-  game          String    // rulebook name (D&D 5e, Pathfinder, etc.)
-  master        String    // Game master's name
+  game          String // rulebook name (D&D 5e, Pathfinder, etc.)
+  master        String // Game master's name
   description   String?
-  image         String?   // public URL in Supabase Storage, not the file itself
+  image         String? // public URL in Supabase Storage, not the file itself
   tags          String[] @default([]) // etichette libere per temi/content warning (es. "Horror", "Solo adulti"), mostrate come badge colorati nel popup pubblico
   price         Float?
-  minPlayers    Int       @default(1)
-  maxPlayers    Int       @default(6)
+  minPlayers    Int      @default(1)
+  maxPlayers    Int      @default(6)
   associationId String?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
   // Relations
-  association   Association?   @relation(fields: [associationId], references: [id])
-  eventLinks    EventOneShot[]
-  slots         EventSlot[]
+  association Association?   @relation(fields: [associationId], references: [id])
+  eventLinks  EventOneShot[]
+  slots       EventSlot[]
 
   @@map("one_shots")
 }
@@ -344,17 +363,17 @@ model OneShot {
 // paralleli e strutturalmente identici, gli slot si creano una volta sola per
 // evento e si assegnano all'uno o all'altro.
 model EventSlot {
-  id          String   @id @default(cuid())
-  day         String    // "Giovedì", "Venerdì", "Sabato", "Domenica"
-  slot        String    // "13-15", "17-19", etc.
-  table       String    // "Tavolo 7"
-  maxPlayers  Int       @default(5)
-  adminOnly   Boolean   @default(false)
-  isVisible   Boolean   @default(true)
+  id             String  @id @default(cuid())
+  day            String // "Giovedì", "Venerdì", "Sabato", "Domenica"
+  slot           String // "13-15", "17-19", etc.
+  table          String // "Tavolo 7"
+  maxPlayers     Int     @default(5)
+  adminOnly      Boolean @default(false)
+  isVisible      Boolean @default(true)
   bookingEnabled Boolean @default(true) // se false, lo slot resta visibile ma non prenotabile
-  eventId     String
-  oneshotId   String?
-  mainEventId String?
+  eventId        String
+  oneshotId      String?
+  mainEventId    String?
 
   // Relations
   event        Event         @relation(fields: [eventId], references: [id], onDelete: Cascade)
@@ -371,32 +390,32 @@ model EventSlot {
 // ============================================================
 
 model Reservation {
-  id            String           @id @default(cuid())
+  id            String            @id @default(cuid())
   userId        String?
   slotId        String
   status        ReservationStatus @default(PENDING)
   holdExpiresAt DateTime?
-  playerName    String?           // Name of the player for this booking
+  playerName    String? // Name of the player for this booking
   playerEmail   String?
   notes         String?
   createdAt     DateTime          @default(now())
   updatedAt     DateTime          @updatedAt
 
   // GDPR consent for this specific booking
-  consentGiven  Boolean   @default(false)
-  consentDate   DateTime?
+  consentGiven Boolean   @default(false)
+  consentDate  DateTime?
 
   // Companion invite (booking made by another user on this person's behalf).
   // inviteCode is shared across every row invited together for the same
   // playerEmail in one checkout (see companion-invites.js) — not unique.
   invitedByUserId String?
-  inviteCode       String?
-  claimedAt        DateTime?
+  inviteCode      String?
+  claimedAt       DateTime?
 
   // Relations
-  user          User?        @relation(fields: [userId], references: [id])
-  slot          EventSlot    @relation(fields: [slotId], references: [id])
-  invitedBy     User?        @relation("ReservationInvitedBy", fields: [invitedByUserId], references: [id])
+  user            User?          @relation(fields: [userId], references: [id])
+  slot            EventSlot      @relation(fields: [slotId], references: [id])
+  invitedBy       User?          @relation("ReservationInvitedBy", fields: [invitedByUserId], references: [id])
   feedbackEntries UserFeedback[]
 
   @@unique([userId, slotId])
@@ -408,22 +427,22 @@ model Reservation {
 }
 
 model UserFeedback {
-  id           String           @id @default(cuid())
-  userId       String
-  reservationId String?
+  id                     String           @id @default(cuid())
+  userId                 String
+  reservationId          String?
   mainEventReservationId String?
-  eventAdmissionId String?
-  authorUserId String?
-  type         UserFeedbackType
-  message      String
-  createdAt    DateTime         @default(now())
-  updatedAt    DateTime         @updatedAt
+  eventAdmissionId       String?
+  authorUserId           String?
+  type                   UserFeedbackType
+  message                String
+  createdAt              DateTime         @default(now())
+  updatedAt              DateTime         @updatedAt
 
-  user         User             @relation("UserFeedbackTarget", fields: [userId], references: [id])
-  reservation  Reservation?     @relation(fields: [reservationId], references: [id], onDelete: SetNull)
+  user                 User                  @relation("UserFeedbackTarget", fields: [userId], references: [id])
+  reservation          Reservation?          @relation(fields: [reservationId], references: [id], onDelete: SetNull)
   mainEventReservation MainEventReservation? @relation(fields: [mainEventReservationId], references: [id], onDelete: SetNull)
-  eventAdmission EventAdmission? @relation(fields: [eventAdmissionId], references: [id], onDelete: SetNull)
-  authorUser   User?            @relation("UserFeedbackAuthor", fields: [authorUserId], references: [id], onDelete: SetNull)
+  eventAdmission       EventAdmission?       @relation(fields: [eventAdmissionId], references: [id], onDelete: SetNull)
+  authorUser           User?                 @relation("UserFeedbackAuthor", fields: [authorUserId], references: [id], onDelete: SetNull)
 
   @@index([userId, createdAt])
   @@index([reservationId])
@@ -434,13 +453,13 @@ model UserFeedback {
 }
 
 enum ReservationStatus {
-  HOLD         // Temporarily blocked in cart, expires automatically
-  PENDING      // Awaiting confirmation
-  CONFIRMED    // Confirmed by admin/user
-  CANCELLED    // Cancelled by user
-  EXPIRED      // Hold expired before confirmation
-  ATTENDED     // User attended the event
-  INVITED      // Companion invite sent, awaiting the invitee to register/claim it
+  HOLD // Temporarily blocked in cart, expires automatically
+  PENDING // Awaiting confirmation
+  CONFIRMED // Confirmed by admin/user
+  CANCELLED // Cancelled by user
+  EXPIRED // Hold expired before confirmation
+  ATTENDED // User attended the event
+  INVITED // Companion invite sent, awaiting the invitee to register/claim it
 }
 
 enum UserFeedbackType {
@@ -452,13 +471,13 @@ enum UserFeedbackType {
 // ============================================================
 
 model GdprAuditLog {
-  id          String     @id @default(cuid())
-  userId      String
-  action      GdprAction
-  details     String?
-  ipAddress   String?
-  userAgent   String?
-  createdAt   DateTime   @default(now())
+  id        String     @id @default(cuid())
+  userId    String
+  action    GdprAction
+  details   String?
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime   @default(now())
 
   @@map("gdpr_audit_log")
 }
@@ -476,19 +495,19 @@ enum GdprAction {
 // ============================================================
 
 model AnalyticsSession {
-  id              String              @id @default(cuid())
-  sessionKey      String              @unique
-  visitorKey      String
-  landingPath     String?
-  lastPath        String?
-  referrer        String?
-  deviceType      AnalyticsDeviceType @default(UNKNOWN)
-  browser         String?
-  os              String?
-  startedAt       DateTime            @default(now())
-  lastSeenAt      DateTime            @default(now())
+  id          String              @id @default(cuid())
+  sessionKey  String              @unique
+  visitorKey  String
+  landingPath String?
+  lastPath    String?
+  referrer    String?
+  deviceType  AnalyticsDeviceType @default(UNKNOWN)
+  browser     String?
+  os          String?
+  startedAt   DateTime            @default(now())
+  lastSeenAt  DateTime            @default(now())
 
-  events          AnalyticsEvent[]
+  events AnalyticsEvent[]
 
   @@index([visitorKey])
   @@index([startedAt])
@@ -507,7 +526,7 @@ model AnalyticsEvent {
   eventData  Json?
   occurredAt DateTime           @default(now())
 
-  session    AnalyticsSession   @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  session AnalyticsSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
 
   @@index([sessionId])
   @@index([path])

@@ -3,9 +3,17 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useToast } from '../../context/ToastContext'
 
+function formatDateTime(value) {
+  if (!value) return null
+  return new Intl.DateTimeFormat('it-IT', {
+    day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit',
+  }).format(new Date(value))
+}
+
 export default function EventMissingReservationsPanel({ eventId, endpointBase = '/api/admin/eventi' }) {
   const toast = useToast()
   const [attendees, setAttendees] = useState([])
+  const [lastReminder, setLastReminder] = useState(null)
   const [loading, setLoading] = useState(false)
   const [loadError, setLoadError] = useState('')
   const [selectedKeys, setSelectedKeys] = useState(() => new Set())
@@ -20,7 +28,9 @@ export default function EventMissingReservationsPanel({ eventId, endpointBase = 
     try {
       const res = await fetch(`${endpointBase}/${eventId}/attendees-without-reservations`)
       if (!res.ok) throw new Error('Impossibile caricare la lista.')
-      setAttendees(await res.json())
+      const data = await res.json()
+      setAttendees(data.attendees || [])
+      setLastReminder(data.lastReminder || null)
     } catch (err) {
       setLoadError(err.message || 'Impossibile caricare la lista.')
     } finally {
@@ -57,6 +67,10 @@ export default function EventMissingReservationsPanel({ eventId, endpointBase = 
       if (!res.ok) throw new Error(data.error || 'Invio non riuscito.')
       setSentKeys((current) => new Set([...current, ...keys]))
       toast.success(`Email inviata a ${data.sentCount} ${data.sentCount === 1 ? 'persona' : 'persone'}.`)
+      if (data.sentCount > 0) {
+        const res2 = await fetch(`${endpointBase}/${eventId}/attendees-without-reservations`)
+        if (res2.ok) setLastReminder((await res2.json()).lastReminder || null)
+      }
     } catch (err) {
       toast.error(err.message || 'Invio non riuscito.')
     }
@@ -103,6 +117,12 @@ export default function EventMissingReservationsPanel({ eventId, endpointBase = 
           ) : null}
         </div>
       </div>
+
+      <p className="rounded-lg border border-editorial-border bg-editorial-bg/40 px-3 py-2 font-body text-xs text-editorial-text-secondary">
+        {lastReminder
+          ? `Ultimo invio: ${formatDateTime(lastReminder.createdAt)} · ${lastReminder.sentCount} email${lastReminder.sentBy ? ` · da ${lastReminder.sentBy}` : ''}`
+          : 'Nessun invio registrato finora per questo evento.'}
+      </p>
 
       {loading ? (
         <p className="font-body text-sm text-editorial-text-muted">Caricamento...</p>

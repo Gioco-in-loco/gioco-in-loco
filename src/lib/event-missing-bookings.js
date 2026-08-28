@@ -127,10 +127,14 @@ function buildReminderHtml({ name }) {
   `
 }
 
+const REMINDER_KIND = 'MISSING_RESERVATION'
+
 // keys: sottoinsieme di attendee.key da getEventAttendeesWithoutReservations
 // da notificare (permette invio singolo o "invia a tutti" dalla stessa vista
 // senza doversi fidare di una lista mandata dal client con nome/email liberi).
-export async function sendMissingReservationReminderEmails({ eventId, keys }) {
+// sentBy: nome/email dell'admin che ha avviato l'invio, solo per il log
+// condiviso — non incide su cosa viene inviato.
+export async function sendMissingReservationReminderEmails({ eventId, keys, sentBy = null }) {
   if (!Array.isArray(keys) || keys.length === 0) {
     throw createHttpError(400, 'Nessun destinatario selezionato.')
   }
@@ -159,5 +163,22 @@ export async function sendMissingReservationReminderEmails({ eventId, keys }) {
     }
   })
 
+  if (sentCount > 0) {
+    await prisma.eventReminderLog.create({
+      data: { eventId, kind: REMINDER_KIND, sentCount, sentBy },
+    })
+  }
+
   return { sentCount, totalRequested: targets.length }
+}
+
+// Ultimo invio registrato per questo tipo di promemoria, visibile a tutti gli
+// admin nel pannello — evita che due admin si mandino a vicenda "l'hai già
+// inviata?" a voce.
+export async function getLastMissingReservationReminderLog({ eventId }) {
+  return prisma.eventReminderLog.findFirst({
+    where: { eventId, kind: REMINDER_KIND },
+    orderBy: { createdAt: 'desc' },
+    select: { sentCount: true, sentBy: true, createdAt: true },
+  })
 }
