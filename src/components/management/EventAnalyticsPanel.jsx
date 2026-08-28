@@ -102,42 +102,69 @@ export default function EventAnalyticsPanel({ eventId, endpointBase = '/api/admi
     const byDayMap = new Map()
     for (const row of active) {
       if (!row.day) continue
-      byDayMap.set(row.day, (byDayMap.get(row.day) || 0) + 1)
+      const entry = byDayMap.get(row.day) || { total: 0, admission: 0, oneshot: 0, mainEvent: 0 }
+      entry.total += 1
+      if (row.type === 'admission') entry.admission += 1
+      else if (row.type === 'oneshot') entry.oneshot += 1
+      else if (row.type === 'mainEvent') entry.mainEvent += 1
+      byDayMap.set(row.day, entry)
     }
     // Posti offerti per giorno: per le one-shot è la somma dei maxPlayers dei
     // tavoli, per i main event è il tetto per gruppo (mainEventId, day, slot)
     // — un main event può girare su più tavoli, ma il tetto è unico per
     // gruppo, non la somma dei singoli tavoli (vedi MainEvent.maxPlayers).
-    const capacityByDayMap = new Map()
+    // Tenute separate (invece di un unico totale) per poter mostrare il
+    // rapporto corretto accanto a ciascuna colonna one-shot / main event.
+    const oneshotCapacityByDayMap = new Map()
+    const mainEventCapacityByDayMap = new Map()
     const seenMainEventGroups = new Set()
     for (const slot of slots) {
       if (slot.oneshotId) {
-        capacityByDayMap.set(slot.day, (capacityByDayMap.get(slot.day) || 0) + slot.maxPlayers)
+        oneshotCapacityByDayMap.set(slot.day, (oneshotCapacityByDayMap.get(slot.day) || 0) + slot.maxPlayers)
       } else if (slot.mainEventId) {
         const groupKey = `${slot.mainEventId}__${slot.day}__${slot.slot}`
         if (seenMainEventGroups.has(groupKey)) continue
         seenMainEventGroups.add(groupKey)
-        capacityByDayMap.set(slot.day, (capacityByDayMap.get(slot.day) || 0) + (slot.groupMaxPlayers ?? slot.maxPlayers))
+        mainEventCapacityByDayMap.set(slot.day, (mainEventCapacityByDayMap.get(slot.day) || 0) + (slot.groupMaxPlayers ?? slot.maxPlayers))
       }
     }
 
-    const dayNames = new Set([...byDayMap.keys(), ...capacityByDayMap.keys()])
+    const dayNames = new Set([...byDayMap.keys(), ...oneshotCapacityByDayMap.keys(), ...mainEventCapacityByDayMap.keys()])
+    const emptyDayEntry = { total: 0, admission: 0, oneshot: 0, mainEvent: 0 }
     const byDay = Array.from(dayNames)
-      .map((day) => ({ day, count: byDayMap.get(day) || 0, capacity: capacityByDayMap.get(day) ?? null }))
+      .map((day) => ({
+        day,
+        ...(byDayMap.get(day) || emptyDayEntry),
+        oneshotCapacity: oneshotCapacityByDayMap.get(day) ?? null,
+        mainEventCapacity: mainEventCapacityByDayMap.get(day) ?? null,
+      }))
       .sort((left, right) => dayIndex(left.day) - dayIndex(right.day))
-    const totalCapacity = Array.from(capacityByDayMap.values()).reduce((sum, value) => sum + value, 0)
+    const totalOneshotCapacity = Array.from(oneshotCapacityByDayMap.values()).reduce((sum, value) => sum + value, 0)
+    const totalMainEventCapacity = Array.from(mainEventCapacityByDayMap.values()).reduce((sum, value) => sum + value, 0)
 
     const oneshotCountsMap = new Map()
+    const gameCountsMap = new Map()
+    const masterCountsMap = new Map()
     for (const row of active) {
       if (row.type !== 'oneshot') continue
       oneshotCountsMap.set(row.title, (oneshotCountsMap.get(row.title) || 0) + 1)
+      if (row.game) gameCountsMap.set(row.game, (gameCountsMap.get(row.game) || 0) + 1)
+      if (row.master) masterCountsMap.set(row.master, (masterCountsMap.get(row.master) || 0) + 1)
     }
     const topOneshots = Array.from(oneshotCountsMap.entries())
       .map(([title, count]) => ({ title, count }))
       .sort((left, right) => right.count - left.count)
       .slice(0, 5)
+    const topGames = Array.from(gameCountsMap.entries())
+      .map(([title, count]) => ({ title, count }))
+      .sort((left, right) => right.count - left.count)
+      .slice(0, 5)
+    const topMasters = Array.from(masterCountsMap.entries())
+      .map(([title, count]) => ({ title, count }))
+      .sort((left, right) => right.count - left.count)
+      .slice(0, 5)
 
-    return { active, byType, avgBookingsPerPlayer, nonAdmissionUniquePlayers, byStatus, byDay, totalCapacity, topOneshots }
+    return { active, byType, avgBookingsPerPlayer, nonAdmissionUniquePlayers, byStatus, byDay, totalOneshotCapacity, totalMainEventCapacity, topOneshots, topGames, topMasters }
   }, [rows, slots])
 
   if (loading) {
@@ -160,12 +187,15 @@ export default function EventAnalyticsPanel({ eventId, endpointBase = '/api/admi
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
-        <KpiCard label="Pass evento iscritti" value={stats.byType.admission} hint="Ammissioni confermate" />
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         <KpiCard label="Prenotazioni totali" value={stats.active.length} hint="One-shot + Main Event + Pass, confermate" />
-        <KpiCard label="Giocatori unici" value={stats.nonAdmissionUniquePlayers.size} hint="Persone con almeno una prenotazione one-shot o Main Event (escluso chi ha solo il pass)" />
+        <KpiCard label="Pass evento iscritti" value={stats.byType.admission} hint="Ammissioni confermate" />
         <KpiCard label="One-shot prenotate" value={stats.byType.oneshot} />
         <KpiCard label="Main Event prenotati" value={stats.byType.mainEvent} />
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <KpiCard label="Giocatori unici" value={stats.nonAdmissionUniquePlayers.size} hint="Persone con almeno una prenotazione one-shot o Main Event (escluso chi ha solo il pass)" />
         <KpiCard
           label="Media prenotazioni/giocatore"
           value={stats.avgBookingsPerPlayer.toFixed(1)}
@@ -193,30 +223,62 @@ export default function EventAnalyticsPanel({ eventId, endpointBase = '/api/admi
         <div className="rounded-xl border border-editorial-border bg-white p-6 shadow-soft">
           <p className="font-body text-xs font-semibold uppercase tracking-wider text-editorial-terra">Per giorno</p>
           <p className="mt-1 font-body text-xs text-editorial-text-muted">
-            Prenotazioni confermate su posti offerti (tavoli one-shot + main event), giorno per giorno.
+            Prenotazioni confermate, giorno per giorno.
           </p>
-          <div className="mt-4 space-y-2">
-            {stats.byDay.map(({ day, count, capacity }) => (
-              <div key={day} className="flex items-center justify-between font-body text-sm">
-                <span className="text-editorial-text-secondary">{day}</span>
-                <span className="font-semibold text-editorial-text">{count}{capacity != null ? ` / ${capacity}` : ''}</span>
-              </div>
-            ))}
+          <div className="mt-4 overflow-x-auto">
+            <table className="w-full min-w-[420px] font-body text-sm">
+              <thead>
+                <tr className="text-left text-xs font-semibold uppercase tracking-wider text-editorial-text-muted">
+                  <th className="pb-2">Giorno</th>
+                  <th className="pb-2 text-right">Totale</th>
+                  <th className="pb-2 text-right">Pass</th>
+                  <th className="pb-2 text-right">One-shot</th>
+                  <th className="pb-2 text-right">Main Event</th>
+                </tr>
+              </thead>
+              <tbody>
+                {stats.byDay.map(({ day, total, admission, oneshot, mainEvent, oneshotCapacity, mainEventCapacity }) => (
+                  <tr key={day} className="border-t border-editorial-border">
+                    <td className="py-2 text-editorial-text-secondary">{day}</td>
+                    <td className="py-2 text-right font-semibold text-editorial-text">{total}</td>
+                    <td className="py-2 text-right text-editorial-text">{admission}</td>
+                    <td className="py-2 text-right text-editorial-text">
+                      {oneshot}{oneshotCapacity != null ? ` / ${oneshotCapacity}` : ''}
+                    </td>
+                    <td className="py-2 text-right text-editorial-text">
+                      {mainEvent}{mainEventCapacity != null ? ` / ${mainEventCapacity}` : ''}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+              {stats.byDay.length > 0 ? (
+                <tfoot>
+                  <tr className="border-t border-editorial-border">
+                    <td className="pt-2 font-semibold text-editorial-text">Totale</td>
+                    <td className="pt-2 text-right font-semibold text-editorial-text">
+                      {stats.byDay.reduce((sum, { total }) => sum + total, 0)}
+                    </td>
+                    <td className="pt-2 text-right font-semibold text-editorial-text">
+                      {stats.byDay.reduce((sum, { admission }) => sum + admission, 0)}
+                    </td>
+                    <td className="pt-2 text-right font-semibold text-editorial-text">
+                      {stats.byDay.reduce((sum, { oneshot }) => sum + oneshot, 0)}{stats.totalOneshotCapacity > 0 ? ` / ${stats.totalOneshotCapacity}` : ''}
+                    </td>
+                    <td className="pt-2 text-right font-semibold text-editorial-text">
+                      {stats.byDay.reduce((sum, { mainEvent }) => sum + mainEvent, 0)}{stats.totalMainEventCapacity > 0 ? ` / ${stats.totalMainEventCapacity}` : ''}
+                    </td>
+                  </tr>
+                </tfoot>
+              ) : null}
+            </table>
             {stats.byDay.length === 0 ? (
               <p className="font-body text-sm text-editorial-text-muted">Nessun dato per giorno disponibile.</p>
-            ) : (
-              <div className="flex items-center justify-between border-t border-editorial-border pt-2 font-body text-sm">
-                <span className="font-semibold text-editorial-text">Totale</span>
-                <span className="font-semibold text-editorial-text">
-                  {stats.byDay.reduce((sum, { count }) => sum + count, 0)}{stats.totalCapacity > 0 ? ` / ${stats.totalCapacity}` : ''}
-                </span>
-              </div>
-            )}
+            ) : null}
           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <div className="rounded-xl border border-editorial-border bg-white p-6 shadow-soft">
           <p className="font-body text-xs font-semibold uppercase tracking-wider text-editorial-terra">One-shot più richieste</p>
           <p className="mt-1 font-body text-xs text-editorial-text-muted">Top 5 per numero di prenotazioni confermate.</p>
@@ -234,10 +296,42 @@ export default function EventAnalyticsPanel({ eventId, endpointBase = '/api/admi
         </div>
 
         <div className="rounded-xl border border-editorial-border bg-white p-6 shadow-soft">
-          <p className="font-body text-xs font-semibold uppercase tracking-wider text-editorial-terra">Lista d&apos;attesa</p>
-          <p className="mt-1 font-body text-xs text-editorial-text-muted">Persone in attesa di un posto libero tra le one-shot.</p>
-          <p className="mt-4 font-elegant text-3xl font-bold text-editorial-text">{waitlistTotal}</p>
+          <p className="font-body text-xs font-semibold uppercase tracking-wider text-editorial-terra">Master più richiesto</p>
+          <p className="mt-1 font-body text-xs text-editorial-text-muted">Top 5 master per numero di prenotazioni confermate sui loro tavoli.</p>
+          <div className="mt-4 space-y-2">
+            {stats.topMasters.map(({ title, count }) => (
+              <div key={title} className="flex items-center justify-between font-body text-sm">
+                <span className="text-editorial-text-secondary">{title}</span>
+                <span className="font-semibold text-editorial-text">{count}</span>
+              </div>
+            ))}
+            {stats.topMasters.length === 0 ? (
+              <p className="font-body text-sm text-editorial-text-muted">Nessuna prenotazione one-shot confermata.</p>
+            ) : null}
+          </div>
         </div>
+
+        <div className="rounded-xl border border-editorial-border bg-white p-6 shadow-soft">
+          <p className="font-body text-xs font-semibold uppercase tracking-wider text-editorial-terra">Gioco più richiesto</p>
+          <p className="mt-1 font-body text-xs text-editorial-text-muted">Top 5 rulebook per numero di prenotazioni confermate.</p>
+          <div className="mt-4 space-y-2">
+            {stats.topGames.map(({ title, count }) => (
+              <div key={title} className="flex items-center justify-between font-body text-sm">
+                <span className="text-editorial-text-secondary">{title}</span>
+                <span className="font-semibold text-editorial-text">{count}</span>
+              </div>
+            ))}
+            {stats.topGames.length === 0 ? (
+              <p className="font-body text-sm text-editorial-text-muted">Nessuna prenotazione one-shot confermata.</p>
+            ) : null}
+          </div>
+        </div>
+      </div>
+
+      <div className="rounded-xl border border-editorial-border bg-white p-6 shadow-soft">
+        <p className="font-body text-xs font-semibold uppercase tracking-wider text-editorial-terra">Lista d&apos;attesa</p>
+        <p className="mt-1 font-body text-xs text-editorial-text-muted">Persone in attesa di un posto libero tra le one-shot.</p>
+        <p className="mt-4 font-elegant text-3xl font-bold text-editorial-text">{waitlistTotal}</p>
       </div>
     </div>
   )
