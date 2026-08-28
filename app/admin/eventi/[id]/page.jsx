@@ -9,6 +9,7 @@ import EventTableMapPanel from '../../../../src/components/management/EventTable
 import EventWaitlistPanel from '../../../../src/components/management/EventWaitlistPanel'
 import EventReservationsPanel from '../../../../src/components/management/EventReservationsPanel'
 import EventAnalyticsPanel from '../../../../src/components/management/EventAnalyticsPanel'
+import EventMissingReservationsPanel from '../../../../src/components/management/EventMissingReservationsPanel'
 
 function formatDate(dateStr) {
   if (!dateStr) return '—'
@@ -160,6 +161,17 @@ export default function AdminEventDetailPage({ params }) {
             >
               Analitiche
             </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('senza-prenotazioni')}
+              className={`rounded-lg px-4 py-2 font-body text-sm font-semibold transition-colors ${
+                activeTab === 'senza-prenotazioni'
+                  ? 'bg-editorial-terra text-white shadow-soft'
+                  : 'border border-editorial-border text-editorial-text hover:border-editorial-terra'
+              }`}
+            >
+              Pass senza prenotazioni
+            </button>
           </div>
 
           {activeTab === 'dettaglio' ? (
@@ -286,6 +298,8 @@ export default function AdminEventDetailPage({ params }) {
 
           ) : activeTab === 'analitiche' ? (
             <EventAnalyticsPanel eventId={event.id} />
+          ) : activeTab === 'senza-prenotazioni' ? (
+            <EventMissingReservationsPanel eventId={event.id} />
           ) : activeTab === 'mappa' ? (
             <EventTableMapPanel eventId={event.id} eventDays={event.days || []} eventTimeSlots={event.timeSlots || []} />
           ) : activeTab === 'attesa' ? (
