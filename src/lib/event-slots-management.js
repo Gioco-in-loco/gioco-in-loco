@@ -560,6 +560,27 @@ function weekDayIndex(day) {
 // prenotazione. I main event non hanno un master/giocatori per tavolo (la
 // capienza è aggregata sul gruppo, non sul singolo posto), quindi restano
 // fuori da questo export.
+// Master distinti di tutte le one-shot collegate all'evento (EventOneShot),
+// non solo quelle con un tavolo assegnato — a differenza di
+// listSessionsForExport, che invece parte dagli EventSlot e quindi perde le
+// one-shot ancora senza tavolo.
+export async function listEventMasters({ eventId }) {
+  if (!eventId) return []
+
+  const oneshots = await prisma.oneShot.findMany({
+    where: { eventLinks: { some: { eventId } } },
+    select: { master: true },
+  })
+
+  const masters = new Set()
+  for (const oneshot of oneshots) {
+    const name = (oneshot.master || '').trim()
+    if (name) masters.add(name)
+  }
+
+  return Array.from(masters).sort((left, right) => left.localeCompare(right, 'it'))
+}
+
 export async function listSessionsForExport({ eventId }) {
   if (!eventId) return []
 

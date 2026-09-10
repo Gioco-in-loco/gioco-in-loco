@@ -1,9 +1,11 @@
 import ExcelJS from 'exceljs'
 import { NextResponse } from 'next/server'
 import { requireAdminApi } from '../../../../../../../src/lib/admin-guard'
-import { listSessionsForExport } from '../../../../../../../src/lib/event-slots-management'
+import { listSessionsForExport, listEventMasters } from '../../../../../../../src/lib/event-slots-management'
+import { getEventAllReservations } from '../../../../../../../src/lib/event-reservations-overview'
 
 const PLAYER_COLUMNS = 5
+const ACTIVE_STATUSES = new Set(['PENDING', 'CONFIRMED', 'ATTENDED'])
 
 export async function GET(_request, { params }) {
   const { error, status } = await requireAdminApi()
@@ -64,6 +66,41 @@ export async function GET(_request, { params }) {
   contactsSheet.getRow(1).font = { bold: true }
   for (const contact of contacts) {
     contactsSheet.addRow(contact)
+  }
+
+  // PASS CARD FEST: elenco per la stampa dei pass, non un log prenotazioni.
+  // Un partecipante che ha più prenotazioni (es. una one-shot + il pass
+  // ingresso) compare una sola volta, deduplicato per email se presente
+  // altrimenti per nome — stesso criterio della rubrica "Contatti".
+  const [allReservations, masters] = await Promise.all([
+    getEventAllReservations({ eventId: params.id }),
+    listEventMasters({ eventId: params.id }),
+  ])
+
+  const participantsByKey = new Map()
+  for (const reservation of allReservations) {
+    if (!ACTIVE_STATUSES.has(reservation.status)) continue
+    const name = reservation.playerName || reservation.accountName || reservation.accountEmail
+    if (!name) continue
+    const key = (reservation.playerEmail || reservation.accountEmail || name).trim().toLowerCase()
+    if (!participantsByKey.has(key)) {
+      participantsByKey.set(key, name)
+    }
+  }
+
+  const participants = Array.from(participantsByKey.values()).sort((left, right) => left.localeCompare(right, 'it'))
+
+  const passCardSheet = workbook.addWorksheet('PASS CARD FEST')
+  passCardSheet.columns = [
+    { header: 'PARTECIPANTI', key: 'participant', width: 32 },
+    { header: '', key: 'gap', width: 4 },
+    { header: 'MASTER', key: 'master', width: 32 },
+  ]
+  passCardSheet.getRow(1).font = { bold: true }
+
+  const passCardRowCount = Math.max(participants.length, masters.length)
+  for (let i = 0; i < passCardRowCount; i += 1) {
+    passCardSheet.addRow({ participant: participants[i] || '', master: masters[i] || '' })
   }
 
   const buffer = await workbook.xlsx.writeBuffer()
