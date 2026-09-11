@@ -5,6 +5,7 @@ import { prisma } from '../../../src/lib/prisma'
 import { isSupabaseConfigured, getSupabaseConfig } from '../../../src/lib/supabase/config'
 import { buildAbsoluteUrl, getRequestSiteUrl } from '../../../src/lib/site-url'
 import { sanitizeRedirectTarget } from '../../../src/lib/safe-redirect'
+import { NICKNAME_RE, resolveNickname } from '../../../src/lib/nicknames'
 
 function copyCookies(fromResponse, toResponse) {
   fromResponse.cookies.getAll().forEach((cookie) => {
@@ -81,14 +82,24 @@ export async function GET(request) {
       const consentGiven = Boolean(meta.gdpr_consent_given)
       const consentDate = meta.gdpr_consent_at ? new Date(meta.gdpr_consent_at) : null
 
+      // The registration form's nickname reaches Supabase as user_metadata but
+      // this callback (email confirmation / OAuth) is what actually creates
+      // the Prisma User row for most sign-ups — it has to persist the nickname
+      // itself rather than relying on a later /api/auth/sync call that may
+      // never happen, or the row ends up permanently without one.
+      const requestedNickname = typeof meta.nickname === 'string' && NICKNAME_RE.test(meta.nickname.trim()) ? meta.nickname.trim() : null
+      const existingDbUser = await prisma.user.findUnique({ where: { supabaseUserId: user.id }, select: { nickname: true } })
+      const nickname = await resolveNickname(prisma, { requestedNickname, existingNickname: existingDbUser?.nickname })
+
       const dbUser = await prisma.user.upsert({
         where: { supabaseUserId: user.id },
-        update: consentGiven ? { consentGiven: true, consentDate } : {},
+        update: { ...(consentGiven ? { consentGiven: true, consentDate } : {}), nickname },
         create: {
           supabaseUserId: user.id,
           role: 'USER',
           consentGiven,
           consentDate,
+          nickname,
         },
       })
 

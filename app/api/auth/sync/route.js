@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { createSupabaseServerClient } from '../../../../src/lib/supabase/server'
 import { prisma } from '../../../../src/lib/prisma'
 import { isSupabaseConfigured } from '../../../../src/lib/supabase/config'
-import { NICKNAME_RE, generateAvailableNickname } from '../../../../src/lib/nicknames'
+import { NICKNAME_RE, resolveNickname } from '../../../../src/lib/nicknames'
 
 export async function POST() {
   if (!isSupabaseConfigured()) {
@@ -32,11 +32,7 @@ export async function POST() {
 
   const existingDbUser = await prisma.user.findUnique({ where: { supabaseUserId: user.id }, select: { nickname: true } })
 
-  // Account nuovo (o già esistente ma ancora senza nickname, es. login Google
-  // che salta il form di registrazione): ogni utente deve avere un nickname,
-  // quindi ne generiamo uno dal pool di personaggi se non ne è stato scelto
-  // uno esplicitamente.
-  const nickname = requestedNickname || existingDbUser?.nickname || await generateAvailableNickname(prisma)
+  const nickname = await resolveNickname(prisma, { requestedNickname, existingNickname: existingDbUser?.nickname })
 
   let dbUser
   try {

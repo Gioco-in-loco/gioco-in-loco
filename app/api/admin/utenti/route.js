@@ -4,6 +4,7 @@ import { requireAdminApi } from '../../../../src/lib/admin-guard'
 import { createSupabaseServiceClient, isServiceRoleConfigured } from '../../../../src/lib/supabase/service'
 import { sendAccountInviteEmail } from '../../../../src/lib/supabase/admin-onboarding'
 import { getRequestSiteUrl } from '../../../../src/lib/site-url'
+import { resolveNickname } from '../../../../src/lib/nicknames'
 
 export async function GET() {
   const { error, status } = await requireAdminApi()
@@ -88,6 +89,11 @@ export async function POST(request) {
   let user
 
   try {
+    // Invited users skip the registration form, so there's no requested
+    // nickname to read — resolveNickname falls back to the auto-generated
+    // pool the same way /api/auth/sync does for Google sign-ins.
+    const nickname = await resolveNickname(prisma, {})
+
     user = await prisma.user.create({
       data: {
         supabaseUserId,
@@ -95,6 +101,7 @@ export async function POST(request) {
         isAdmin: Boolean(isAdmin),
         associationId: associationId || null,
         consentGiven: false,
+        nickname,
       },
     })
   } catch (dbError) {

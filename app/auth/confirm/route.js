@@ -4,6 +4,7 @@ import { cookies } from 'next/headers'
 import { prisma } from '../../../src/lib/prisma'
 import { isSupabaseConfigured, getSupabaseConfig } from '../../../src/lib/supabase/config'
 import { buildAbsoluteUrl, getRequestSiteUrl } from '../../../src/lib/site-url'
+import { NICKNAME_RE, resolveNickname } from '../../../src/lib/nicknames'
 
 function loginErrorRedirect(origin, error) {
   const errType = error?.message?.toLowerCase().includes('expired') ? 'expired' : 'generic'
@@ -34,14 +35,22 @@ async function syncSignupConsent(supabase) {
   const consentGiven = Boolean(meta.gdpr_consent_given)
   const consentDate = meta.gdpr_consent_at ? new Date(meta.gdpr_consent_at) : null
 
+  // Same reasoning as app/auth/callback/route.js: this OTP flow (magic link /
+  // signup confirm) also creates the Prisma User row directly, so it has to
+  // persist the nickname here too instead of assuming /api/auth/sync runs.
+  const requestedNickname = typeof meta.nickname === 'string' && NICKNAME_RE.test(meta.nickname.trim()) ? meta.nickname.trim() : null
+  const existingDbUser = await prisma.user.findUnique({ where: { supabaseUserId: user.id }, select: { nickname: true } })
+  const nickname = await resolveNickname(prisma, { requestedNickname, existingNickname: existingDbUser?.nickname })
+
   const dbUser = await prisma.user.upsert({
     where: { supabaseUserId: user.id },
-    update: consentGiven ? { consentGiven: true, consentDate } : {},
+    update: { ...(consentGiven ? { consentGiven: true, consentDate } : {}), nickname },
     create: {
       supabaseUserId: user.id,
       role: 'USER',
       consentGiven,
       consentDate,
+      nickname,
     },
   })
 

@@ -39,6 +39,23 @@ export const VIDEO_GAME_NICKNAMES = [
 // iniziali o finali — condiviso tra validazione client (form) e server (API).
 export const NICKNAME_RE = /^[\p{L}0-9][\p{L}0-9 _-]{1,18}[\p{L}0-9]$/u
 
+// Resolves the nickname to persist whenever a User row is created/updated —
+// prefers an explicit valid request (e.g. the registration form, passed via
+// Supabase user_metadata), falls back to whatever is already on the row so
+// existing nicknames are never overwritten, and only generates a new one from
+// the pool as a last resort. Used by every code path that upserts a User
+// (sync, auth callback, OTP confirm, admin invite) so none of them can leave
+// nickname null — that gap is what let so many existing accounts end up
+// without one in the first place.
+export async function resolveNickname(prisma, { requestedNickname, existingNickname } = {}) {
+  const trimmed = typeof requestedNickname === 'string' ? requestedNickname.trim() : ''
+  if (trimmed && NICKNAME_RE.test(trimmed)) {
+    return trimmed
+  }
+
+  return existingNickname || generateAvailableNickname(prisma)
+}
+
 function shuffle(list) {
   const array = [...list]
   for (let i = array.length - 1; i > 0; i -= 1) {
