@@ -74,6 +74,11 @@ function getCanCancelStatus(status) {
   return status === 'PENDING' || status === 'CONFIRMED'
 }
 
+// Shown both as the UI's cancellationBlockedReason and as the DELETE error
+// message when an admin has closed bookings for the slot (BookingLockDialog) —
+// self-service cancellation is disabled, the user has to reach the team directly.
+export const BOOKING_LOCKED_CANCELLATION_MESSAGE = 'Per disdire questa prenotazione scrivi a giocoinloco@gmail.com.'
+
 function assertBookingCanBeCancelled(status) {
   if (status === 'CANCELLED') {
     throw createBookingError('La prenotazione è già stata cancellata.', 400)
@@ -152,13 +157,15 @@ function serializeOneShotBooking(reservation, { cancellationReason = null, compa
     slot: reservation.slot.slot,
     table: reservation.slot.table,
   }
+  const bookingLocked = reservation.slot.bookingEnabled === false
 
   return {
     id: reservation.id,
     bookingType: 'oneshot',
     bookingTypeLabel: 'One shot',
     status: reservation.status,
-    canCancel: getCanCancelStatus(reservation.status),
+    canCancel: getCanCancelStatus(reservation.status) && !bookingLocked,
+    cancellationBlockedReason: getCanCancelStatus(reservation.status) && bookingLocked ? BOOKING_LOCKED_CANCELLATION_MESSAGE : null,
     cancellationReason: reservation.status === 'CANCELLED' ? cancellationReason : null,
     createdAt: normalizeDate(reservation.createdAt),
     updatedAt: normalizeDate(reservation.updatedAt),
@@ -176,7 +183,7 @@ function serializeOneShotBooking(reservation, { cancellationReason = null, compa
   }
 }
 
-function serializeMainEventBooking(reservation, { cancellationReason = null, companions = [], dayCache } = {}) {
+function serializeMainEventBooking(reservation, { cancellationReason = null, companions = [], dayCache, bookingLocked = false } = {}) {
   const schedule = {
     day: reservation.day,
     slot: reservation.slot,
@@ -188,7 +195,8 @@ function serializeMainEventBooking(reservation, { cancellationReason = null, com
     bookingType: 'main-event',
     bookingTypeLabel: 'Main event',
     status: reservation.status,
-    canCancel: getCanCancelStatus(reservation.status),
+    canCancel: getCanCancelStatus(reservation.status) && !bookingLocked,
+    cancellationBlockedReason: getCanCancelStatus(reservation.status) && bookingLocked ? BOOKING_LOCKED_CANCELLATION_MESSAGE : null,
     cancellationReason: reservation.status === 'CANCELLED' ? cancellationReason : null,
     createdAt: normalizeDate(reservation.createdAt),
     updatedAt: normalizeDate(reservation.updatedAt),
@@ -268,6 +276,7 @@ export async function getUserAccountBookings({ userId, db = prisma }) {
             day: true,
             slot: true,
             table: true,
+            bookingEnabled: true,
             oneshot: {
               select: {
                 title: true,
@@ -450,6 +459,27 @@ export async function getUserAccountBookings({ userId, db = prisma }) {
     companionsBySessionKey.get(key).push(companion)
   }
 
+  // A main event session spans every table assigned to it in that day+slot —
+  // mirrors groupSlotsIntoSessions in main-event-booking.js: cancellation is
+  // blocked as soon as an admin has closed booking on ANY of those tables.
+  const mainEventSessionKeys = mainEventReservations.map((reservation) => ({
+    mainEventId: reservation.mainEventId,
+    eventId: reservation.event.id,
+    day: reservation.day,
+    slot: reservation.slot,
+  }))
+  const mainEventSlots = mainEventSessionKeys.length > 0
+    ? await db.eventSlot.findMany({
+        where: { OR: mainEventSessionKeys },
+        select: { mainEventId: true, eventId: true, day: true, slot: true, bookingEnabled: true },
+      })
+    : []
+  const bookingLockedBySessionKey = new Map()
+  for (const slot of mainEventSlots) {
+    const key = `${slot.mainEventId}__${slot.eventId}__${slot.day}__${slot.slot}`
+    if (!slot.bookingEnabled) bookingLockedBySessionKey.set(key, true)
+  }
+
   const dayCache = new Map()
 
   return [
@@ -461,6 +491,7 @@ export async function getUserAccountBookings({ userId, db = prisma }) {
     ...mainEventReservations.map((reservation) => serializeMainEventBooking(reservation, {
       cancellationReason: cancellationReasonByMainEventReservationId.get(reservation.id) || null,
       companions: companionsBySessionKey.get(`${reservation.mainEventId}__${reservation.event.id}__${reservation.day}__${reservation.slot}`) || [],
+      bookingLocked: bookingLockedBySessionKey.get(`${reservation.mainEventId}__${reservation.event.id}__${reservation.day}__${reservation.slot}`) || false,
       dayCache,
     })),
     ...eventAdmissions.map((admission) => serializeEventAdmissionBooking(admission, {
@@ -499,6 +530,7 @@ export async function cancelUserAccountBooking({ bookingType, bookingId, userId,
         status: true,
         slot: {
           select: {
+            bookingEnabled: true,
             oneshot: {
               select: {
                 title: true,
@@ -514,6 +546,10 @@ export async function cancelUserAccountBooking({ bookingType, bookingId, userId,
     }
 
     assertBookingCanBeCancelled(reservation.status)
+
+    if (reservation.slot.bookingEnabled === false) {
+      throw createBookingError(BOOKING_LOCKED_CANCELLATION_MESSAGE, 400)
+    }
 
     await db.reservation.update({
       where: { id: reservation.id },

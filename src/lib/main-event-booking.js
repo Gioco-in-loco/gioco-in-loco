@@ -372,6 +372,23 @@ export async function cancelUserMainEventReservation({ reservationId, userId, db
     throw createHttpError(400, 'Questa prenotazione non è gestibile dall\'area utente.')
   }
 
+  // Mirrors groupSlotsIntoSessions above: the session spans every table
+  // assigned to it in that day+slot, so an admin closing booking on ANY of
+  // them (BookingLockDialog) blocks self-service cancellation too.
+  const sessionSlots = await db.eventSlot.findMany({
+    where: {
+      mainEventId: reservation.mainEventId,
+      eventId: reservation.eventId,
+      day: reservation.day,
+      slot: reservation.slot,
+    },
+    select: { bookingEnabled: true },
+  })
+
+  if (sessionSlots.some((slot) => !slot.bookingEnabled)) {
+    throw createHttpError(400, 'Per disdire questa prenotazione scrivi a giocoinloco@gmail.com.')
+  }
+
   await db.mainEventReservation.update({
     where: { id: reservation.id },
     data: {
