@@ -1,7 +1,7 @@
 # Placeholder Images Guide
 
 This file documents the placeholder images needed to complete the site design. Replace the placeholder indicators with real photos from your events.
-
+1
 ---
 
 ## Hero Section (`/comicon-2026`)
