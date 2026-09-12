@@ -2,16 +2,20 @@ import ExcelJS from 'exceljs'
 import { NextResponse } from 'next/server'
 import { requireAdminApi } from '../../../../../../../src/lib/admin-guard'
 import { listSessionsForExport, listEventMasters } from '../../../../../../../src/lib/event-slots-management'
+import { listMainEventSessionsForExport } from '../../../../../../../src/lib/main-events-management'
 import { getEventAllReservations } from '../../../../../../../src/lib/event-reservations-overview'
 
 const PLAYER_COLUMNS = 5
-const ACTIVE_STATUSES = new Set(['PENDING', 'CONFIRMED', 'ATTENDED'])
+const ACTIVE_STATUSES = new Set(['PENDING', 'CONFIRMED', 'ATTENDED', 'NO_SHOW'])
 
 export async function GET(_request, { params }) {
   const { error, status } = await requireAdminApi()
   if (error) return NextResponse.json({ error }, { status })
 
-  const rows = await listSessionsForExport({ eventId: params.id })
+  const [rows, mainEventRows] = await Promise.all([
+    listSessionsForExport({ eventId: params.id }),
+    listMainEventSessionsForExport({ eventId: params.id }),
+  ])
 
   const workbook = new ExcelJS.Workbook()
   const sheet = workbook.addWorksheet('Sessioni')
@@ -40,11 +44,35 @@ export async function GET(_request, { params }) {
     sheet.addRow(record)
   }
 
-  // Rubrica contatti: un giocatore che gioca più sessioni compare una sola
-  // volta (dedup per email se presente, altrimenti per nome) — è una lista
-  // per contattarli, non un log delle prenotazioni.
+  const mainEventPlayerColumns = Array.from({ length: Math.max(...mainEventRows.map((row) => row.players.length), 1) }, (_, i) => ({
+    header: `GIOCATORE ${i + 1}`,
+    key: `player${i + 1}`,
+    width: 22,
+  }))
+
+  const mainEventSheet = workbook.addWorksheet('Main Event')
+  mainEventSheet.columns = [
+    { header: 'GIORNO', key: 'day', width: 14 },
+    { header: 'SLOT', key: 'slot', width: 14 },
+    { header: 'TAVOLI', key: 'tables', width: 20 },
+    { header: 'NOME', key: 'title', width: 30 },
+    ...mainEventPlayerColumns,
+  ]
+  mainEventSheet.getRow(1).font = { bold: true }
+
+  for (const row of mainEventRows) {
+    const record = { day: row.day, slot: row.slot, tables: row.tables, title: row.title }
+    row.players.forEach((player, i) => {
+      record[`player${i + 1}`] = player.name
+    })
+    mainEventSheet.addRow(record)
+  }
+
+  // Rubrica contatti: un giocatore che gioca più sessioni (one-shot o main
+  // event) compare una sola volta (dedup per email se presente, altrimenti
+  // per nome) — è una lista per contattarli, non un log delle prenotazioni.
   const contactsByKey = new Map()
-  for (const row of rows) {
+  for (const row of [...rows, ...mainEventRows]) {
     for (const player of row.players) {
       if (!player.name) continue
       const key = (player.email || player.name).trim().toLowerCase()

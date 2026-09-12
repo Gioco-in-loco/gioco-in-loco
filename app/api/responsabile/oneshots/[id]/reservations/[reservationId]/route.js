@@ -14,7 +14,7 @@ export async function PATCH(request, { params }) {
     const body = await request.json()
     const nextStatus = typeof body?.status === 'string' ? body.status.trim().toUpperCase() : ''
 
-    if (nextStatus !== 'ATTENDED' && nextStatus !== 'CONFIRMED') {
+    if (nextStatus !== 'ATTENDED' && nextStatus !== 'NO_SHOW' && nextStatus !== 'CONFIRMED') {
       return NextResponse.json({ error: 'Il responsabile puo solo segnare o rimuovere la presenza al tavolo.' }, { status: 403 })
     }
 

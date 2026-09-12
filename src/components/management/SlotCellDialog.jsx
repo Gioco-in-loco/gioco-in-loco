@@ -72,6 +72,12 @@ export default function SlotCellDialog({
   const [detachingMainEvent, setDetachingMainEvent] = useState(false)
   const [mainEventError, setMainEventError] = useState('')
 
+  // Chiave solo su slot?.id (non sull'intero oggetto slot): il pannello padre
+  // rimpiazza slot con un nuovo oggetto ad ogni refresh in background (es.
+  // dopo "Segna presente", per aggiornare il conteggio prenotati), pur
+  // restando lo stesso tavolo. Se questo effetto scattasse anche lì,
+  // resetterebbe la tab attiva su quella di default ad ogni conferma
+  // presenza, buttando fuori l'admin dalla tab "Prenotati" che stava usando.
   useEffect(() => {
     if (!open || !slot) return
     setSlotForm({ day: slot.day, slot: slot.slot, table: slot.table, maxPlayers: slot.maxPlayers, adminOnly: Boolean(slot.adminOnly), isVisible: slot.isVisible !== false, bookingEnabled: slot.bookingEnabled !== false })
@@ -86,7 +92,7 @@ export default function SlotCellDialog({
     setEditingMainEvent(false)
     setActiveTab(defaultTab(slot))
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, slot, canManageSlot])
+  }, [open, slot?.id, canManageSlot])
 
   useEffect(() => {
     if (!open || !slot) return undefined
@@ -139,7 +145,12 @@ export default function SlotCellDialog({
     }
 
     return () => { cancelled = true }
-  }, [open, slot, eventId, oneshotsEndpointBase, slotsEndpointBase, canManageSlot, canManageMainEvents, mainEventsEndpointBase])
+    // slot?.id invece di slot: stesso motivo dell'effetto sopra, altrimenti
+    // ogni refresh in background dopo una conferma presenza rifarebbe da capo
+    // le fetch di dettaglio one shot/main event e prenotati, duplicando quella
+    // già fatta da ReservationsPanel tramite onRefresh.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, slot?.id, eventId, oneshotsEndpointBase, slotsEndpointBase, canManageSlot, canManageMainEvents, mainEventsEndpointBase])
 
   if (!slot) return null
 

@@ -3,8 +3,8 @@ import { cancelUserMainEventReservation } from './main-event-booking'
 import { resolveBookingScheduleRange } from './booking-schedule'
 
 const DAY_ORDER = ['Lunedi', 'Martedi', 'Mercoledi', 'Giovedi', 'Venerdi', 'Sabato', 'Domenica', 'Giovedì', 'Venerdì']
-const ACCOUNT_BOOKING_VISIBLE_STATUSES = ['PENDING', 'CONFIRMED', 'ATTENDED', 'CANCELLED']
-export const ACCOUNT_BOOKING_ACTIVE_STATUSES = ['PENDING', 'CONFIRMED', 'ATTENDED']
+const ACCOUNT_BOOKING_VISIBLE_STATUSES = ['PENDING', 'CONFIRMED', 'ATTENDED', 'NO_SHOW', 'CANCELLED']
+export const ACCOUNT_BOOKING_ACTIVE_STATUSES = ['PENDING', 'CONFIRMED', 'ATTENDED', 'NO_SHOW']
 
 function getUpcomingEventWhere(now) {
   return {
@@ -32,8 +32,10 @@ function getStatusSortOrder(status) {
       return 1
     case 'ATTENDED':
       return 2
-    case 'CANCELLED':
+    case 'NO_SHOW':
       return 3
+    case 'CANCELLED':
+      return 4
     default:
       return 9
   }

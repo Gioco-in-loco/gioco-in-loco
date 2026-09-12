@@ -2,8 +2,8 @@ import { prisma } from './prisma'
 import { createSupabaseServiceClient, isServiceRoleConfigured } from './supabase/service'
 
 export const DEFAULT_ONESHOT_PAGE_SIZE = 20
-const ACTIVE_RESERVATION_STATUSES = ['PENDING', 'CONFIRMED', 'ATTENDED']
-const MANAGEABLE_RESERVATION_STATUSES = new Set(['CONFIRMED', 'ATTENDED', 'CANCELLED'])
+const ACTIVE_RESERVATION_STATUSES = ['PENDING', 'CONFIRMED', 'ATTENDED', 'NO_SHOW']
+const MANAGEABLE_RESERVATION_STATUSES = new Set(['CONFIRMED', 'ATTENDED', 'NO_SHOW', 'CANCELLED'])
 // Mirrors the WEEK_DAYS list in src/components/management/EventForm.jsx —
 // that's the only place that ever sends `days` on an event save.
 const WEEK_DAYS = new Set(['Lunedi', 'Martedi', 'Mercoledi', 'Giovedi', 'Venerdi', 'Sabato', 'Domenica'])
@@ -659,8 +659,9 @@ export async function updateManagedOneShotReservationStatus({ oneshotId, reserva
 
   // A responsabile-scoped request (managedAssociationId set) may only mark or
   // remove attendance at the table — reverting to CONFIRMED is allowed only
-  // when undoing a previous ATTENDED mark, not to confirm a pending booking.
-  if (managedAssociationId && status === 'CONFIRMED' && reservation.status !== 'ATTENDED') {
+  // when undoing a previous ATTENDED/NO_SHOW mark, not to confirm a pending
+  // booking.
+  if (managedAssociationId && status === 'CONFIRMED' && reservation.status !== 'ATTENDED' && reservation.status !== 'NO_SHOW') {
     throw createHttpError(403, 'Il responsabile puo solo segnare o rimuovere la presenza al tavolo.')
   }
 

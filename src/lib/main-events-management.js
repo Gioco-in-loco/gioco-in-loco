@@ -1,8 +1,9 @@
 import { prisma } from './prisma'
 import { normalizeTags } from './oneshots-management'
+import { WEEK_DAY_ORDER, buildReservationPhoneMap } from './event-slots-management'
 
 export const DEFAULT_MAIN_EVENT_PAGE_SIZE = 20
-const ACTIVE_RESERVATION_STATUSES = ['PENDING', 'CONFIRMED', 'ATTENDED']
+const ACTIVE_RESERVATION_STATUSES = ['PENDING', 'CONFIRMED', 'ATTENDED', 'NO_SHOW']
 
 function createHttpError(status, message) {
   const error = new Error(message)
@@ -357,6 +358,76 @@ export async function updateMainEvent({ id, body }) {
     if (error?.code === 'P2025') throw createHttpError(404, 'Main event non trovato')
     throw createHttpError(500, 'Aggiornamento main event non riuscito')
   }
+}
+
+function weekDayIndex(day) {
+  const idx = WEEK_DAY_ORDER.indexOf(day)
+  return idx === -1 ? 999 : idx
+}
+
+// Righe per l'export Excel delle prenotazioni main event di un evento: a
+// differenza delle one-shot (un tavolo = una sessione), un main event
+// aggrega più tavoli sotto la stessa fascia giorno/slot con un tetto posti
+// unico (mainEvent.maxPlayers), quindi una riga per gruppo mainEvent+day+slot
+// con l'elenco dei tavoli fisici e tutti i giocatori attivi.
+export async function listMainEventSessionsForExport({ eventId }) {
+  if (!eventId) return []
+
+  const [reservations, slots] = await Promise.all([
+    prisma.mainEventReservation.findMany({
+      where: { eventId, status: { in: ACTIVE_RESERVATION_STATUSES } },
+      orderBy: { createdAt: 'asc' },
+      select: {
+        mainEventId: true,
+        day: true,
+        slot: true,
+        userId: true,
+        playerName: true,
+        playerEmail: true,
+        user: { select: { supabaseUserId: true } },
+        mainEvent: { select: { title: true } },
+      },
+    }),
+    prisma.eventSlot.findMany({
+      where: { eventId, mainEventId: { not: null } },
+      select: { mainEventId: true, day: true, slot: true, table: true },
+    }),
+  ])
+
+  const phoneByUserId = await buildReservationPhoneMap([{ reservations }])
+
+  const tablesByGroup = new Map()
+  for (const slot of slots) {
+    const key = `${slot.mainEventId}__${slot.day}__${slot.slot}`
+    if (!tablesByGroup.has(key)) tablesByGroup.set(key, [])
+    tablesByGroup.get(key).push(slot.table)
+  }
+
+  const groups = new Map()
+  for (const reservation of reservations) {
+    const key = `${reservation.mainEventId}__${reservation.day}__${reservation.slot}`
+    if (!groups.has(key)) {
+      const tables = (tablesByGroup.get(key) || []).sort((left, right) => left.localeCompare(right, undefined, { numeric: true }))
+      groups.set(key, {
+        day: reservation.day,
+        slot: reservation.slot,
+        title: reservation.mainEvent?.title || 'Main Event',
+        tables: tables.join(', '),
+        players: [],
+      })
+    }
+    groups.get(key).players.push({
+      name: reservation.playerName || reservation.playerEmail || '',
+      email: reservation.playerEmail || '',
+      phone: phoneByUserId.get(reservation.userId) || '',
+    })
+  }
+
+  return Array.from(groups.values()).sort((left, right) => {
+    const dayDiff = weekDayIndex(left.day) - weekDayIndex(right.day)
+    if (dayDiff !== 0) return dayDiff
+    return left.slot.localeCompare(right.slot, undefined, { numeric: true })
+  })
 }
 
 export async function deleteMainEvent({ id }) {

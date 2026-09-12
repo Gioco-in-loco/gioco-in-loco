@@ -4,7 +4,7 @@ import { getUserMainEventCartState } from './main-event-booking'
 
 export const EVENT_CART_HOLD_MINUTES = 10
 export const EVENT_CART_HOLD_STATUS = 'HOLD'
-export const EVENT_ACTIVE_RESERVATION_STATUSES = ['PENDING', 'CONFIRMED', 'ATTENDED']
+export const EVENT_ACTIVE_RESERVATION_STATUSES = ['PENDING', 'CONFIRMED', 'ATTENDED', 'NO_SHOW']
 
 const DAY_ORDER = ['Lunedi', 'Martedi', 'Mercoledi', 'Giovedi', 'Venerdi', 'Sabato', 'Domenica', 'Giovedì', 'Venerdì']
 

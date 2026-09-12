@@ -11,6 +11,8 @@ function formatReservationStatus(status) {
       return 'Confermato'
     case 'ATTENDED':
       return 'Presente'
+    case 'NO_SHOW':
+      return 'Assente'
     case 'CANCELLED':
       return 'Annullato'
     default:
@@ -100,7 +102,9 @@ export default function ReservationsPanel({ oneshot, itemEndpointBase, addPlayer
           ? 'Prenotazione annullata.'
           : status === 'ATTENDED'
             ? 'Presenza confermata.'
-            : 'Stato prenotazione aggiornato.',
+            : status === 'NO_SHOW'
+              ? 'Assenza registrata.'
+              : 'Stato prenotazione aggiornato.',
       )
     } catch (reservationError) {
       const message = reservationError.message || 'Aggiornamento prenotazione non riuscito.'
@@ -245,7 +249,7 @@ export default function ReservationsPanel({ oneshot, itemEndpointBase, addPlayer
                         </div>
                         {canManageReservations || canMarkAttendance || canDeleteReservations ? (
                           <div className="flex flex-wrap gap-2 lg:justify-end">
-                            {canManageReservations && reservation.status !== 'CONFIRMED' && reservation.status !== 'ATTENDED' ? (
+                            {canManageReservations && reservation.status !== 'CONFIRMED' && reservation.status !== 'ATTENDED' && reservation.status !== 'NO_SHOW' ? (
                               <button
                                 type="button"
                                 disabled={pendingReservationId === reservation.id}
@@ -265,6 +269,16 @@ export default function ReservationsPanel({ oneshot, itemEndpointBase, addPlayer
                                 Segna presente
                               </button>
                             ) : null}
+                            {canToggleAttendance && reservation.status !== 'NO_SHOW' ? (
+                              <button
+                                type="button"
+                                disabled={pendingReservationId === reservation.id}
+                                onClick={() => handleReservationAction(reservation.id, 'NO_SHOW')}
+                                className="rounded-lg border border-red-200 px-3 py-2 font-body text-xs font-semibold text-red-600 transition-colors hover:bg-red-50 disabled:opacity-50"
+                              >
+                                Segna assente
+                              </button>
+                            ) : null}
                             {canToggleAttendance && reservation.status === 'ATTENDED' ? (
                               <button
                                 type="button"
@@ -273,6 +287,16 @@ export default function ReservationsPanel({ oneshot, itemEndpointBase, addPlayer
                                 className="rounded-lg border border-amber-200 px-3 py-2 font-body text-xs font-semibold text-amber-700 transition-colors hover:bg-amber-50 disabled:opacity-50"
                               >
                                 Segna non presente
+                              </button>
+                            ) : null}
+                            {canToggleAttendance && reservation.status === 'NO_SHOW' ? (
+                              <button
+                                type="button"
+                                disabled={pendingReservationId === reservation.id}
+                                onClick={() => handleReservationAction(reservation.id, 'CONFIRMED')}
+                                className="rounded-lg border border-amber-200 px-3 py-2 font-body text-xs font-semibold text-amber-700 transition-colors hover:bg-amber-50 disabled:opacity-50"
+                              >
+                                Annulla assenza
                               </button>
                             ) : null}
                             {canManageReservations ? (

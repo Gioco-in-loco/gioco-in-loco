@@ -2,7 +2,7 @@ import { prisma } from './prisma'
 import { EVENT_CART_HOLD_STATUS, getNextHoldExpiration } from './event-booking'
 import { sendCompanionInviteRedeemedEmail } from './event-booking-notifications'
 
-const ACTIVE_RESERVATION_STATUSES = ['HOLD', 'PENDING', 'CONFIRMED', 'ATTENDED', 'INVITED']
+const ACTIVE_RESERVATION_STATUSES = ['HOLD', 'PENDING', 'CONFIRMED', 'ATTENDED', 'NO_SHOW', 'INVITED']
 
 function createInviteError(message, status) {
   const error = new Error(message)

@@ -18,12 +18,13 @@ const STATUS_LABELS = {
   CANCELLED: 'Annullato',
   EXPIRED: 'Non confermato',
   ATTENDED: 'Presente',
+  NO_SHOW: 'Assente',
 }
 
 // CANCELLED resta un'azione a parte (pulsante "Annulla prenotazione", con
 // motivo obbligatorio e audit trail); HOLD/EXPIRED/INVITED sono stati gestiti
 // dal ciclo di vita automatico del carrello, non impostabili a mano.
-const EDITABLE_STATUSES = ['PENDING', 'CONFIRMED', 'ATTENDED']
+const EDITABLE_STATUSES = ['PENDING', 'CONFIRMED', 'ATTENDED', 'NO_SHOW']
 
 function formatDate(value) {
   if (!value) return '—'

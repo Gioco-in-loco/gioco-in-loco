@@ -18,6 +18,7 @@ const STATUS_LABELS = {
   CANCELLED: 'Annullato',
   EXPIRED: 'Non confermato',
   ATTENDED: 'Presente',
+  NO_SHOW: 'Assente',
 }
 
 const STATUS_CLASSES = {
@@ -28,6 +29,7 @@ const STATUS_CLASSES = {
   CANCELLED: 'bg-red-50 text-red-600',
   EXPIRED: 'bg-editorial-bg text-editorial-text-muted',
   ATTENDED: 'bg-editorial-terra/10 text-editorial-terra',
+  NO_SHOW: 'bg-red-50 text-red-600',
 }
 
 const DAY_ORDER = ['Lunedi', 'Lunedì', 'Martedi', 'Martedì', 'Mercoledi', 'Mercoledì', 'Giovedi', 'Giovedì', 'Venerdi', 'Venerdì', 'Sabato', 'Domenica']
@@ -202,6 +204,7 @@ export default function EventReservationsPanel({ eventId, eventExternalId }) {
           <option value="CONFIRMED">Confermato</option>
           <option value="PENDING">In attesa</option>
           <option value="ATTENDED">Presente</option>
+          <option value="NO_SHOW">Assente</option>
           <option value="CANCELLED">Annullato</option>
           <option value="EXPIRED">Non confermato</option>
           <option value="HOLD">In blocco</option>

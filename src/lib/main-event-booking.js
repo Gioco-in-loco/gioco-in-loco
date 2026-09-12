@@ -1,6 +1,6 @@
 import { prisma } from './prisma'
 
-export const MAIN_EVENT_ACTIVE_STATUSES = ['PENDING', 'CONFIRMED', 'ATTENDED']
+export const MAIN_EVENT_ACTIVE_STATUSES = ['PENDING', 'CONFIRMED', 'ATTENDED', 'NO_SHOW']
 export const MAIN_EVENT_CART_HOLD_STATUS = 'HOLD'
 const DAY_ORDER = ['Lunedi', 'Martedi', 'Mercoledi', 'Giovedi', 'Venerdi', 'Sabato', 'Domenica', 'Giovedì', 'Venerdì']
 

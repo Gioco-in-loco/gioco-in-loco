@@ -459,6 +459,7 @@ enum ReservationStatus {
   CANCELLED // Cancelled by user
   EXPIRED // Hold expired before confirmation
   ATTENDED // User attended the event
+  NO_SHOW // Admin explicitly marked the user as absent (distinct from PENDING, which just means not yet confirmed)
   INVITED // Companion invite sent, awaiting the invitee to register/claim it
 }
 

@@ -7,8 +7,8 @@ function createHttpError(status, message) {
   return error
 }
 
-const ACTIVE_RESERVATION_STATUSES = ['PENDING', 'CONFIRMED', 'ATTENDED']
-const ACTIVE_MAIN_EVENT_RESERVATION_STATUSES = ['PENDING', 'CONFIRMED', 'ATTENDED']
+const ACTIVE_RESERVATION_STATUSES = ['PENDING', 'CONFIRMED', 'ATTENDED', 'NO_SHOW']
+const ACTIVE_MAIN_EVENT_RESERVATION_STATUSES = ['PENDING', 'CONFIRMED', 'ATTENDED', 'NO_SHOW']
 
 function formatAuditDate(value = new Date()) {
   return new Intl.DateTimeFormat('it-IT', {
@@ -577,7 +577,7 @@ export async function moveEventReservationToSlot({ eventId, type, reservationId,
 // CANCELLED resta un'azione a parte (pulsante "Annulla", con motivo e audit
 // trail); HOLD/EXPIRED/INVITED sono stati gestiti dal ciclo di vita
 // automatico del carrello, non qualcosa da impostare a mano.
-const EDITABLE_STATUSES = new Set(['PENDING', 'CONFIRMED', 'ATTENDED'])
+const EDITABLE_STATUSES = new Set(['PENDING', 'CONFIRMED', 'ATTENDED', 'NO_SHOW'])
 
 // Modifica i campi di una prenotazione (nome/email giocatore, note, stato)
 // dalla pagina di dettaglio in admin. Annullamento ed eliminazione restano

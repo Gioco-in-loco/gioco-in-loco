@@ -17,8 +17,12 @@ const STATUS_LABELS = {
   CANCELLED: 'Annullato',
   EXPIRED: 'Non confermato',
   ATTENDED: 'Presente',
+  NO_SHOW: 'Assente',
 }
 
+// Non include NO_SHOW: queste statistiche contano chi partecipa davvero, e un
+// assente esplicito non è "attivo" ai fini di questa vista (a differenza
+// delle liste di capienza/export altrove, dove resta una prenotazione valida).
 const ACTIVE_STATUSES = new Set(['CONFIRMED', 'ATTENDED'])
 
 function playerKey(row) {
@@ -183,7 +187,7 @@ export default function EventAnalyticsPanel({ eventId, endpointBase = '/api/admi
     )
   }
 
-  const statusOrder = ['CONFIRMED', 'ATTENDED', 'PENDING', 'HOLD', 'INVITED', 'EXPIRED', 'CANCELLED']
+  const statusOrder = ['CONFIRMED', 'ATTENDED', 'NO_SHOW', 'PENDING', 'HOLD', 'INVITED', 'EXPIRED', 'CANCELLED']
 
   return (
     <div className="space-y-6">

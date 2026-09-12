@@ -36,7 +36,7 @@ const CONFIRMED_ADMISSION_STATUSES = ['CONFIRMED', 'ATTENDED']
 // Una prenotazione "in corso o confermata" basta a togliere la persona da
 // questa lista: se ha già iniziato il checkout di una sessione (PENDING) non
 // ha senso sollecitarla di nuovo, anche se non ha ancora completato l'ordine.
-const ACTIVE_RESERVATION_STATUSES = ['PENDING', 'CONFIRMED', 'ATTENDED']
+const ACTIVE_RESERVATION_STATUSES = ['PENDING', 'CONFIRMED', 'ATTENDED', 'NO_SHOW']
 
 // Una persona può risultare sia con userId che, per prenotazioni fatte prima
 // del claim di un invito amico, solo con playerEmail: generiamo entrambe le

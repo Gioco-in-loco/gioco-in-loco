@@ -1,11 +1,11 @@
 import { prisma } from './prisma'
 import { createSupabaseServiceClient, isServiceRoleConfigured } from './supabase/service'
 
-const WEEK_DAY_ORDER = ['Lunedi', 'Martedi', 'Mercoledi', 'Giovedi', 'Venerdi', 'Sabato', 'Domenica']
+export const WEEK_DAY_ORDER = ['Lunedi', 'Martedi', 'Mercoledi', 'Giovedi', 'Venerdi', 'Sabato', 'Domenica']
 export const WEEK_DAYS = new Set(WEEK_DAY_ORDER)
 export const TIME_SLOT_REGEX = /^([01]\d|2[0-3]):[0-5]\d-([01]\d|2[0-3]):[0-5]\d$/
-const ACTIVE_RESERVATION_STATUSES = ['PENDING', 'CONFIRMED', 'ATTENDED']
-const ACTIVE_MAIN_EVENT_RESERVATION_STATUSES = ['PENDING', 'CONFIRMED', 'ATTENDED']
+const ACTIVE_RESERVATION_STATUSES = ['PENDING', 'CONFIRMED', 'ATTENDED', 'NO_SHOW']
+const ACTIVE_MAIN_EVENT_RESERVATION_STATUSES = ['PENDING', 'CONFIRMED', 'ATTENDED', 'NO_SHOW']
 
 function createHttpError(status, message) {
   const error = new Error(message)
@@ -13,7 +13,7 @@ function createHttpError(status, message) {
   return error
 }
 
-async function buildReservationPhoneMap(slots) {
+export async function buildReservationPhoneMap(slots) {
   const phoneByUserId = new Map()
   if (!isServiceRoleConfigured()) return phoneByUserId
 

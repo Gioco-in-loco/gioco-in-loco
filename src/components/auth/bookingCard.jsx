@@ -11,6 +11,8 @@ export function formatReservationStatus(status) {
       return { label: 'In attesa', className: 'border-amber-200 bg-amber-50 text-amber-700' }
     case 'ATTENDED':
       return { label: 'Partecipata', className: 'border-sky-200 bg-sky-50 text-sky-700' }
+    case 'NO_SHOW':
+      return { label: 'Assente', className: 'border-red-200 bg-red-50 text-red-600' }
     case 'CANCELLED':
       return { label: 'Cancellata', className: 'border-slate-200 bg-slate-100 text-slate-600' }
     default:
@@ -30,6 +32,8 @@ export function formatCompanionStatus(status) {
     case 'CONFIRMED':
     case 'ATTENDED':
       return { label: 'Confermato', className: 'border-emerald-200 bg-emerald-50 text-emerald-700' }
+    case 'NO_SHOW':
+      return { label: 'Assente', className: 'border-red-200 bg-red-50 text-red-600' }
     default:
       return { label: status || 'Sconosciuto', className: 'border-editorial-border bg-editorial-bg/60 text-editorial-text-secondary' }
   }
