@@ -12,7 +12,9 @@ Dalla cartella del progetto:
 npm run db:backup
 ```
 
-Lo script si collega al database usando le variabili d'ambiente già presenti in `.env`/`.env.local` (`DATABASE_URL`), non serve configurare altro.
+Lo script si collega al database usando le variabili d'ambiente già presenti in `.env`/`.env.local` (`DATABASE_URL`), non serve configurare altro — lo script `npm run db:backup` le carica da solo (via `tsx --env-file-if-exists`).
+
+> Se lo lanci direttamente con `tsx scripts/backup-database.ts` (saltando `npm run`), niente carica `.env`/`.env.local` e otterrai `error: Environment variable not found: DATABASE_URL.`: usa sempre `npm run db:backup`, oppure aggiungi tu i flag `--env-file-if-exists=.env --env-file-if-exists=.env.local` prima del path dello script.
 
 Ogni esecuzione crea una nuova cartella con timestamp:
 
