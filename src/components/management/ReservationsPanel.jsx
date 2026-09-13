@@ -286,7 +286,7 @@ export default function ReservationsPanel({ oneshot, itemEndpointBase, addPlayer
                                 onClick={() => handleReservationAction(reservation.id, 'CONFIRMED')}
                                 className="rounded-lg border border-amber-200 px-3 py-2 font-body text-xs font-semibold text-amber-700 transition-colors hover:bg-amber-50 disabled:opacity-50"
                               >
-                                Segna non presente
+                                Annulla presenza
                               </button>
                             ) : null}
                             {canToggleAttendance && reservation.status === 'NO_SHOW' ? (
