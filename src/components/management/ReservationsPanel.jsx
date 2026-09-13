@@ -34,6 +34,11 @@ function formatReservationDate(value) {
 
 const EMPTY_ADD_FORM = { playerName: '', playerEmail: '', notes: '' }
 
+// Stati assegnabili dal pannello presenze in blocco — CANCELLED/HOLD/EXPIRED/
+// INVITED restano fuori: sono cicli di vita (carrello, invito amico,
+// annullamento con motivo) non gestibili da una semplice tendina di stato.
+const ATTENDANCE_STATUSES = ['PENDING', 'CONFIRMED', 'ATTENDED', 'NO_SHOW']
+
 export default function ReservationsPanel({ oneshot, itemEndpointBase, addPlayerEndpoint = null, canManageReservations, canMarkAttendance, canDeleteReservations = false, hideSlotHeader = false, hideSensitiveFields = false, onRefresh }) {
   const canToggleAttendance = canManageReservations || canMarkAttendance
   const toast = useToast()
@@ -48,6 +53,15 @@ export default function ReservationsPanel({ oneshot, itemEndpointBase, addPlayer
   const [addForm, setAddForm] = useState(EMPTY_ADD_FORM)
   const [addingPlayer, setAddingPlayer] = useState(false)
   const [addError, setAddError] = useState('')
+
+  const [showAttendanceForm, setShowAttendanceForm] = useState(false)
+  const [attendanceDraft, setAttendanceDraft] = useState({})
+  const [savingAttendance, setSavingAttendance] = useState(false)
+  const [attendanceError, setAttendanceError] = useState('')
+
+  const attendanceReservations = oneshot.slots.flatMap((slot) => (slot.reservations || [])
+    .filter((reservation) => ATTENDANCE_STATUSES.includes(reservation.status))
+    .map((reservation) => ({ ...reservation, slotDay: slot.day, slotTime: slot.slot, slotTable: slot.table })))
 
   const handleAddPlayer = async (event) => {
     event.preventDefault()
@@ -78,7 +92,7 @@ export default function ReservationsPanel({ oneshot, itemEndpointBase, addPlayer
     }
   }
 
-  const handleReservationAction = async (reservationId, status, cancellationReason = '') => {
+  const handleCancelReservation = async (reservationId, cancellationReason) => {
     setPendingReservationId(reservationId)
     setError('')
 
@@ -86,7 +100,7 @@ export default function ReservationsPanel({ oneshot, itemEndpointBase, addPlayer
       const response = await fetch(`${itemEndpointBase}/${oneshot.id}/reservations/${reservationId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status, cancellationReason }),
+        body: JSON.stringify({ status: 'CANCELLED', cancellationReason }),
       })
 
       const payload = await response.json().catch(() => ({}))
@@ -97,15 +111,7 @@ export default function ReservationsPanel({ oneshot, itemEndpointBase, addPlayer
       setCancelReasonReservationId(null)
       setCancelReason('')
       await onRefresh()
-      toast.success(
-        status === 'CANCELLED'
-          ? 'Prenotazione annullata.'
-          : status === 'ATTENDED'
-            ? 'Presenza confermata.'
-            : status === 'NO_SHOW'
-              ? 'Assenza registrata.'
-              : 'Stato prenotazione aggiornato.',
-      )
+      toast.success('Prenotazione annullata.')
     } catch (reservationError) {
       const message = reservationError.message || 'Aggiornamento prenotazione non riuscito.'
       setError(message)
@@ -139,6 +145,54 @@ export default function ReservationsPanel({ oneshot, itemEndpointBase, addPlayer
     }
   }
 
+  const openAttendanceForm = () => {
+    const draft = {}
+    for (const reservation of attendanceReservations) draft[reservation.id] = reservation.status
+    setAttendanceDraft(draft)
+    setAttendanceError('')
+    setShowAttendanceForm(true)
+  }
+
+  const handleSaveAttendance = async () => {
+    const changes = attendanceReservations.filter((reservation) => (
+      attendanceDraft[reservation.id] && attendanceDraft[reservation.id] !== reservation.status
+    ))
+
+    if (changes.length === 0) {
+      setShowAttendanceForm(false)
+      return
+    }
+
+    setSavingAttendance(true)
+    setAttendanceError('')
+
+    try {
+      const responses = await Promise.all(changes.map((reservation) => fetch(
+        `${itemEndpointBase}/${oneshot.id}/reservations/${reservation.id}`,
+        {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: attendanceDraft[reservation.id] }),
+        },
+      )))
+
+      const failedCount = responses.filter((response) => !response.ok).length
+      if (failedCount > 0) {
+        throw new Error(`Aggiornamento non riuscito per ${failedCount} giocator${failedCount === 1 ? 'e' : 'i'}.`)
+      }
+
+      setShowAttendanceForm(false)
+      await onRefresh()
+      toast.success(`Stato aggiornato per ${changes.length} giocator${changes.length === 1 ? 'e' : 'i'}.`)
+    } catch (attendanceSaveError) {
+      const message = attendanceSaveError.message || 'Aggiornamento presenze non riuscito.'
+      setAttendanceError(message)
+      toast.error(message)
+    } finally {
+      setSavingAttendance(false)
+    }
+  }
+
   return (
     <section className="space-y-4 border-t border-editorial-border pt-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -156,6 +210,15 @@ export default function ReservationsPanel({ oneshot, itemEndpointBase, addPlayer
               className="rounded-lg border border-editorial-terra px-3 py-1.5 font-body text-xs font-semibold text-editorial-terra transition-colors hover:bg-editorial-terra/10"
             >
               {showAddForm ? 'Annulla' : '+ Aggiungi giocatore'}
+            </button>
+          ) : null}
+          {canToggleAttendance ? (
+            <button
+              type="button"
+              onClick={() => (showAttendanceForm ? setShowAttendanceForm(false) : openAttendanceForm())}
+              className="rounded-lg border border-emerald-300 px-3 py-1.5 font-body text-xs font-semibold text-emerald-700 transition-colors hover:bg-emerald-50"
+            >
+              {showAttendanceForm ? 'Annulla' : 'Segna presente'}
             </button>
           ) : null}
         </div>
@@ -203,6 +266,58 @@ export default function ReservationsPanel({ oneshot, itemEndpointBase, addPlayer
         </form>
       ) : null}
 
+      {canToggleAttendance && showAttendanceForm ? (
+        <div className="space-y-3 rounded-xl border border-emerald-300 bg-emerald-50/40 p-4">
+          {attendanceError ? <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 font-body text-sm text-red-600">{attendanceError}</p> : null}
+
+          {attendanceReservations.length === 0 ? (
+            <p className="font-body text-sm text-editorial-text-muted">Nessun giocatore a cui assegnare uno stato.</p>
+          ) : (
+            <div className="space-y-2">
+              {attendanceReservations.map((reservation) => (
+                <div key={reservation.id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-editorial-border bg-white p-3">
+                  <div className="min-w-0">
+                    <p className="font-body text-sm font-semibold text-editorial-text">
+                      {hideSensitiveFields ? (reservation.nickname ? `@${reservation.nickname}` : 'Nickname non disponibile') : (reservation.playerName || 'Nome non disponibile')}
+                    </p>
+                    {hideSlotHeader ? null : (
+                      <p className="font-body text-xs text-editorial-text-muted">{reservation.slotDay} · {reservation.slotTime} · {reservation.slotTable}</p>
+                    )}
+                  </div>
+                  <select
+                    className="rounded-lg border border-editorial-border px-3 py-1.5 font-body text-sm text-editorial-text outline-none focus:border-editorial-terra focus:ring-2 focus:ring-editorial-terra/10"
+                    value={attendanceDraft[reservation.id] || reservation.status}
+                    onChange={(event) => setAttendanceDraft((current) => ({ ...current, [reservation.id]: event.target.value }))}
+                  >
+                    {ATTENDANCE_STATUSES.map((status) => (
+                      <option key={status} value={status}>{formatReservationStatus(status)}</option>
+                    ))}
+                  </select>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="flex flex-wrap justify-end gap-2 pt-1">
+            <button
+              type="button"
+              onClick={() => setShowAttendanceForm(false)}
+              className="rounded-lg border border-editorial-border px-4 py-2 font-body text-sm font-semibold text-editorial-text transition-colors hover:border-editorial-terra"
+            >
+              Annulla
+            </button>
+            <button
+              type="button"
+              disabled={savingAttendance || attendanceReservations.length === 0}
+              onClick={handleSaveAttendance}
+              className="rounded-lg bg-editorial-terra px-4 py-2 font-body text-sm font-semibold text-white transition-colors hover:bg-editorial-terra/90 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {savingAttendance ? 'Salvo...' : 'Salva presenze'}
+            </button>
+          </div>
+        </div>
+      ) : null}
+
       {error ? <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 font-body text-sm text-red-600">{error}</p> : null}
 
       {oneshot.slots.length === 0 ? (
@@ -247,58 +362,8 @@ export default function ReservationsPanel({ oneshot, itemEndpointBase, addPlayer
                           ) : null}
                           {reservation.notes ? <p className="whitespace-pre-line font-body text-xs text-editorial-text-muted">Note: {reservation.notes}</p> : null}
                         </div>
-                        {canManageReservations || canMarkAttendance || canDeleteReservations ? (
+                        {canManageReservations || canDeleteReservations ? (
                           <div className="flex flex-wrap gap-2 lg:justify-end">
-                            {canManageReservations && reservation.status !== 'CONFIRMED' && reservation.status !== 'ATTENDED' && reservation.status !== 'NO_SHOW' ? (
-                              <button
-                                type="button"
-                                disabled={pendingReservationId === reservation.id}
-                                onClick={() => handleReservationAction(reservation.id, 'CONFIRMED')}
-                                className="rounded-lg border border-editorial-border px-3 py-2 font-body text-xs font-semibold text-editorial-text transition-colors hover:border-editorial-terra disabled:opacity-50"
-                              >
-                                Conferma
-                              </button>
-                            ) : null}
-                            {canToggleAttendance && reservation.status !== 'ATTENDED' ? (
-                              <button
-                                type="button"
-                                disabled={pendingReservationId === reservation.id}
-                                onClick={() => handleReservationAction(reservation.id, 'ATTENDED')}
-                                className="rounded-lg border border-emerald-200 px-3 py-2 font-body text-xs font-semibold text-emerald-700 transition-colors hover:bg-emerald-50 disabled:opacity-50"
-                              >
-                                Segna presente
-                              </button>
-                            ) : null}
-                            {canToggleAttendance && reservation.status !== 'NO_SHOW' ? (
-                              <button
-                                type="button"
-                                disabled={pendingReservationId === reservation.id}
-                                onClick={() => handleReservationAction(reservation.id, 'NO_SHOW')}
-                                className="rounded-lg border border-red-200 px-3 py-2 font-body text-xs font-semibold text-red-600 transition-colors hover:bg-red-50 disabled:opacity-50"
-                              >
-                                Segna assente
-                              </button>
-                            ) : null}
-                            {canToggleAttendance && reservation.status === 'ATTENDED' ? (
-                              <button
-                                type="button"
-                                disabled={pendingReservationId === reservation.id}
-                                onClick={() => handleReservationAction(reservation.id, 'CONFIRMED')}
-                                className="rounded-lg border border-amber-200 px-3 py-2 font-body text-xs font-semibold text-amber-700 transition-colors hover:bg-amber-50 disabled:opacity-50"
-                              >
-                                Annulla presenza
-                              </button>
-                            ) : null}
-                            {canToggleAttendance && reservation.status === 'NO_SHOW' ? (
-                              <button
-                                type="button"
-                                disabled={pendingReservationId === reservation.id}
-                                onClick={() => handleReservationAction(reservation.id, 'CONFIRMED')}
-                                className="rounded-lg border border-amber-200 px-3 py-2 font-body text-xs font-semibold text-amber-700 transition-colors hover:bg-amber-50 disabled:opacity-50"
-                              >
-                                Annulla assenza
-                              </button>
-                            ) : null}
                             {canManageReservations ? (
                               <button
                                 type="button"
@@ -355,7 +420,7 @@ export default function ReservationsPanel({ oneshot, itemEndpointBase, addPlayer
                             <button
                               type="button"
                               disabled={pendingReservationId === reservation.id}
-                              onClick={() => handleReservationAction(reservation.id, 'CANCELLED', cancelReason)}
+                              onClick={() => handleCancelReservation(reservation.id, cancelReason)}
                               className="rounded-lg bg-red-600 px-3 py-2 font-body text-xs font-semibold text-white transition-colors hover:bg-red-700 disabled:opacity-50"
                             >
                               Conferma annullamento
