@@ -1,5 +1,6 @@
 import { cache } from 'react'
 import { prisma } from './prisma'
+import { getStartOfTodayUtc } from './rome-datetime'
 
 const globalForUpcomingEvent = globalThis
 
@@ -12,7 +13,7 @@ export async function fetchUpcomingEvent() {
     return null
   }
 
-  const now = new Date()
+  const today = getStartOfTodayUtc()
 
   let event
 
@@ -27,11 +28,11 @@ export async function fetchUpcomingEvent() {
         "endDate"
       FROM events
       WHERE (
-        ("endDate" IS NOT NULL AND "endDate" >= ${now})
+        ("endDate" IS NOT NULL AND "endDate" >= ${today})
         OR (
           "endDate" IS NULL
           AND "startDate" IS NOT NULL
-          AND "startDate" >= ${now}
+          AND "startDate" >= ${today}
         )
       )
       ORDER BY "startDate" ASC

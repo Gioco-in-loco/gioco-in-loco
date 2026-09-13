@@ -1,19 +1,22 @@
 import { prisma } from './prisma'
 import { cancelUserMainEventReservation } from './main-event-booking'
 import { resolveBookingScheduleRange } from './booking-schedule'
+import { getStartOfTodayUtc } from './rome-datetime'
 
 const DAY_ORDER = ['Lunedi', 'Martedi', 'Mercoledi', 'Giovedi', 'Venerdi', 'Sabato', 'Domenica', 'Giovedì', 'Venerdì']
 const ACCOUNT_BOOKING_VISIBLE_STATUSES = ['PENDING', 'CONFIRMED', 'ATTENDED', 'NO_SHOW', 'CANCELLED']
 export const ACCOUNT_BOOKING_ACTIVE_STATUSES = ['PENDING', 'CONFIRMED', 'ATTENDED', 'NO_SHOW']
 
 function getUpcomingEventWhere(now) {
+  const today = getStartOfTodayUtc(now)
+
   return {
     OR: [
-      { endDate: { gte: now } },
+      { endDate: { gte: today } },
       {
         AND: [
           { endDate: null },
-          { startDate: { gte: now } },
+          { startDate: { gte: today } },
         ],
       },
     ],
@@ -111,7 +114,7 @@ function getEventSummary(event) {
 }
 
 function getUpcomingLinkedEvent(eventLinks) {
-  const now = new Date()
+  const today = getStartOfTodayUtc()
 
   return eventLinks
     .map((link) => link.event)
@@ -119,11 +122,11 @@ function getUpcomingLinkedEvent(eventLinks) {
       if (!event) return false
 
       if (event.endDate) {
-        return event.endDate >= now
+        return event.endDate >= today
       }
 
       if (event.startDate) {
-        return event.startDate >= now
+        return event.startDate >= today
       }
 
       return false

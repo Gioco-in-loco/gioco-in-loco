@@ -50,6 +50,27 @@ export function parseRomeDateTimeLocal(value) {
   return zonedTimeToUtc(Number(y), Number(m), Number(d), Number(hh), Number(mm))
 }
 
+// Start of "today" (Europe/Rome) expressed as UTC midnight of that calendar
+// date — the same shape of Date that `new Date('YYYY-MM-DD')` produces for
+// an admin-entered <input type="date"> value. Event start/end dates are
+// date-only and stored that way, so checking them against this boundary
+// (instead of the exact current instant) keeps the current day itself
+// included: an event ending "today" stays valid for all of today, not just
+// until midnight UTC.
+export function getStartOfTodayUtc(now = new Date()) {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: ROME_TIME_ZONE,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(now).reduce((acc, part) => {
+    acc[part.type] = part.value
+    return acc
+  }, {})
+
+  return new Date(Date.UTC(Number(parts.year), Number(parts.month) - 1, Number(parts.day)))
+}
+
 // Converts a stored UTC instant back into a "YYYY-MM-DDTHH:mm" string in
 // Europe/Rome wall-clock time, for pre-filling a datetime-local input when
 // editing — the counterpart to parseRomeDateTimeLocal.

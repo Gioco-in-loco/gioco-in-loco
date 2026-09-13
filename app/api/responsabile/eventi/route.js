@@ -1,18 +1,19 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '../../../../src/lib/prisma'
 import { requireResponsabileApi } from '../../../../src/lib/admin-guard'
+import { getStartOfTodayUtc } from '../../../../src/lib/rome-datetime'
 
 export async function GET() {
   const { error, status } = await requireResponsabileApi()
   if (error) return NextResponse.json({ error }, { status })
 
-  const now = new Date()
+  const today = getStartOfTodayUtc()
 
   const events = await prisma.event.findMany({
     where: {
       OR: [
-        { endDate: { gte: now } },
-        { endDate: null, OR: [{ startDate: { gte: now } }, { startDate: null }] },
+        { endDate: { gte: today } },
+        { endDate: null, OR: [{ startDate: { gte: today } }, { startDate: null }] },
       ],
     },
     orderBy: { startDate: 'asc' },
