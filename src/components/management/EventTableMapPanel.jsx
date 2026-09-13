@@ -69,13 +69,13 @@ export default function EventTableMapPanel({
   const [filters, setFilters] = useState(EMPTY_FILTERS)
   const [showBookingLockDialog, setShowBookingLockDialog] = useState(false)
 
-  const loadSlots = useCallback(async () => {
+  const loadSlots = useCallback(async ({ silent = false } = {}) => {
     if (!eventId) { setSlots([]); return [] }
-    setLoadingSlots(true)
+    if (!silent) setLoadingSlots(true)
     const res = await fetch(`${slotsEndpointBase}/${eventId}/slots`)
     const data = res.ok ? await res.json() : []
     setSlots(data)
-    setLoadingSlots(false)
+    if (!silent) setLoadingSlots(false)
     return data
   }, [eventId, slotsEndpointBase])
 
@@ -84,8 +84,11 @@ export default function EventTableMapPanel({
   // Rinfresca i dati dello slot mostrati dietro la dialog (mappa tavoli,
   // conteggio prenotati) senza chiuderla — a differenza di onChanged, usato
   // dopo assegnazioni/modifiche che concludono l'interazione con lo slot.
+  // silent: true perché la dialog resta aperta (es. dopo "Segna presente"),
+  // altrimenti la mappa sotto sparirebbe dietro "Caricamento mappa..." ad
+  // ogni azione pur non essendo lei a doverlo mostrare.
   const refreshSlotsKeepingSelection = useCallback(async () => {
-    const data = await loadSlots()
+    const data = await loadSlots({ silent: true })
     setSelectedSlot((current) => (current ? data.find((s) => s.id === current.id) || current : current))
   }, [loadSlots])
 

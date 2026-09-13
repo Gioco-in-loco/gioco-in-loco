@@ -357,7 +357,7 @@ export async function getConfirmedEventBookingSummary({
     db.mainEventReservation.findMany({
       where: {
         userId,
-        status: 'PENDING',
+        status: 'CONFIRMED',
         ...(normalizedMainEventReservationIds ? { id: { in: normalizedMainEventReservationIds } } : {}),
         eventId,
       },
